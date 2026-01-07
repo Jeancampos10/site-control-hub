@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { HardHat, Plus, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,15 +10,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
 
-const apontadoresData = [
+interface ApontadorData {
+  matricula: string;
+  nome: string;
+  sobrenome: string;
+  email: string;
+  status: string;
+  registrosHoje: string;
+}
+
+const apontadorFields: FormField[] = [
+  { key: 'matricula', label: 'Matrícula', required: true },
+  { key: 'nome', label: 'Nome', required: true },
+  { key: 'sobrenome', label: 'Sobrenome', required: true },
+  { key: 'email', label: 'Email', type: 'email' },
+  { key: 'status', label: 'Status' },
+];
+
+const initialData: ApontadorData[] = [
   {
     matricula: "APT-001",
     nome: "Maria",
     sobrenome: "Santos",
     email: "maria.santos@obra.com",
     status: "ativo",
-    registrosHoje: 45,
+    registrosHoje: "45",
   },
   {
     matricula: "APT-002",
@@ -25,7 +44,7 @@ const apontadoresData = [
     sobrenome: "Silva",
     email: "carlos.silva@obra.com",
     status: "ativo",
-    registrosHoje: 38,
+    registrosHoje: "38",
   },
   {
     matricula: "APT-003",
@@ -33,7 +52,7 @@ const apontadoresData = [
     sobrenome: "Pedro",
     email: "joao.pedro@obra.com",
     status: "ativo",
-    registrosHoje: 52,
+    registrosHoje: "52",
   },
   {
     matricula: "APT-004",
@@ -41,7 +60,7 @@ const apontadoresData = [
     sobrenome: "Oliveira",
     email: "ana.oliveira@obra.com",
     status: "inativo",
-    registrosHoje: 0,
+    registrosHoje: "0",
   },
 ];
 
@@ -51,6 +70,43 @@ const statusConfig = {
 };
 
 export default function Apontadores() {
+  const [apontadores, setApontadores] = useState<ApontadorData[]>(initialData);
+  const [editingItem, setEditingItem] = useState<ApontadorData | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
+
+  const ativos = apontadores.filter(a => a.status === 'ativo').length;
+  const inativos = apontadores.filter(a => a.status === 'inativo').length;
+  const totalRegistros = apontadores.reduce((acc, a) => acc + (parseInt(a.registrosHoje) || 0), 0);
+
+  const handleEdit = (item: ApontadorData) => {
+    setEditingItem(item);
+    setIsNew(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({ matricula: '', nome: '', sobrenome: '', email: '', status: 'ativo', registrosHoje: '0' });
+    setIsNew(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = (data: ApontadorData) => {
+    if (isNew) {
+      setApontadores([...apontadores, { ...data, registrosHoje: '0' }]);
+    } else {
+      setApontadores(apontadores.map(a => 
+        a.matricula === editingItem?.matricula ? { ...a, ...data } : a
+      ));
+    }
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (data: ApontadorData) => {
+    setApontadores(apontadores.filter(a => a.matricula !== data.matricula));
+    setIsDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -69,7 +125,11 @@ export default function Apontadores() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Apontador
           </Button>
@@ -80,14 +140,14 @@ export default function Apontadores() {
       <div className="flex flex-wrap gap-4">
         <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
           <div className="h-2 w-2 rounded-full bg-success" />
-          <span className="text-sm font-medium">3 Ativos</span>
+          <span className="text-sm font-medium">{ativos} Ativos</span>
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
           <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-          <span className="text-sm font-medium">1 Inativo</span>
+          <span className="text-sm font-medium">{inativos} Inativo</span>
         </div>
         <div className="ml-auto flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-2">
-          <span className="text-sm font-medium text-accent">135 registros hoje</span>
+          <span className="text-sm font-medium text-accent">{totalRegistros} registros hoje</span>
         </div>
       </div>
 
@@ -106,8 +166,8 @@ export default function Apontadores() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {apontadoresData.map((row, idx) => {
-                const initials = `${row.nome[0]}${row.sobrenome[0]}`;
+              {apontadores.map((row, idx) => {
+                const initials = `${row.nome[0] || ''}${row.sobrenome[0] || ''}`;
 
                 return (
                   <TableRow key={idx} className="data-table-row">
@@ -129,12 +189,17 @@ export default function Apontadores() {
                     <TableCell className="text-muted-foreground">{row.email}</TableCell>
                     <TableCell className="text-right font-medium">{row.registrosHoje}</TableCell>
                     <TableCell>
-                      <span className={statusConfig[row.status as keyof typeof statusConfig].className}>
-                        {statusConfig[row.status as keyof typeof statusConfig].label}
+                      <span className={statusConfig[row.status as keyof typeof statusConfig]?.className || ''}>
+                        {statusConfig[row.status as keyof typeof statusConfig]?.label || row.status}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(row)}
+                      >
                         <Settings className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -145,6 +210,17 @@ export default function Apontadores() {
           </Table>
         </div>
       </div>
+
+      <EditDialog
+        title="Apontador"
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={editingItem}
+        fields={apontadorFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }

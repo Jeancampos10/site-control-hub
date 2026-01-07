@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Truck, Plus, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,47 @@ import {
 import { useGoogleSheets, CaminhaoRow } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
+
+const caminhaoFields: FormField[] = [
+  { key: 'Prefixo_Cb', label: 'Prefixo', required: true },
+  { key: 'Descricao_Cb', label: 'Descrição', required: true },
+  { key: 'Motorista', label: 'Motorista' },
+  { key: 'Marca', label: 'Marca' },
+  { key: 'Potencia', label: 'Potência' },
+  { key: 'Volume', label: 'Volume' },
+  { key: 'Empresa_Cb', label: 'Empresa' },
+];
 
 export default function Caminhoes() {
   const { data: caminhoesData, isLoading, error, refetch } = useGoogleSheets<CaminhaoRow>('caminhao');
+  const [editingItem, setEditingItem] = useState<CaminhaoRow | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
   const totalCaminhoes = caminhoesData?.length || 0;
+
+  const handleEdit = (item: CaminhaoRow) => {
+    setEditingItem(item);
+    setIsNew(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({} as CaminhaoRow);
+    setIsNew(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = (data: CaminhaoRow) => {
+    console.log('Saving:', data);
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (data: CaminhaoRow) => {
+    console.log('Deleting:', data);
+    setIsDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +72,11 @@ export default function Caminhoes() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Caminhão
           </Button>
@@ -86,7 +127,12 @@ export default function Caminhoes() {
                       <TableCell>{row.Volume}</TableCell>
                       <TableCell>{row.Empresa_Cb}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(row)}
+                        >
                           <Settings className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -104,6 +150,17 @@ export default function Caminhoes() {
           </div>
         </div>
       )}
+
+      <EditDialog
+        title="Caminhão"
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={editingItem}
+        fields={caminhaoFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }
