@@ -1,4 +1,5 @@
-import { Droplets, Plus, Filter, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Droplets, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -10,14 +11,23 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity, Clock } from "lucide-react";
-import { useGoogleSheets, ApontamentoPipaRow } from "@/hooks/useGoogleSheets";
+import { useGoogleSheets, ApontamentoPipaRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Pipas() {
-  const { data: pipasData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { data: allData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
 
-  // Calculate KPIs
+  // Filter data by selected date
+  const pipasData = useMemo(() => {
+    return filterByDate(allData, selectedDate);
+  }, [allData, selectedDate]);
+
+  // Calculate KPIs from filtered data
   const pipasAtivas = new Set(pipasData?.map(row => row.Prefixo).filter(Boolean)).size;
   const totalViagens = pipasData?.reduce((acc, row) => {
     const viagens = parseInt(row.N_Viagens) || 0;
@@ -29,6 +39,8 @@ export default function Pipas() {
     return acc + (capacidade * viagens);
   }, 0) || 0;
 
+  const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -39,14 +51,11 @@ export default function Pipas() {
             Apontamento Pipas
           </h1>
           <p className="page-subtitle">
-            Controle de caminhões pipa e abastecimento de água
+            Controle de caminhões pipa • {formattedDate}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </Button>
+          <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
@@ -63,14 +72,14 @@ export default function Pipas() {
         <KPICard
           title="Pipas"
           value={pipasAtivas}
-          subtitle="Utilizadas"
+          subtitle="Utilizadas hoje"
           icon={Truck}
           variant="accent"
         />
         <KPICard
           title="Total Viagens"
           value={totalViagens}
-          subtitle="Registradas"
+          subtitle="Hoje"
           icon={Activity}
           variant="primary"
         />
@@ -84,7 +93,7 @@ export default function Pipas() {
         <KPICard
           title="Registros"
           value={pipasData?.length || 0}
-          subtitle="Total"
+          subtitle="Hoje"
           icon={Clock}
           variant="default"
         />
@@ -100,6 +109,10 @@ export default function Pipas() {
         />
       ) : (
         <div className="chart-container overflow-hidden">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold">Carregamentos do Dia</h3>
+            <p className="text-sm text-muted-foreground">{pipasData?.length || 0} registros</p>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -117,7 +130,7 @@ export default function Pipas() {
               </TableHeader>
               <TableBody>
                 {pipasData && pipasData.length > 0 ? (
-                  pipasData.slice(0, 50).map((row, idx) => (
+                  pipasData.map((row, idx) => (
                     <TableRow key={idx} className="data-table-row">
                       <TableCell className="font-medium">{row.Data}</TableCell>
                       <TableCell className="font-semibold text-info">{row.Prefixo}</TableCell>
@@ -135,7 +148,7 @@ export default function Pipas() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      Nenhum registro encontrado
+                      Nenhum registro encontrado para hoje
                     </TableCell>
                   </TableRow>
                 )}

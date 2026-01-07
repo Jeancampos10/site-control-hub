@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { HardHat, Plus, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,49 @@ import {
 import { useGoogleSheets, EquipamentoRow } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
+
+const equipamentoFields: FormField[] = [
+  { key: 'Prefixo_Eq', label: 'Prefixo', required: true },
+  { key: 'Descricao_Eq', label: 'Descrição', required: true },
+  { key: 'Operador', label: 'Operador' },
+  { key: 'Marca', label: 'Marca' },
+  { key: 'Potencia', label: 'Potência' },
+  { key: 'Empresa_Eq', label: 'Empresa' },
+];
 
 export default function Equipamentos() {
   const { data: equipamentosData, isLoading, error, refetch } = useGoogleSheets<EquipamentoRow>('equipamentos');
+  const [editingItem, setEditingItem] = useState<EquipamentoRow | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
   const totalEquipamentos = equipamentosData?.length || 0;
+
+  const handleEdit = (item: EquipamentoRow) => {
+    setEditingItem(item);
+    setIsNew(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({} as EquipamentoRow);
+    setIsNew(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = (data: EquipamentoRow) => {
+    // In a real app, this would update the Google Sheet
+    console.log('Saving:', data);
+    // For now, just close the dialog
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (data: EquipamentoRow) => {
+    // In a real app, this would delete from the Google Sheet
+    console.log('Deleting:', data);
+    setIsDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +74,11 @@ export default function Equipamentos() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Equipamento
           </Button>
@@ -84,7 +127,12 @@ export default function Equipamentos() {
                       <TableCell>{row.Potencia}</TableCell>
                       <TableCell>{row.Empresa_Eq}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(row)}
+                        >
                           <Settings className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -102,6 +150,17 @@ export default function Equipamentos() {
           </div>
         </div>
       )}
+
+      <EditDialog
+        title="Equipamento"
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={editingItem}
+        fields={equipamentoFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }
