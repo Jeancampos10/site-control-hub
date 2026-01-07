@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Truck, Box, HardHat, MapPin, Activity, Package } from "lucide-react";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
@@ -5,15 +6,21 @@ import { LocalChart } from "@/components/dashboard/LocalChart";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DataTable } from "@/components/dashboard/DataTable";
 import { FilterBar } from "@/components/dashboard/FilterBar";
-import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow } from "@/hooks/useGoogleSheets";
-import { useMemo } from "react";
+import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
 
 export default function Dashboard() {
-  const { data: cargaData } = useGoogleSheets<CargaRow>('carga');
+  const [selectedDate] = useState<Date>(new Date()); // Default to today
+  
+  const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
   const { data: equipamentosData } = useGoogleSheets<EquipamentoRow>('equipamentos');
   const { data: caminhoesData } = useGoogleSheets<CaminhaoRow>('caminhao');
 
-  // Calculate KPIs from real data
+  // Filter carga data by today's date
+  const cargaData = useMemo(() => {
+    return filterByDate(allCargaData, selectedDate);
+  }, [allCargaData, selectedDate]);
+
+  // Calculate KPIs from filtered data (today only)
   const kpis = useMemo(() => {
     const totalViagens = cargaData?.reduce((acc, row) => {
       const viagens = parseInt(row.N_Viagens) || 0;
@@ -46,9 +53,9 @@ export default function Dashboard() {
     };
   }, [cargaData, equipamentosData, caminhoesData]);
 
-  // Calculate material by excavator table
+  // Calculate material by excavator table (today's data)
   const materialByExcavatorData = useMemo(() => {
-    if (!cargaData) return [];
+    if (!cargaData || cargaData.length === 0) return [];
 
     const grouped: Record<string, Record<string, number>> = {};
 
@@ -77,9 +84,9 @@ export default function Dashboard() {
     });
   }, [cargaData]);
 
-  // Calculate location by excavator table
+  // Calculate location by excavator table (today's data)
   const locationByExcavatorData = useMemo(() => {
-    if (!cargaData) return [];
+    if (!cargaData || cargaData.length === 0) return [];
 
     const grouped: Record<string, Record<string, number>> = {};
 
@@ -110,7 +117,7 @@ export default function Dashboard() {
 
   // Dynamic columns for material table
   const materialColumns = useMemo((): Array<{ key: string; label: string; className?: string }> => {
-    if (!cargaData) return [{ key: "escavadeira", label: "Escavadeira" }];
+    if (!cargaData || cargaData.length === 0) return [{ key: "escavadeira", label: "Escavadeira" }];
     
     const materials = new Set(cargaData.map(row => row.Material).filter(Boolean));
     const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
@@ -129,7 +136,7 @@ export default function Dashboard() {
 
   // Dynamic columns for location table
   const locationColumns = useMemo((): Array<{ key: string; label: string; className?: string }> => {
-    if (!cargaData) return [{ key: "escavadeira", label: "Escavadeira" }];
+    if (!cargaData || cargaData.length === 0) return [{ key: "escavadeira", label: "Escavadeira" }];
     
     const locations = new Set(cargaData.map(row => row.Local_da_Obra).filter(Boolean));
     const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
@@ -152,7 +159,7 @@ export default function Dashboard() {
       <div className="page-header">
         <h1 className="page-title">Dashboard Geral</h1>
         <p className="page-subtitle">
-          Visão executiva das operações de terraplenagem em tempo real
+          Visão executiva das operações de terraplenagem • Dados de hoje
         </p>
       </div>
 
@@ -164,14 +171,14 @@ export default function Dashboard() {
         <KPICard
           title="Total de Viagens"
           value={kpis.totalViagens.toLocaleString('pt-BR')}
-          subtitle="Registradas"
+          subtitle="Hoje"
           icon={Activity}
           variant="accent"
         />
         <KPICard
           title="Volume Total"
           value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
-          subtitle="Movimentado"
+          subtitle="Movimentado hoje"
           icon={Box}
           variant="primary"
         />
@@ -192,7 +199,7 @@ export default function Dashboard() {
         <KPICard
           title="Materiais"
           value={kpis.materiaisDoDia}
-          subtitle="Tipos diferentes"
+          subtitle="Tipos hoje"
           icon={Package}
           variant="default"
         />
@@ -215,13 +222,13 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <DataTable
           title="Escavadeira × Material"
-          subtitle="Produção por tipo de material"
+          subtitle="Produção do dia por tipo de material"
           columns={materialColumns}
           data={materialByExcavatorData}
         />
         <DataTable
           title="Escavadeira × Local"
-          subtitle="Produção por área de trabalho"
+          subtitle="Produção do dia por área de trabalho"
           columns={locationColumns}
           data={locationByExcavatorData}
         />

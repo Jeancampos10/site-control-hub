@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 
 type SheetName = 
   | 'carga' 
@@ -41,6 +42,38 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
     refetchOnWindowFocus: false,
     retry: 2,
   });
+}
+
+// Helper to filter data by date
+export function filterByDate<T extends { Data?: string }>(
+  data: T[] | undefined,
+  dateFilter: Date | null
+): T[] {
+  if (!data) return [];
+  if (!dateFilter) return data;
+
+  // Format date to match the spreadsheet format (DD/MM/YYYY)
+  const formattedDate = format(dateFilter, 'dd/MM/yyyy');
+  
+  return data.filter(row => {
+    if (!row.Data) return false;
+    // Handle different date formats
+    const rowDate = row.Data.trim();
+    return rowDate === formattedDate || 
+           rowDate.startsWith(formattedDate) ||
+           normalizeDate(rowDate) === normalizeDate(formattedDate);
+  });
+}
+
+// Normalize date string to compare
+function normalizeDate(dateStr: string): string {
+  // Try to extract DD/MM/YYYY pattern
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+  }
+  return dateStr;
 }
 
 // Type definitions for each sheet
