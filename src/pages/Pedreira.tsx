@@ -10,65 +10,25 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Box, Activity } from "lucide-react";
-
-const pedreiraData = [
-  {
-    data: "07/01/2026",
-    hora: "07:30",
-    ordem: "001",
-    fornecedor: "Pedreira Sul",
-    prefixoEq: "CR-001",
-    descricaoEq: "Volvo FMX 460",
-    empresaEq: "TransPedra",
-    motorista: "José Carlos",
-    placa: "ABC-1234",
-    material: "Brita 1",
-    pesoVazio: "18.500 kg",
-    pesoFinal: "45.200 kg",
-    pesoLiquido: "26.700 kg",
-    metroCubico: "17.8 m³",
-    densidade: "1.50",
-    tonelada: "26.7 t",
-  },
-  {
-    data: "07/01/2026",
-    hora: "08:15",
-    ordem: "002",
-    fornecedor: "Pedreira Norte",
-    prefixoEq: "CR-003",
-    descricaoEq: "Scania G460",
-    empresaEq: "LogPedra",
-    motorista: "Roberto Silva",
-    placa: "DEF-5678",
-    material: "Rachão",
-    pesoVazio: "19.200 kg",
-    pesoFinal: "48.500 kg",
-    pesoLiquido: "29.300 kg",
-    metroCubico: "19.5 m³",
-    densidade: "1.50",
-    tonelada: "29.3 t",
-  },
-  {
-    data: "07/01/2026",
-    hora: "09:00",
-    ordem: "003",
-    fornecedor: "Pedreira Sul",
-    prefixoEq: "CR-002",
-    descricaoEq: "Mercedes Actros",
-    empresaEq: "TransPedra",
-    motorista: "Antonio Souza",
-    placa: "GHI-9012",
-    material: "Brita 0",
-    pesoVazio: "18.800 kg",
-    pesoFinal: "43.600 kg",
-    pesoLiquido: "24.800 kg",
-    metroCubico: "16.5 m³",
-    densidade: "1.50",
-    tonelada: "24.8 t",
-  },
-];
+import { useGoogleSheets, ApontamentoPedreiraRow } from "@/hooks/useGoogleSheets";
+import { TableLoader } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function Pedreira() {
+  const { data: pedreiraData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPedreiraRow>('apontamento_pedreira');
+
+  // Calculate KPIs
+  const totalRegistros = pedreiraData?.length || 0;
+  const pesoTotal = pedreiraData?.reduce((acc, row) => {
+    const peso = parseFloat(row.Tonelada) || 0;
+    return acc + peso;
+  }, 0) || 0;
+  const volumeTotal = pedreiraData?.reduce((acc, row) => {
+    const vol = parseFloat(row.Metro_Cubico) || 0;
+    return acc + vol;
+  }, 0) || 0;
+  const veiculosAtivos = new Set(pedreiraData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -102,80 +62,102 @@ export default function Pedreira() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Carregamentos"
-          value="42"
-          subtitle="Hoje"
+          value={totalRegistros}
+          subtitle="Total"
           icon={Activity}
           variant="accent"
         />
         <KPICard
           title="Peso Total"
-          value="1.120 t"
+          value={`${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`}
           subtitle="Transportado"
           icon={Box}
           variant="primary"
         />
         <KPICard
           title="Volume"
-          value="746 m³"
+          value={`${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m³`}
           subtitle="Material"
           icon={Mountain}
           variant="success"
         />
         <KPICard
-          title="Caminhões"
-          value="8"
-          subtitle="Em operação"
+          title="Veículos"
+          value={veiculosAtivos}
+          subtitle="Utilizados"
           icon={Truck}
           variant="default"
         />
       </div>
 
       {/* Data Table */}
-      <div className="chart-container overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="data-table-header">Data</TableHead>
-                <TableHead className="data-table-header">Hora</TableHead>
-                <TableHead className="data-table-header">Ordem</TableHead>
-                <TableHead className="data-table-header">Fornecedor</TableHead>
-                <TableHead className="data-table-header">Veículo</TableHead>
-                <TableHead className="data-table-header">Motorista</TableHead>
-                <TableHead className="data-table-header">Material</TableHead>
-                <TableHead className="data-table-header text-right">P. Vazio</TableHead>
-                <TableHead className="data-table-header text-right">P. Final</TableHead>
-                <TableHead className="data-table-header text-right">P. Líquido</TableHead>
-                <TableHead className="data-table-header text-right">m³</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pedreiraData.map((row, idx) => (
-                <TableRow key={idx} className="data-table-row">
-                  <TableCell className="font-medium">{row.data}</TableCell>
-                  <TableCell>{row.hora}</TableCell>
-                  <TableCell className="font-semibold text-primary">#{row.ordem}</TableCell>
-                  <TableCell>{row.fornecedor}</TableCell>
-                  <TableCell>
-                    <div>
-                      <span className="font-medium">{row.prefixoEq}</span>
-                      <p className="text-xs text-muted-foreground">{row.placa}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{row.motorista}</TableCell>
-                  <TableCell>
-                    <span className="status-badge bg-accent/10 text-accent">{row.material}</span>
-                  </TableCell>
-                  <TableCell className="text-right">{row.pesoVazio}</TableCell>
-                  <TableCell className="text-right">{row.pesoFinal}</TableCell>
-                  <TableCell className="text-right font-semibold">{row.pesoLiquido}</TableCell>
-                  <TableCell className="text-right">{row.metroCubico}</TableCell>
+      {isLoading ? (
+        <TableLoader />
+      ) : error ? (
+        <ErrorState 
+          message="Não foi possível buscar os dados da planilha."
+          onRetry={() => refetch()} 
+        />
+      ) : (
+        <div className="chart-container overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="data-table-header">Data</TableHead>
+                  <TableHead className="data-table-header">Hora</TableHead>
+                  <TableHead className="data-table-header">Ordem</TableHead>
+                  <TableHead className="data-table-header">Fornecedor</TableHead>
+                  <TableHead className="data-table-header">Veículo</TableHead>
+                  <TableHead className="data-table-header">Motorista</TableHead>
+                  <TableHead className="data-table-header">Material</TableHead>
+                  <TableHead className="data-table-header text-right">P. Vazio</TableHead>
+                  <TableHead className="data-table-header text-right">P. Final</TableHead>
+                  <TableHead className="data-table-header text-right">P. Líquido</TableHead>
+                  <TableHead className="data-table-header text-right">m³</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pedreiraData && pedreiraData.length > 0 ? (
+                  pedreiraData.slice(0, 50).map((row, idx) => (
+                    <TableRow key={idx} className="data-table-row">
+                      <TableCell className="font-medium">{row.Data}</TableCell>
+                      <TableCell>{row.Hora}</TableCell>
+                      <TableCell className="font-semibold text-primary">#{row.Ordem_Carregamento}</TableCell>
+                      <TableCell>{row.Fornecedor}</TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="font-medium">{row.Prefixo_Eq}</span>
+                          <p className="text-xs text-muted-foreground">{row.Placa}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{row.Motorista}</TableCell>
+                      <TableCell>
+                        <span className="status-badge bg-accent/10 text-accent">{row.Material}</span>
+                      </TableCell>
+                      <TableCell className="text-right">{row.Peso_Vazio}</TableCell>
+                      <TableCell className="text-right">{row.Peso_Final}</TableCell>
+                      <TableCell className="text-right font-semibold">{row.Peso_Liquido}</TableCell>
+                      <TableCell className="text-right">{row.Metro_Cubico}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                      Nenhum registro encontrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {pedreiraData && pedreiraData.length > 50 && (
+            <div className="border-t border-border/50 px-4 py-3 text-center text-sm text-muted-foreground">
+              Exibindo 50 de {pedreiraData.length} registros
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

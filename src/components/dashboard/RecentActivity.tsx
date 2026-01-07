@@ -1,55 +1,32 @@
-import { Upload, Download, Truck, Clock } from "lucide-react";
+import { Upload, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CargaRow } from "@/hooks/useGoogleSheets";
+import { useMemo } from "react";
 
-const activities = [
-  {
-    id: 1,
-    type: "carga",
-    icon: Upload,
-    description: "Carregamento EX-003 → CB-012",
-    detail: "Rachão • 12m³",
-    time: "há 5 min",
-    user: "Carlos Silva",
-  },
-  {
-    id: 2,
-    type: "descarga",
-    icon: Download,
-    description: "Descarga CB-008 no Aterro Central",
-    detail: "Argila • 8m³",
-    time: "há 12 min",
-    user: "Maria Santos",
-  },
-  {
-    id: 3,
-    type: "carga",
-    icon: Upload,
-    description: "Carregamento EX-001 → CB-015",
-    detail: "Bota-fora • 15m³",
-    time: "há 18 min",
-    user: "João Pedro",
-  },
-  {
-    id: 4,
-    type: "frota",
-    icon: Truck,
-    description: "CB-020 iniciou operação",
-    detail: "Trecho Norte",
-    time: "há 25 min",
-    user: "Sistema",
-  },
-  {
-    id: 5,
-    type: "descarga",
-    icon: Download,
-    description: "Descarga CB-012 na Estaca 145",
-    detail: "Rachão • 12m³",
-    time: "há 32 min",
-    user: "Carlos Silva",
-  },
-];
+interface RecentActivityProps {
+  cargaData: CargaRow[];
+}
 
-export function RecentActivity() {
+export function RecentActivity({ cargaData }: RecentActivityProps) {
+  const activities = useMemo(() => {
+    if (!cargaData || cargaData.length === 0) return [];
+
+    // Get the last 5 entries
+    return cargaData
+      .slice(-10)
+      .reverse()
+      .slice(0, 5)
+      .map((row, idx) => ({
+        id: idx,
+        type: "carga" as const,
+        icon: Upload,
+        description: `Carregamento ${row.Prefixo_Eq} → ${row.Prefixo_Cb}`,
+        detail: `${row.Material} • ${row.Volume_Total} m³`,
+        time: `${row.Data} ${row.Hora_Carga}`,
+        user: row.Usuario || 'Sistema',
+      }));
+  }, [cargaData]);
+
   return (
     <div className="chart-container animate-slide-up">
       <div className="mb-4 flex items-center justify-between">
@@ -62,36 +39,40 @@ export function RecentActivity() {
         </button>
       </div>
       <div className="space-y-3">
-        {activities.map((activity) => (
-          <div
-            key={activity.id}
-            className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/30 p-3 transition-colors hover:bg-muted/50"
-          >
+        {activities.length > 0 ? (
+          activities.map((activity) => (
             <div
-              className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                activity.type === "carga" && "bg-success/10 text-success",
-                activity.type === "descarga" && "bg-info/10 text-info",
-                activity.type === "frota" && "bg-accent/10 text-accent"
-              )}
+              key={activity.id}
+              className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/30 p-3 transition-colors hover:bg-muted/50"
             >
-              <activity.icon className="h-4 w-4" />
+              <div
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                  "bg-success/10 text-success"
+                )}
+              >
+                <activity.icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {activity.description}
+                </p>
+                <p className="text-xs text-muted-foreground">{activity.detail}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {activity.time}
+                </p>
+                <p className="text-xs text-muted-foreground">{activity.user}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {activity.description}
-              </p>
-              <p className="text-xs text-muted-foreground">{activity.detail}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {activity.time}
-              </p>
-              <p className="text-xs text-muted-foreground">{activity.user}</p>
-            </div>
+          ))
+        ) : (
+          <div className="flex h-24 items-center justify-center text-muted-foreground">
+            Carregando atividades...
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
