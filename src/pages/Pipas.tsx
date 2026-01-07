@@ -10,44 +10,25 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity, Clock } from "lucide-react";
-
-const pipasData = [
-  {
-    data: "07/01/2026",
-    prefixo: "PP-001",
-    descricao: "Mercedes Atego Pipa",
-    empresa: "AguaVia",
-    motorista: "Pedro Henrique",
-    capacidade: "15.000 L",
-    horaChegada: "07:00",
-    horaSaida: "17:30",
-    nViagens: 8,
-  },
-  {
-    data: "07/01/2026",
-    prefixo: "PP-002",
-    descricao: "Volkswagen Constellation Pipa",
-    empresa: "HidroServ",
-    motorista: "Lucas Santos",
-    capacidade: "20.000 L",
-    horaChegada: "06:30",
-    horaSaida: "17:00",
-    nViagens: 6,
-  },
-  {
-    data: "07/01/2026",
-    prefixo: "PP-003",
-    descricao: "Ford Cargo Pipa",
-    empresa: "AguaVia",
-    motorista: "Marcos Lima",
-    capacidade: "12.000 L",
-    horaChegada: "07:30",
-    horaSaida: "16:30",
-    nViagens: 10,
-  },
-];
+import { useGoogleSheets, ApontamentoPipaRow } from "@/hooks/useGoogleSheets";
+import { TableLoader } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function Pipas() {
+  const { data: pipasData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
+
+  // Calculate KPIs
+  const pipasAtivas = new Set(pipasData?.map(row => row.Prefixo).filter(Boolean)).size;
+  const totalViagens = pipasData?.reduce((acc, row) => {
+    const viagens = parseInt(row.N_Viagens) || 0;
+    return acc + viagens;
+  }, 0) || 0;
+  const volumeAgua = pipasData?.reduce((acc, row) => {
+    const capacidade = parseInt(row.Capacidade?.replace(/\D/g, '')) || 0;
+    const viagens = parseInt(row.N_Viagens) || 0;
+    return acc + (capacidade * viagens);
+  }, 0) || 0;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -80,72 +61,94 @@ export default function Pipas() {
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Pipas Ativas"
-          value="3"
-          subtitle="Em operação"
+          title="Pipas"
+          value={pipasAtivas}
+          subtitle="Utilizadas"
           icon={Truck}
           variant="accent"
         />
         <KPICard
           title="Total Viagens"
-          value="24"
-          subtitle="Hoje"
+          value={totalViagens}
+          subtitle="Registradas"
           icon={Activity}
           variant="primary"
         />
         <KPICard
           title="Volume Água"
-          value="376.000 L"
-          subtitle="Transportado"
+          value={`${volumeAgua.toLocaleString('pt-BR')} L`}
+          subtitle="Estimado"
           icon={Droplets}
           variant="success"
         />
         <KPICard
-          title="Horas Operadas"
-          value="30h"
-          subtitle="Acumulado"
+          title="Registros"
+          value={pipasData?.length || 0}
+          subtitle="Total"
           icon={Clock}
           variant="default"
         />
       </div>
 
       {/* Data Table */}
-      <div className="chart-container overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="data-table-header">Data</TableHead>
-                <TableHead className="data-table-header">Prefixo</TableHead>
-                <TableHead className="data-table-header">Descrição</TableHead>
-                <TableHead className="data-table-header">Empresa</TableHead>
-                <TableHead className="data-table-header">Motorista</TableHead>
-                <TableHead className="data-table-header">Capacidade</TableHead>
-                <TableHead className="data-table-header">Chegada</TableHead>
-                <TableHead className="data-table-header">Saída</TableHead>
-                <TableHead className="data-table-header text-right">Viagens</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pipasData.map((row, idx) => (
-                <TableRow key={idx} className="data-table-row">
-                  <TableCell className="font-medium">{row.data}</TableCell>
-                  <TableCell className="font-semibold text-info">{row.prefixo}</TableCell>
-                  <TableCell>{row.descricao}</TableCell>
-                  <TableCell>{row.empresa}</TableCell>
-                  <TableCell>{row.motorista}</TableCell>
-                  <TableCell>
-                    <span className="status-badge bg-info/10 text-info">{row.capacidade}</span>
-                  </TableCell>
-                  <TableCell>{row.horaChegada}</TableCell>
-                  <TableCell>{row.horaSaida}</TableCell>
-                  <TableCell className="text-right font-semibold">{row.nViagens}</TableCell>
+      {isLoading ? (
+        <TableLoader />
+      ) : error ? (
+        <ErrorState 
+          message="Não foi possível buscar os dados da planilha."
+          onRetry={() => refetch()} 
+        />
+      ) : (
+        <div className="chart-container overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="data-table-header">Data</TableHead>
+                  <TableHead className="data-table-header">Prefixo</TableHead>
+                  <TableHead className="data-table-header">Descrição</TableHead>
+                  <TableHead className="data-table-header">Empresa</TableHead>
+                  <TableHead className="data-table-header">Motorista</TableHead>
+                  <TableHead className="data-table-header">Capacidade</TableHead>
+                  <TableHead className="data-table-header">Chegada</TableHead>
+                  <TableHead className="data-table-header">Saída</TableHead>
+                  <TableHead className="data-table-header text-right">Viagens</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pipasData && pipasData.length > 0 ? (
+                  pipasData.slice(0, 50).map((row, idx) => (
+                    <TableRow key={idx} className="data-table-row">
+                      <TableCell className="font-medium">{row.Data}</TableCell>
+                      <TableCell className="font-semibold text-info">{row.Prefixo}</TableCell>
+                      <TableCell>{row.Descricao}</TableCell>
+                      <TableCell>{row.Empresa}</TableCell>
+                      <TableCell>{row.Motorista}</TableCell>
+                      <TableCell>
+                        <span className="status-badge bg-info/10 text-info">{row.Capacidade}</span>
+                      </TableCell>
+                      <TableCell>{row.Hora_Chegada}</TableCell>
+                      <TableCell>{row.Hora_Saida}</TableCell>
+                      <TableCell className="text-right font-semibold">{row.N_Viagens}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                      Nenhum registro encontrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {pipasData && pipasData.length > 50 && (
+            <div className="border-t border-border/50 px-4 py-3 text-center text-sm text-muted-foreground">
+              Exibindo 50 de {pipasData.length} registros
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
