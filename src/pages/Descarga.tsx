@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Download, Plus, Filter, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,21 +11,35 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Box, Truck, Activity } from "lucide-react";
-import { useGoogleSheets, DescargaRow } from "@/hooks/useGoogleSheets";
+import { useGoogleSheets, DescargaRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Descarga() {
-  const { data: descargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
+  const [selectedDate] = useState<Date>(new Date()); // Default to today
+  const { data: allDescargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
 
-  // Calculate KPIs
+  // Filter data by selected date
+  const descargaData = useMemo(() => {
+    return filterByDate(allDescargaData, selectedDate);
+  }, [allDescargaData, selectedDate]);
+
+  // Calculate KPIs from filtered data
   const totalRegistros = descargaData?.length || 0;
+  const totalViagens = descargaData?.reduce((acc, row) => {
+    const viagens = parseInt(row.N_Viagens) || 0;
+    return acc + viagens;
+  }, 0) || 0;
   const volumeTotal = descargaData?.reduce((acc, row) => {
     const vol = parseFloat(row.Volume_Total) || 0;
     return acc + vol;
   }, 0) || 0;
   const locaisAtivos = new Set(descargaData?.map(row => row.Local_da_Obra).filter(Boolean)).size;
   const caminhoesAtivos = new Set(descargaData?.map(row => row.Prefixo_Cb).filter(Boolean)).size;
+
+  const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
   return (
     <div className="space-y-6">
@@ -36,7 +51,7 @@ export default function Descarga() {
             Registro de Descarga
           </h1>
           <p className="page-subtitle">
-            Acompanhamento de descargas por caminhão e local
+            Acompanhamento de descargas • {formattedDate}
           </p>
         </div>
         <div className="flex gap-2">
@@ -65,24 +80,24 @@ export default function Descarga() {
           variant="accent"
         />
         <KPICard
+          title="Total Viagens"
+          value={totalViagens}
+          subtitle="Hoje"
+          icon={Truck}
+          variant="primary"
+        />
+        <KPICard
           title="Volume Total"
-          value={`${volumeTotal.toLocaleString('pt-BR')} m³`}
+          value={`${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
           subtitle="Descarregado"
           icon={Box}
-          variant="primary"
+          variant="success"
         />
         <KPICard
           title="Locais Ativos"
           value={locaisAtivos}
-          subtitle="Recebendo material"
+          subtitle={`${caminhoesAtivos} caminhões`}
           icon={Download}
-          variant="success"
-        />
-        <KPICard
-          title="Caminhões"
-          value={caminhoesAtivos}
-          subtitle="Operando"
-          icon={Truck}
           variant="default"
         />
       </div>
@@ -97,6 +112,11 @@ export default function Descarga() {
         />
       ) : (
         <div className="chart-container overflow-hidden">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {totalRegistros} registros encontrados para hoje
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -140,7 +160,7 @@ export default function Descarga() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
-                      Nenhum registro encontrado
+                      Nenhum registro encontrado para hoje
                     </TableCell>
                   </TableRow>
                 )}

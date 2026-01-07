@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Upload, Plus, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,21 +11,35 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Box, Truck, Activity } from "lucide-react";
-import { useGoogleSheets, CargaRow } from "@/hooks/useGoogleSheets";
+import { useGoogleSheets, CargaRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Carga() {
-  const { data: cargaData, isLoading, error, refetch } = useGoogleSheets<CargaRow>('carga');
+  const [selectedDate] = useState<Date>(new Date()); // Default to today
+  const { data: allCargaData, isLoading, error, refetch } = useGoogleSheets<CargaRow>('carga');
 
-  // Calculate KPIs
+  // Filter data by selected date
+  const cargaData = useMemo(() => {
+    return filterByDate(allCargaData, selectedDate);
+  }, [allCargaData, selectedDate]);
+
+  // Calculate KPIs from filtered data
   const totalRegistros = cargaData?.length || 0;
+  const totalViagens = cargaData?.reduce((acc, row) => {
+    const viagens = parseInt(row.N_Viagens) || 0;
+    return acc + viagens;
+  }, 0) || 0;
   const volumeTotal = cargaData?.reduce((acc, row) => {
     const vol = parseFloat(row.Volume_Total) || 0;
     return acc + vol;
   }, 0) || 0;
   const escavadeirasAtivas = new Set(cargaData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
   const caminhoesAtivos = new Set(cargaData?.map(row => row.Prefixo_Cb).filter(Boolean)).size;
+
+  const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
   return (
     <div className="space-y-6">
@@ -36,7 +51,7 @@ export default function Carga() {
             Registro de Carga
           </h1>
           <p className="page-subtitle">
-            Acompanhamento de carregamentos por escavadeira
+            Acompanhamento de carregamentos • {formattedDate}
           </p>
         </div>
         <div className="flex gap-2">
@@ -65,24 +80,24 @@ export default function Carga() {
           variant="accent"
         />
         <KPICard
+          title="Total Viagens"
+          value={totalViagens}
+          subtitle="Hoje"
+          icon={Truck}
+          variant="primary"
+        />
+        <KPICard
           title="Volume Total"
-          value={`${volumeTotal.toLocaleString('pt-BR')} m³`}
+          value={`${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
           subtitle="Carregado"
           icon={Box}
-          variant="primary"
+          variant="success"
         />
         <KPICard
           title="Escavadeiras"
           value={escavadeirasAtivas}
-          subtitle="Em operação"
+          subtitle={`${caminhoesAtivos} caminhões`}
           icon={Upload}
-          variant="success"
-        />
-        <KPICard
-          title="Caminhões"
-          value={caminhoesAtivos}
-          subtitle="Carregados"
-          icon={Truck}
           variant="default"
         />
       </div>
@@ -97,6 +112,11 @@ export default function Carga() {
         />
       ) : (
         <div className="chart-container overflow-hidden">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {totalRegistros} registros encontrados para hoje
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -150,7 +170,7 @@ export default function Carga() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
-                      Nenhum registro encontrado
+                      Nenhum registro encontrado para hoje
                     </TableCell>
                   </TableRow>
                 )}
