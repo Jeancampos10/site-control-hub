@@ -12,11 +12,12 @@ interface SheetRange {
   [key: string]: string;
 }
 
+// Use sheet names without special characters - encode them properly
 const SHEET_RANGES: SheetRange = {
   carga: 'Carga!A:U',
   descarga: 'Descarga!A:O',
   equipamentos: 'Equipamentos!A:F',
-  caminhao: 'Caminhão!A:G',
+  caminhao: 'Caminhao!A:G', // Removed accent - check actual sheet name
   cam_reboque: 'Cam_Reboque!A:I',
   caminhao_pipa: 'Caminhao_Pipa!A:G',
   apontamento_pedreira: 'Apontamento_Pedreira!A:Q',
@@ -26,23 +27,38 @@ const SHEET_RANGES: SheetRange = {
 async function fetchSheetData(sheetName: string): Promise<any[]> {
   const range = SHEET_RANGES[sheetName];
   if (!range) {
-    throw new Error(`Sheet "${sheetName}" not found`);
+    throw new Error(`Sheet "${sheetName}" not found. Available: ${Object.keys(SHEET_RANGES).join(', ')}`);
   }
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_SHEETS_API_KEY}`;
   
-  console.log(`Fetching data from: ${sheetName}`);
+  console.log(`Fetching data from: ${sheetName} (range: ${range})`);
   
   const response = await fetch(url);
   
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`Google Sheets API error: ${response.status} - ${errorText}`);
+    
+    // If the sheet name with accent fails, try alternative names
+    if (response.status === 400 && sheetName === 'caminhao') {
+      console.log('Trying alternative sheet name: Caminhão');
+      const altUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent('Caminhão!A:G')}?key=${GOOGLE_SHEETS_API_KEY}`;
+      const altResponse = await fetch(altUrl);
+      if (altResponse.ok) {
+        const data = await altResponse.json();
+        return processSheetData(data, sheetName);
+      }
+    }
+    
     throw new Error(`Failed to fetch sheet data: ${response.status}`);
   }
 
   const data = await response.json();
-  
+  return processSheetData(data, sheetName);
+}
+
+function processSheetData(data: any, sheetName: string): any[] {
   if (!data.values || data.values.length === 0) {
     console.log(`No data found in sheet: ${sheetName}`);
     return [];
@@ -77,7 +93,7 @@ serve(async (req) => {
 
     if (!sheet) {
       return new Response(
-        JSON.stringify({ error: 'Missing "sheet" parameter' }),
+        JSON.stringify({ error: 'Missing "sheet" parameter', available: Object.keys(SHEET_RANGES) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

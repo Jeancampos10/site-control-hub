@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 type SheetName = 
   | 'carga' 
@@ -17,17 +16,10 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
     queryFn: async (): Promise<T[]> => {
       console.log(`Fetching ${sheetName} from Google Sheets...`);
       
-      const { data, error } = await supabase.functions.invoke('google-sheets', {
-        body: null,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Use query params approach
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
         {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             'Content-Type': 'application/json',
@@ -37,6 +29,7 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error fetching sheet:', errorData);
         throw new Error(errorData.error || 'Failed to fetch data');
       }
 
@@ -46,6 +39,7 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
+    retry: 2,
   });
 }
 
