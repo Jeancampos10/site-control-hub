@@ -1,8 +1,11 @@
-import { useMemo } from "react";
-import { Bell, AlertTriangle, CheckCircle, Clock, Filter, MapPin, Truck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bell, AlertTriangle, CheckCircle, Clock, MapPin, Truck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useGoogleSheets, CargaRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { toast } from "sonner";
+
+type AlertFilter = "all" | "criticos" | "atencao" | "resolvidos";
 
 interface AlertItem {
   id: number;
@@ -44,6 +47,8 @@ const tipoConfig = {
 
 export default function Alertas() {
   const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
+  const [filter, setFilter] = useState<AlertFilter>("all");
+  const [readAlerts, setReadAlerts] = useState<Set<number>>(new Set());
 
   // Filter today's data
   const todayData = useMemo(() => {
@@ -148,6 +153,47 @@ export default function Alertas() {
       }
     });
 
+    // 3. Check for apontador with unusual patterns (different from their normal entries)
+    const apontadorPatterns = new Map<string, Map<string, number>>();
+    
+    todayData.forEach(row => {
+      const apontador = row.Usuario;
+      const excavator = row.Prefixo_Eq;
+      
+      if (!apontador || !excavator) return;
+      
+      if (!apontadorPatterns.has(apontador)) {
+        apontadorPatterns.set(apontador, new Map());
+      }
+      
+      const patterns = apontadorPatterns.get(apontador)!;
+      patterns.set(excavator, (patterns.get(excavator) || 0) + 1);
+    });
+
+    // Find apontadores who registered very few entries on unusual equipment
+    apontadorPatterns.forEach((patterns, apontador) => {
+      if (patterns.size > 1) {
+        const sortedPatterns = Array.from(patterns.entries()).sort((a, b) => b[1] - a[1]);
+        const mainEquipment = sortedPatterns[0][0];
+        const mainCount = sortedPatterns[0][1];
+        
+        sortedPatterns.slice(1).forEach(([equipment, count]) => {
+          if (count <= 2 && mainCount >= 5) {
+            alerts.push({
+              id: alertId++,
+              tipo: "warning",
+              titulo: "Apontamento incomum",
+              descricao: `${apontador} registrou ${count} viagem(ns) em "${equipment}" diferente do equipamento usual "${mainEquipment}" (${mainCount}x). Verificar se correto.`,
+              local: equipment,
+              horario: "hoje",
+              status: "pendente",
+              prefixo: equipment,
+            });
+          }
+        });
+      }
+    });
+
     return alerts;
   }, [todayData]);
 
@@ -192,12 +238,38 @@ export default function Alertas() {
   ];
 
   // Combine generated and static alerts
-  const alertas = [...generatedAlerts, ...staticAlerts];
+  const allAlerts = [...generatedAlerts, ...staticAlerts];
+
+  // Apply read status
+  const alertas = allAlerts.map(alert => ({
+    ...alert,
+    status: readAlerts.has(alert.id) ? "resolvido" as const : alert.status,
+  }));
 
   const pendentes = alertas.filter((a) => a.status === "pendente").length;
   const criticos = alertas.filter((a) => a.tipo === "error" && a.status === "pendente").length;
   const atencao = alertas.filter((a) => a.tipo === "warning" && a.status === "pendente").length;
   const resolvidos = alertas.filter((a) => a.status === "resolvido").length;
+
+  // Filter alerts based on selected filter
+  const filteredAlerts = useMemo(() => {
+    switch (filter) {
+      case "criticos":
+        return alertas.filter(a => a.tipo === "error" && a.status === "pendente");
+      case "atencao":
+        return alertas.filter(a => a.tipo === "warning" && a.status === "pendente");
+      case "resolvidos":
+        return alertas.filter(a => a.status === "resolvido");
+      default:
+        return alertas;
+    }
+  }, [alertas, filter]);
+
+  const handleMarkAllRead = () => {
+    const pendingIds = alertas.filter(a => a.status === "pendente").map(a => a.id);
+    setReadAlerts(new Set([...readAlerts, ...pendingIds]));
+    toast.success("Todos os alertas foram marcados como lidos");
+  };
 
   return (
     <div className="space-y-6">
@@ -218,38 +290,65 @@ export default function Alertas() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filtrar
-          </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
             Marcar todos como lidos
           </Button>
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Summary - Now clickable as filters */}
       <div className="flex flex-wrap gap-4">
-        {criticos > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2">
-            <div className="h-2 w-2 rounded-full bg-destructive" />
-            <span className="text-sm font-medium">{criticos} Crítico{criticos > 1 ? 's' : ''}</span>
-          </div>
+        <button
+          onClick={() => setFilter(filter === "criticos" ? "all" : "criticos")}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer",
+            filter === "criticos" 
+              ? "bg-destructive text-destructive-foreground ring-2 ring-destructive ring-offset-2" 
+              : "bg-destructive/10 hover:bg-destructive/20"
+          )}
+        >
+          <div className={cn("h-2 w-2 rounded-full", filter === "criticos" ? "bg-destructive-foreground" : "bg-destructive")} />
+          <span className="text-sm font-medium">{criticos} Crítico{criticos !== 1 ? 's' : ''}</span>
+        </button>
+
+        <button
+          onClick={() => setFilter(filter === "atencao" ? "all" : "atencao")}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer",
+            filter === "atencao" 
+              ? "bg-warning text-warning-foreground ring-2 ring-warning ring-offset-2" 
+              : "bg-warning/10 hover:bg-warning/20"
+          )}
+        >
+          <div className={cn("h-2 w-2 rounded-full", filter === "atencao" ? "bg-warning-foreground" : "bg-warning")} />
+          <span className="text-sm font-medium">{atencao} Atenção</span>
+        </button>
+
+        <button
+          onClick={() => setFilter(filter === "resolvidos" ? "all" : "resolvidos")}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer",
+            filter === "resolvidos" 
+              ? "bg-success text-success-foreground ring-2 ring-success ring-offset-2" 
+              : "bg-success/10 hover:bg-success/20"
+          )}
+        >
+          <div className={cn("h-2 w-2 rounded-full", filter === "resolvidos" ? "bg-success-foreground" : "bg-success")} />
+          <span className="text-sm font-medium">{resolvidos} Resolvido{resolvidos !== 1 ? 's' : ''}</span>
+        </button>
+
+        {filter !== "all" && (
+          <button
+            onClick={() => setFilter("all")}
+            className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80"
+          >
+            Limpar filtro
+          </button>
         )}
-        {atencao > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2">
-            <div className="h-2 w-2 rounded-full bg-warning" />
-            <span className="text-sm font-medium">{atencao} Atenção</span>
-          </div>
-        )}
-        <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-          <div className="h-2 w-2 rounded-full bg-success" />
-          <span className="text-sm font-medium">{resolvidos} Resolvido{resolvidos > 1 ? 's' : ''}</span>
-        </div>
       </div>
 
       {/* Generated Alerts Info */}
-      {generatedAlerts.length > 0 && (
+      {generatedAlerts.length > 0 && filter === "all" && (
         <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
           <div className="flex items-center gap-2 text-warning">
             <MapPin className="h-5 w-5" />
@@ -263,7 +362,7 @@ export default function Alertas() {
 
       {/* Alerts List */}
       <div className="space-y-3">
-        {alertas.map((alerta) => {
+        {filteredAlerts.map((alerta) => {
           const config = tipoConfig[alerta.tipo];
           const Icon = config.icon;
 
@@ -309,7 +408,7 @@ export default function Alertas() {
                         : "status-active"
                     )}
                   >
-                    {alerta.status === "pendente" ? "Pendente" : "Resolvido"}
+                    {alerta.status === "pendente" ? "Pendente" : "Lido"}
                   </span>
                 </div>
 
@@ -323,21 +422,19 @@ export default function Alertas() {
                   </span>
                 </div>
               </div>
-
-              {alerta.status === "pendente" && (
-                <Button variant="outline" size="sm" className="shrink-0">
-                  Resolver
-                </Button>
-              )}
             </div>
           );
         })}
 
-        {alertas.length === 0 && (
+        {filteredAlerts.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-xl bg-card p-12 text-center">
             <CheckCircle className="h-12 w-12 text-success mb-4" />
-            <h3 className="text-lg font-semibold">Tudo em ordem!</h3>
-            <p className="text-sm text-muted-foreground">Não há alertas pendentes no momento.</p>
+            <h3 className="text-lg font-semibold">
+              {filter !== "all" ? "Nenhum alerta nesta categoria" : "Tudo em ordem!"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {filter !== "all" ? "Tente mudar o filtro para ver outros alertas." : "Não há alertas pendentes no momento."}
+            </p>
           </div>
         )}
       </div>

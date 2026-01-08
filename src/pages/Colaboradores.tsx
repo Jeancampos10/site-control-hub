@@ -18,8 +18,10 @@ interface ColaboradorData {
   sobrenome: string;
   email: string;
   telefone: string;
+  whatsapp: string;
   perfil: string;
   status: string;
+  foto?: string;
 }
 
 const initialColaboradores: ColaboradorData[] = [
@@ -28,6 +30,7 @@ const initialColaboradores: ColaboradorData[] = [
     sobrenome: "Campos",
     email: "jean.campos@apropriapp.com",
     telefone: "(11) 99999-0001",
+    whatsapp: "(11) 99999-0001",
     perfil: "Administrador Principal",
     status: "ativo",
   },
@@ -36,6 +39,7 @@ const initialColaboradores: ColaboradorData[] = [
     sobrenome: "Santos",
     email: "maria.santos@obra.com",
     telefone: "(11) 99999-0002",
+    whatsapp: "(11) 99999-0002",
     perfil: "Administrador",
     status: "ativo",
   },
@@ -44,6 +48,7 @@ const initialColaboradores: ColaboradorData[] = [
     sobrenome: "Silva",
     email: "carlos.silva@obra.com",
     telefone: "(11) 99999-0003",
+    whatsapp: "(11) 99999-0003",
     perfil: "Colaborador",
     status: "ativo",
   },
@@ -52,6 +57,7 @@ const initialColaboradores: ColaboradorData[] = [
     sobrenome: "Pedro",
     email: "joao.pedro@obra.com",
     telefone: "(11) 99999-0004",
+    whatsapp: "(11) 99999-0004",
     perfil: "Colaborador",
     status: "ativo",
   },
@@ -60,6 +66,7 @@ const initialColaboradores: ColaboradorData[] = [
     sobrenome: "Costa",
     email: "ana.costa@obra.com",
     telefone: "(11) 99999-0005",
+    whatsapp: "(11) 99999-0005",
     perfil: "Visualização",
     status: "inativo",
   },
@@ -81,7 +88,8 @@ const colaboradorFields: FormField[] = [
   { key: "nome", label: "Nome", required: true },
   { key: "sobrenome", label: "Sobrenome", required: true },
   { key: "email", label: "Email", type: "email", required: true },
-  { key: "telefone", label: "Telefone" },
+  { key: "telefone", label: "Telefone", type: "tel" },
+  { key: "whatsapp", label: "WhatsApp", type: "tel" },
   { key: "perfil", label: "Perfil", required: true },
   { key: "status", label: "Status", required: true },
 ];
@@ -111,8 +119,10 @@ export default function Colaboradores() {
       sobrenome: "",
       email: "",
       telefone: "",
+      whatsapp: "",
       perfil: "Colaborador",
       status: "ativo",
+      foto: "",
     });
     setIsNew(true);
     setDialogOpen(true);
@@ -268,6 +278,7 @@ export default function Colaboradores() {
         onSave={handleSave}
         onDelete={handleDelete}
         isNew={isNew}
+        showPhoto={true}
       />
     </div>
   );

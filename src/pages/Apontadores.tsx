@@ -17,8 +17,10 @@ interface ApontadorData {
   nome: string;
   sobrenome: string;
   email: string;
+  whatsapp: string;
   status: string;
   registrosHoje: string;
+  foto?: string;
 }
 
 const apontadorFields: FormField[] = [
@@ -26,6 +28,7 @@ const apontadorFields: FormField[] = [
   { key: 'nome', label: 'Nome', required: true },
   { key: 'sobrenome', label: 'Sobrenome', required: true },
   { key: 'email', label: 'Email', type: 'email' },
+  { key: 'whatsapp', label: 'WhatsApp', type: 'tel' },
   { key: 'status', label: 'Status' },
 ];
 
@@ -35,6 +38,7 @@ const initialData: ApontadorData[] = [
     nome: "Maria",
     sobrenome: "Santos",
     email: "maria.santos@obra.com",
+    whatsapp: "(11) 99999-0001",
     status: "ativo",
     registrosHoje: "45",
   },
@@ -43,6 +47,7 @@ const initialData: ApontadorData[] = [
     nome: "Carlos",
     sobrenome: "Silva",
     email: "carlos.silva@obra.com",
+    whatsapp: "(11) 99999-0002",
     status: "ativo",
     registrosHoje: "38",
   },
@@ -51,6 +56,7 @@ const initialData: ApontadorData[] = [
     nome: "João",
     sobrenome: "Pedro",
     email: "joao.pedro@obra.com",
+    whatsapp: "(11) 99999-0003",
     status: "ativo",
     registrosHoje: "52",
   },
@@ -59,6 +65,7 @@ const initialData: ApontadorData[] = [
     nome: "Ana",
     sobrenome: "Oliveira",
     email: "ana.oliveira@obra.com",
+    whatsapp: "(11) 99999-0004",
     status: "inativo",
     registrosHoje: "0",
   },
@@ -86,7 +93,7 @@ export default function Apontadores() {
   };
 
   const handleNew = () => {
-    setEditingItem({ matricula: '', nome: '', sobrenome: '', email: '', status: 'ativo', registrosHoje: '0' });
+    setEditingItem({ matricula: '', nome: '', sobrenome: '', email: '', whatsapp: '', status: 'ativo', registrosHoje: '0', foto: '' });
     setIsNew(true);
     setIsDialogOpen(true);
   };
@@ -221,6 +228,7 @@ export default function Apontadores() {
         onSave={handleSave}
         onDelete={handleDelete}
         isNew={isNew}
+        showPhoto={true}
       />
     </div>
   );
