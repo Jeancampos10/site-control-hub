@@ -74,14 +74,15 @@ export default function Pedreira() {
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
   }, [pedreiraData]);
 
-  // Summary by company
+  // Summary by company (truck companies like Engemat, L. Pereira)
   const companySummary = useMemo((): CompanySummary[] => {
     if (!pedreiraData) return [];
     
     const grouped = new Map<string, { trucks: Set<string>; viagens: number }>();
     
     pedreiraData.forEach(row => {
-      const empresa = row.Fornecedor || 'Outros';
+      // Use Empresa_Eq (truck company) instead of Fornecedor
+      const empresa = row.Empresa_Eq || row.Fornecedor || 'Outros';
       
       if (!grouped.has(empresa)) {
         grouped.set(empresa, { trucks: new Set(), viagens: 0 });

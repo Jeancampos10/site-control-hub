@@ -53,7 +53,7 @@ export default function Dashboard() {
     };
   }, [cargaData, equipamentosData, caminhoesData]);
 
-  // Calculate material by excavator table (today's data)
+  // Calculate material by excavator table (today's data) - NOW WITH TRIP COUNTS
   const materialByExcavatorData = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
 
@@ -62,14 +62,14 @@ export default function Dashboard() {
     cargaData.forEach(row => {
       const escavadeira = row.Prefixo_Eq;
       const material = row.Material || 'Outros';
-      const volume = parseFloat(row.Volume_Total) || 0;
+      const viagens = parseInt(row.N_Viagens) || 1;
 
       if (!escavadeira) return;
 
       if (!grouped[escavadeira]) {
         grouped[escavadeira] = {};
       }
-      grouped[escavadeira][material] = (grouped[escavadeira][material] || 0) + volume;
+      grouped[escavadeira][material] = (grouped[escavadeira][material] || 0) + viagens;
     });
 
     return Object.entries(grouped).slice(0, 5).map(([escavadeira, materiais]) => {
@@ -77,14 +77,14 @@ export default function Dashboard() {
       return {
         escavadeira,
         ...Object.fromEntries(
-          Object.entries(materiais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ''), `${v.toFixed(0)} m³`])
+          Object.entries(materiais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ''), v])
         ),
-        total: `${total.toFixed(0)} m³`,
+        total,
       };
     });
   }, [cargaData]);
 
-  // Calculate location by excavator table (today's data)
+  // Calculate location by excavator table (today's data) - NOW WITH TRIP COUNTS
   const locationByExcavatorData = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
 
@@ -93,14 +93,14 @@ export default function Dashboard() {
     cargaData.forEach(row => {
       const escavadeira = row.Prefixo_Eq;
       const local = row.Local_da_Obra || 'Outros';
-      const volume = parseFloat(row.Volume_Total) || 0;
+      const viagens = parseInt(row.N_Viagens) || 1;
 
       if (!escavadeira) return;
 
       if (!grouped[escavadeira]) {
         grouped[escavadeira] = {};
       }
-      grouped[escavadeira][local] = (grouped[escavadeira][local] || 0) + volume;
+      grouped[escavadeira][local] = (grouped[escavadeira][local] || 0) + viagens;
     });
 
     return Object.entries(grouped).slice(0, 5).map(([escavadeira, locais]) => {
@@ -108,9 +108,9 @@ export default function Dashboard() {
       return {
         escavadeira,
         ...Object.fromEntries(
-          Object.entries(locais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, '_'), `${v.toFixed(0)} m³`])
+          Object.entries(locais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, '_'), v])
         ),
-        total: `${total.toFixed(0)} m³`,
+        total,
       };
     });
   }, [cargaData]);
@@ -222,13 +222,13 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <DataTable
           title="Escavadeira × Material"
-          subtitle="Produção do dia por tipo de material"
+          subtitle="Total de viagens por tipo de material"
           columns={materialColumns}
           data={materialByExcavatorData}
         />
         <DataTable
           title="Escavadeira × Local"
-          subtitle="Produção do dia por área de trabalho"
+          subtitle="Total de viagens por área de trabalho"
           columns={locationColumns}
           data={locationByExcavatorData}
         />
