@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Mountain, Plus, Filter, Download } from "lucide-react";
+import { Mountain, Plus, Download, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,11 +17,19 @@ import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface MaterialSummary {
   material: string;
   viagens: number;
   toneladas: number;
+}
+
+interface CompanySummary {
+  empresa: string;
+  caminhoes: number;
+  viagens: number;
 }
 
 export default function Pedreira() {
@@ -66,7 +74,106 @@ export default function Pedreira() {
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
   }, [pedreiraData]);
 
+  // Summary by company
+  const companySummary = useMemo((): CompanySummary[] => {
+    if (!pedreiraData) return [];
+    
+    const grouped = new Map<string, { trucks: Set<string>; viagens: number }>();
+    
+    pedreiraData.forEach(row => {
+      const empresa = row.Fornecedor || 'Outros';
+      
+      if (!grouped.has(empresa)) {
+        grouped.set(empresa, { trucks: new Set(), viagens: 0 });
+      }
+      
+      const summary = grouped.get(empresa)!;
+      summary.viagens += 1;
+      if (row.Prefixo_Eq) summary.trucks.add(row.Prefixo_Eq);
+    });
+    
+    return Array.from(grouped.entries()).map(([empresa, data]) => ({
+      empresa,
+      caminhoes: data.trucks.size,
+      viagens: data.viagens,
+    })).sort((a, b) => b.viagens - a.viagens);
+  }, [pedreiraData]);
+
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const dateStr = format(selectedDate, "dd/MM/yyyy");
+
+    // Header
+    doc.setFontSize(18);
+    doc.text('Relatório Diário - Pedreira', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Data: ${dateStr}`, 14, 30);
+    doc.text(`Total de Carregamentos: ${totalRegistros}`, 14, 36);
+    doc.text(`Peso Total: ${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`, 14, 42);
+    doc.text(`Volume Total: ${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m³`, 14, 48);
+
+    // Material Summary
+    doc.setFontSize(14);
+    doc.text('Resumo por Material', 14, 60);
+    
+    autoTable(doc, {
+      head: [['Material', 'Viagens', 'Toneladas']],
+      body: materialSummary.map(row => [
+        row.material,
+        row.viagens.toString(),
+        row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' t',
+      ]),
+      startY: 65,
+      theme: 'striped',
+    });
+
+    // Company Summary
+    const finalY1 = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 80;
+    doc.setFontSize(14);
+    doc.text('Resumo por Empresa', 14, finalY1 + 15);
+    
+    autoTable(doc, {
+      head: [['Empresa', 'Caminhões', 'Viagens']],
+      body: companySummary.map(row => [
+        row.empresa,
+        row.caminhoes.toString(),
+        row.viagens.toString(),
+      ]),
+      startY: finalY1 + 20,
+      theme: 'striped',
+    });
+
+    // Detailed records
+    const finalY2 = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 120;
+    
+    if (finalY2 > 220) {
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text('Registros Detalhados', 14, 22);
+    } else {
+      doc.setFontSize(14);
+      doc.text('Registros Detalhados', 14, finalY2 + 15);
+    }
+
+    autoTable(doc, {
+      head: [['Hora', 'Ordem', 'Veículo', 'Material', 'Peso Líq.', 'm³']],
+      body: (pedreiraData || []).map(row => [
+        row.Hora,
+        row.Ordem_Carregamento,
+        row.Prefixo_Eq,
+        row.Material,
+        row.Peso_Liquido,
+        row.Metro_Cubico,
+      ]),
+      startY: finalY2 > 220 ? 27 : finalY2 + 20,
+      theme: 'striped',
+      styles: { fontSize: 8 },
+    });
+
+    doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
+  };
 
   return (
     <div className="space-y-6">
@@ -83,9 +190,9 @@ export default function Pedreira() {
         </div>
         <div className="flex gap-2">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={exportToPDF}>
             <Download className="h-4 w-4" />
-            Exportar
+            Exportar PDF
           </Button>
           <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
             <Plus className="h-4 w-4" />
@@ -136,40 +243,81 @@ export default function Pedreira() {
         />
       ) : (
         <div className="space-y-6">
-          {/* Material Summary */}
-          <div className="chart-container">
-            <h3 className="mb-4 font-semibold">Resumo por Material</h3>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead className="data-table-header">Material</TableHead>
-                    <TableHead className="data-table-header text-right">Viagens</TableHead>
-                    <TableHead className="data-table-header text-right">Toneladas</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {materialSummary.length > 0 ? (
-                    materialSummary.map((row) => (
-                      <TableRow key={row.material} className="data-table-row">
-                        <TableCell>
-                          <span className="status-badge bg-accent/10 text-accent">{row.material}</span>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">{row.viagens}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t
+          {/* Summaries side by side */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Material Summary */}
+            <div className="chart-container">
+              <h3 className="mb-4 font-semibold">Resumo por Material</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead className="data-table-header">Material</TableHead>
+                      <TableHead className="data-table-header text-right">Viagens</TableHead>
+                      <TableHead className="data-table-header text-right">Toneladas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {materialSummary.length > 0 ? (
+                      materialSummary.map((row) => (
+                        <TableRow key={row.material} className="data-table-row">
+                          <TableCell>
+                            <span className="status-badge bg-accent/10 text-accent">{row.material}</span>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{row.viagens}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
+                          Nenhum registro encontrado
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
-                        Nenhum registro encontrado para hoje
-                      </TableCell>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Company Summary */}
+            <div className="chart-container">
+              <h3 className="mb-4 font-semibold flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Resumo por Empresa
+              </h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead className="data-table-header">Empresa</TableHead>
+                      <TableHead className="data-table-header text-right">Caminhões</TableHead>
+                      <TableHead className="data-table-header text-right">Viagens</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {companySummary.length > 0 ? (
+                      companySummary.map((row) => (
+                        <TableRow key={row.empresa} className="data-table-row">
+                          <TableCell>
+                            <span className="font-medium">{row.empresa}</span>
+                          </TableCell>
+                          <TableCell className="text-right">{row.caminhoes}</TableCell>
+                          <TableCell className="text-right font-semibold">{row.viagens}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
+                          Nenhum registro encontrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
 
@@ -219,7 +367,7 @@ export default function Pedreira() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                        Nenhum registro encontrado para hoje
+                        Nenhum registro encontrado para esta data
                       </TableCell>
                     </TableRow>
                   )}

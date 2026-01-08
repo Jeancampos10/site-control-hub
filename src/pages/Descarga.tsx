@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Download, Plus, Filter, FileDown } from "lucide-react";
+import { Download, Plus, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,11 +14,12 @@ import { Box, Truck, Activity } from "lucide-react";
 import { useGoogleSheets, DescargaRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { DateFilter } from "@/components/shared/DateFilter";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Descarga() {
-  const [selectedDate] = useState<Date>(new Date()); // Default to today
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { data: allDescargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
 
   // Filter data by selected date
@@ -55,10 +56,7 @@ export default function Descarga() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </Button>
+          <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           <Button variant="outline" size="sm" className="gap-2">
             <FileDown className="h-4 w-4" />
             Exportar
@@ -114,7 +112,7 @@ export default function Descarga() {
         <div className="chart-container overflow-hidden">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {totalRegistros} registros encontrados para hoje
+              {totalRegistros} registros encontrados
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -160,7 +158,7 @@ export default function Descarga() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
-                      Nenhum registro encontrado para hoje
+                      Nenhum registro encontrado para esta data
                     </TableCell>
                   </TableRow>
                 )}

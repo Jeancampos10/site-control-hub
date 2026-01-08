@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExcavatorProductionTable } from "@/components/carga/ExcavatorProductionTable";
 import { TopTrucksChart } from "@/components/carga/TopTrucksChart";
+import { TruckProductionTable } from "@/components/carga/TruckProductionTable";
 import { DateFilter } from "@/components/shared/DateFilter";
 
 export default function Carga() {
@@ -108,6 +109,9 @@ export default function Carga() {
 
           {/* Excavator Production Table */}
           <ExcavatorProductionTable cargaData={cargaData || []} />
+
+          {/* Truck Production Table */}
+          <TruckProductionTable cargaData={cargaData || []} />
         </div>
       )}
     </div>
