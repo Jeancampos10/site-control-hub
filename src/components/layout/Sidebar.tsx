@@ -17,6 +17,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -94,13 +95,11 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-          <Truck className="h-5 w-5 text-sidebar-primary-foreground" />
-        </div>
-        <div>
-          <h1 className="text-base font-bold text-sidebar-foreground">APROPRIAPP</h1>
-          <p className="text-[10px] text-sidebar-foreground/60">Gestão de Obras</p>
-        </div>
+        <img 
+          src={logoApropriapp} 
+          alt="ApropriAPP Logo" 
+          className="h-10 object-contain"
+        />
       </div>
 
       {/* Navigation */}
