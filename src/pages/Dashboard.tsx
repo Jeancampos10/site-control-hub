@@ -6,11 +6,13 @@ import { LocalChart } from "@/components/dashboard/LocalChart";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DataTable } from "@/components/dashboard/DataTable";
 import { FilterBar } from "@/components/dashboard/FilterBar";
+import { EmpresaDetailDialog } from "@/components/dashboard/EmpresaDetailDialog";
 import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedEmpresa, setSelectedEmpresa] = useState<string | null>(null);
   
   const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
   const { data: equipamentosData } = useGoogleSheets<EquipamentoRow>('equipamentos');
@@ -257,9 +259,10 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {resumoPorEmpresa.map((item) => (
-                <div 
-                  key={item.empresa} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                <button 
+                  key={item.empresa}
+                  onClick={() => setSelectedEmpresa(item.empresa)}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border hover:bg-muted hover:border-primary/50 transition-colors cursor-pointer text-left w-full"
                 >
                   <span className="font-medium text-sm truncate flex-1">{item.empresa}</span>
                   <div className="flex gap-3 text-sm text-muted-foreground ml-2">
@@ -272,12 +275,20 @@ export default function Dashboard() {
                       {item.caminhoes}
                     </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Dialog de detalhes da empresa */}
+      <EmpresaDetailDialog
+        open={!!selectedEmpresa}
+        onOpenChange={(open) => !open && setSelectedEmpresa(null)}
+        empresa={selectedEmpresa}
+        cargaData={cargaData || []}
+      />
 
       {/* Charts Row - Full width on mobile */}
       <div className="grid gap-6 lg:grid-cols-2">
