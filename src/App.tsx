@@ -20,13 +20,14 @@ import Colaboradores from "./pages/Colaboradores";
 import Relatorios from "./pages/Relatorios";
 import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
+import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isApproved, isAdminPrincipal } = useAuth();
   
   if (loading) {
     return (
@@ -38,6 +39,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Admin principal is always approved
+  // Regular users need approval
+  if (!isApproved && !isAdminPrincipal) {
+    return <Navigate to="/pending-approval" replace />;
   }
   
   return <AppLayout>{children}</AppLayout>;
@@ -52,6 +59,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
             <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
