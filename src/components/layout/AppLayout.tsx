@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -29,16 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-                3
-              </span>
-            </Button>
+            <NotificationDropdown />
           </div>
         </header>
 
