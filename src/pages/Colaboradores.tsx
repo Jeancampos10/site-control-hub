@@ -1,4 +1,5 @@
-import { Users, Plus, Filter, Settings, Shield } from "lucide-react";
+import { useState } from "react";
+import { Users, Plus, Filter, Settings, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -9,12 +10,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
+import { toast } from "sonner";
 
-const colaboradoresData = [
+interface ColaboradorData {
+  nome: string;
+  sobrenome: string;
+  email: string;
+  telefone: string;
+  perfil: string;
+  status: string;
+}
+
+const initialColaboradores: ColaboradorData[] = [
   {
     nome: "Jean",
     sobrenome: "Campos",
     email: "jean.campos@apropriapp.com",
+    telefone: "(11) 99999-0001",
     perfil: "Administrador Principal",
     status: "ativo",
   },
@@ -22,6 +35,7 @@ const colaboradoresData = [
     nome: "Maria",
     sobrenome: "Santos",
     email: "maria.santos@obra.com",
+    telefone: "(11) 99999-0002",
     perfil: "Administrador",
     status: "ativo",
   },
@@ -29,6 +43,7 @@ const colaboradoresData = [
     nome: "Carlos",
     sobrenome: "Silva",
     email: "carlos.silva@obra.com",
+    telefone: "(11) 99999-0003",
     perfil: "Colaborador",
     status: "ativo",
   },
@@ -36,6 +51,7 @@ const colaboradoresData = [
     nome: "João",
     sobrenome: "Pedro",
     email: "joao.pedro@obra.com",
+    telefone: "(11) 99999-0004",
     perfil: "Colaborador",
     status: "ativo",
   },
@@ -43,6 +59,7 @@ const colaboradoresData = [
     nome: "Ana",
     sobrenome: "Costa",
     email: "ana.costa@obra.com",
+    telefone: "(11) 99999-0005",
     perfil: "Visualização",
     status: "inativo",
   },
@@ -60,7 +77,71 @@ const statusConfig = {
   inativo: { label: "Inativo", className: "status-inactive" },
 };
 
+const colaboradorFields: FormField[] = [
+  { key: "nome", label: "Nome", required: true },
+  { key: "sobrenome", label: "Sobrenome", required: true },
+  { key: "email", label: "Email", type: "email", required: true },
+  { key: "telefone", label: "Telefone" },
+  { key: "perfil", label: "Perfil", required: true },
+  { key: "status", label: "Status", required: true },
+];
+
 export default function Colaboradores() {
+  const [colaboradores, setColaboradores] = useState<ColaboradorData[]>(initialColaboradores);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
+  const [isNew, setIsNew] = useState(false);
+
+  const handleEdit = (colaborador: ColaboradorData) => {
+    setEditingItem({
+      nome: colaborador.nome,
+      sobrenome: colaborador.sobrenome,
+      email: colaborador.email,
+      telefone: colaborador.telefone,
+      perfil: colaborador.perfil,
+      status: colaborador.status,
+    });
+    setIsNew(false);
+    setDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({
+      nome: "",
+      sobrenome: "",
+      email: "",
+      telefone: "",
+      perfil: "Colaborador",
+      status: "ativo",
+    });
+    setIsNew(true);
+    setDialogOpen(true);
+  };
+
+  const handleSave = (data: Record<string, string>) => {
+    if (isNew) {
+      setColaboradores(prev => [...prev, data as unknown as ColaboradorData]);
+    } else {
+      setColaboradores(prev => 
+        prev.map(c => c.email === editingItem?.email ? data as unknown as ColaboradorData : c)
+      );
+    }
+  };
+
+  const handleDelete = (data: Record<string, string>) => {
+    setColaboradores(prev => prev.filter(c => c.email !== data.email));
+  };
+
+  const handleWhatsApp = (telefone: string, nome: string) => {
+    const phone = telefone.replace(/\D/g, '');
+    const message = encodeURIComponent(`Olá ${nome}, tudo bem?`);
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    toast.success(`Abrindo WhatsApp para ${nome}`);
+  };
+
+  const activeCount = colaboradores.filter(c => c.status === 'ativo').length;
+  const inactiveCount = colaboradores.filter(c => c.status === 'inativo').length;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -79,7 +160,11 @@ export default function Colaboradores() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Colaborador
           </Button>
@@ -90,11 +175,11 @@ export default function Colaboradores() {
       <div className="flex flex-wrap gap-4">
         <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
           <div className="h-2 w-2 rounded-full bg-success" />
-          <span className="text-sm font-medium">4 Ativos</span>
+          <span className="text-sm font-medium">{activeCount} Ativos</span>
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
           <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-          <span className="text-sm font-medium">1 Inativo</span>
+          <span className="text-sm font-medium">{inactiveCount} Inativos</span>
         </div>
       </div>
 
@@ -106,15 +191,16 @@ export default function Colaboradores() {
               <TableRow className="border-border/50 hover:bg-transparent">
                 <TableHead className="data-table-header">Colaborador</TableHead>
                 <TableHead className="data-table-header">Email</TableHead>
+                <TableHead className="data-table-header">Telefone</TableHead>
                 <TableHead className="data-table-header">Perfil</TableHead>
                 <TableHead className="data-table-header">Status</TableHead>
-                <TableHead className="data-table-header w-[60px]"></TableHead>
+                <TableHead className="data-table-header w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {colaboradoresData.map((row, idx) => {
+              {colaboradores.map((row, idx) => {
                 const initials = `${row.nome[0]}${row.sobrenome[0]}`;
-                const perfil = perfilConfig[row.perfil as keyof typeof perfilConfig];
+                const perfil = perfilConfig[row.perfil as keyof typeof perfilConfig] || perfilConfig.Colaborador;
 
                 return (
                   <TableRow key={idx} className="data-table-row">
@@ -133,20 +219,36 @@ export default function Colaboradores() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.telefone}</TableCell>
                     <TableCell>
                       <span className={`status-badge ${perfil.className}`}>
                         {row.perfil}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={statusConfig[row.status as keyof typeof statusConfig].className}>
-                        {statusConfig[row.status as keyof typeof statusConfig].label}
+                      <span className={statusConfig[row.status as keyof typeof statusConfig]?.className || ''}>
+                        {statusConfig[row.status as keyof typeof statusConfig]?.label || row.status}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Settings className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleWhatsApp(row.telefone, row.nome)}
+                        >
+                          <MessageCircle className="h-4 w-4 text-success" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(row)}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -155,6 +257,18 @@ export default function Colaboradores() {
           </Table>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <EditDialog
+        title="Colaborador"
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        data={editingItem}
+        fields={colaboradorFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }

@@ -42,17 +42,22 @@ export function EditDialog({
 }: EditDialogProps) {
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  // Reset form when data changes
+  // Initialize form data when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && data) {
-      setFormData({ ...data });
-    } else if (isOpen && !data) {
-      setFormData({});
-    }
     if (!isOpen) {
       onClose();
     }
   };
+
+  // Set form data when data prop changes
+  if (open && data && Object.keys(formData).length === 0) {
+    setFormData({ ...data });
+  }
+
+  // Reset form when dialog closes
+  if (!open && Object.keys(formData).length > 0) {
+    setFormData({});
+  }
 
   const handleSave = () => {
     // Validate required fields

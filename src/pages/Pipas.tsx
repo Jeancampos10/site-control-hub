@@ -123,8 +123,6 @@ export default function Pipas() {
                   <TableHead className="data-table-header">Empresa</TableHead>
                   <TableHead className="data-table-header">Motorista</TableHead>
                   <TableHead className="data-table-header">Capacidade</TableHead>
-                  <TableHead className="data-table-header">Chegada</TableHead>
-                  <TableHead className="data-table-header">Saída</TableHead>
                   <TableHead className="data-table-header text-right">Viagens</TableHead>
                 </TableRow>
               </TableHeader>
@@ -133,22 +131,24 @@ export default function Pipas() {
                   pipasData.map((row, idx) => (
                     <TableRow key={idx} className="data-table-row">
                       <TableCell className="font-medium">{row.Data}</TableCell>
-                      <TableCell className="font-semibold text-info">{row.Prefixo}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-info/20 text-info font-bold text-lg">
+                          {row.Prefixo}
+                        </span>
+                      </TableCell>
                       <TableCell>{row.Descricao}</TableCell>
                       <TableCell>{row.Empresa}</TableCell>
                       <TableCell>{row.Motorista}</TableCell>
                       <TableCell>
                         <span className="status-badge bg-info/10 text-info">{row.Capacidade}</span>
                       </TableCell>
-                      <TableCell>{row.Hora_Chegada}</TableCell>
-                      <TableCell>{row.Hora_Saida}</TableCell>
-                      <TableCell className="text-right font-semibold">{row.N_Viagens}</TableCell>
+                      <TableCell className="text-right font-semibold text-lg">{row.N_Viagens}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      Nenhum registro encontrado para hoje
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Nenhum registro encontrado para esta data
                     </TableCell>
                   </TableRow>
                 )}
