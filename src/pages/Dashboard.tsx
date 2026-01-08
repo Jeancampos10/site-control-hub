@@ -9,18 +9,18 @@ import { FilterBar } from "@/components/dashboard/FilterBar";
 import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
 
 export default function Dashboard() {
-  const [selectedDate] = useState<Date>(new Date()); // Default to today
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
   const { data: equipamentosData } = useGoogleSheets<EquipamentoRow>('equipamentos');
   const { data: caminhoesData } = useGoogleSheets<CaminhaoRow>('caminhao');
 
-  // Filter carga data by today's date
+  // Filter carga data by selected date
   const cargaData = useMemo(() => {
     return filterByDate(allCargaData, selectedDate);
   }, [allCargaData, selectedDate]);
 
-  // Calculate KPIs from filtered data (today only)
+  // Calculate KPIs from filtered data
   const kpis = useMemo(() => {
     const totalViagens = cargaData?.reduce((acc, row) => {
       const viagens = parseInt(row.N_Viagens) || 0;
@@ -53,7 +53,7 @@ export default function Dashboard() {
     };
   }, [cargaData, equipamentosData, caminhoesData]);
 
-  // Calculate material by excavator table (today's data) - NOW WITH TRIP COUNTS
+  // Calculate material by excavator table - WITH TRIP COUNTS
   const materialByExcavatorData = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
 
@@ -72,7 +72,7 @@ export default function Dashboard() {
       grouped[escavadeira][material] = (grouped[escavadeira][material] || 0) + viagens;
     });
 
-    return Object.entries(grouped).slice(0, 5).map(([escavadeira, materiais]) => {
+    return Object.entries(grouped).map(([escavadeira, materiais]) => {
       const total = Object.values(materiais).reduce((a, b) => a + b, 0);
       return {
         escavadeira,
@@ -81,10 +81,10 @@ export default function Dashboard() {
         ),
         total,
       };
-    });
+    }).sort((a, b) => b.total - a.total).slice(0, 8);
   }, [cargaData]);
 
-  // Calculate location by excavator table (today's data) - NOW WITH TRIP COUNTS
+  // Calculate location by excavator table - WITH TRIP COUNTS
   const locationByExcavatorData = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
 
@@ -103,7 +103,7 @@ export default function Dashboard() {
       grouped[escavadeira][local] = (grouped[escavadeira][local] || 0) + viagens;
     });
 
-    return Object.entries(grouped).slice(0, 5).map(([escavadeira, locais]) => {
+    return Object.entries(grouped).map(([escavadeira, locais]) => {
       const total = Object.values(locais).reduce((a, b) => a + b, 0);
       return {
         escavadeira,
@@ -112,7 +112,7 @@ export default function Dashboard() {
         ),
         total,
       };
-    });
+    }).sort((a, b) => b.total - a.total).slice(0, 8);
   }, [cargaData]);
 
   // Dynamic columns for material table
@@ -122,7 +122,7 @@ export default function Dashboard() {
     const materials = new Set(cargaData.map(row => row.Material).filter(Boolean));
     const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
     
-    materials.forEach(m => {
+    Array.from(materials).slice(0, 4).forEach(m => {
       cols.push({ 
         key: m.toLowerCase().replace(/\s+/g, ''), 
         label: m,
@@ -131,7 +131,7 @@ export default function Dashboard() {
     });
     
     cols.push({ key: "total", label: "Total", className: "text-right font-semibold" });
-    return cols.slice(0, 6); // Limit columns
+    return cols;
   }, [cargaData]);
 
   // Dynamic columns for location table
@@ -144,7 +144,7 @@ export default function Dashboard() {
     Array.from(locations).slice(0, 3).forEach(l => {
       cols.push({ 
         key: l.toLowerCase().replace(/\s+/g, '_'), 
-        label: l,
+        label: l.length > 15 ? l.substring(0, 15) + '...' : l,
         className: "text-right" 
       });
     });
@@ -153,73 +153,79 @@ export default function Dashboard() {
     return cols;
   }, [cargaData]);
 
+  const formattedDate = selectedDate.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="page-header">
         <h1 className="page-title">Dashboard Geral</h1>
         <p className="page-subtitle">
-          Visão executiva das operações de terraplenagem • Dados de hoje
+          Visão executiva das operações de terraplenagem • {formattedDate}
         </p>
       </div>
 
       {/* Filters */}
-      <FilterBar />
+      <FilterBar selectedDate={selectedDate} onDateChange={setSelectedDate} />
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* KPI Cards - Better responsive grid */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <KPICard
-          title="Total de Viagens"
+          title="Viagens"
           value={kpis.totalViagens.toLocaleString('pt-BR')}
           subtitle="Hoje"
           icon={Activity}
           variant="accent"
         />
         <KPICard
-          title="Volume Total"
+          title="Volume"
           value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
-          subtitle="Movimentado hoje"
+          subtitle="Movimentado"
           icon={Box}
           variant="primary"
         />
         <KPICard
           title="Escavadeiras"
           value={kpis.escavadeirasAtivas}
-          subtitle={`de ${kpis.totalEscavadeiras} disponíveis`}
+          subtitle={`de ${kpis.totalEscavadeiras}`}
           icon={HardHat}
           variant="success"
         />
         <KPICard
           title="Caminhões"
           value={kpis.caminhoesAtivos}
-          subtitle={`de ${kpis.totalCaminhoes} disponíveis`}
+          subtitle={`de ${kpis.totalCaminhoes}`}
           icon={Truck}
           variant="default"
         />
         <KPICard
           title="Materiais"
           value={kpis.materiaisDoDia}
-          subtitle="Tipos hoje"
+          subtitle="Tipos"
           icon={Package}
           variant="default"
         />
         <KPICard
-          title="Locais Ativos"
+          title="Locais"
           value={kpis.locaisAtivos}
-          subtitle="Em operação"
+          subtitle="Ativos"
           icon={MapPin}
           variant="default"
         />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Charts Row - Full width on mobile */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <ProductionChart cargaData={cargaData || []} />
         <LocalChart cargaData={cargaData || []} />
       </div>
 
-      {/* Tables Row */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Tables Row - Full width on mobile */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <DataTable
           title="Escavadeira × Material"
           subtitle="Total de viagens por tipo de material"

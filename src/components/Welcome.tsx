@@ -3,18 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { HardHat, ArrowRight, LayoutDashboard, Users, FileText, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Dashboard from "./Dashboard";
 
-const roleLabels: Record<string, string> = {
-  admin_principal: "Administrador Principal",
-  admin: "Administrador",
-  colaborador: "Colaborador",
-  visualizacao: "Visualização",
-};
-
-function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
+export default function Welcome() {
   const { profile, role } = useAuth();
   const navigate = useNavigate();
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  const roleLabels: Record<string, string> = {
+    admin_principal: "Administrador Principal",
+    admin: "Administrador",
+    colaborador: "Colaborador",
+    visualizacao: "Visualização",
+  };
 
   const quickLinks = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -22,6 +22,14 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
     { label: "Relatórios", icon: FileText, href: "/relatorios" },
     { label: "Alertas", icon: Bell, href: "/alertas" },
   ];
+
+  const handleContinue = () => {
+    setShowWelcome(false);
+  };
+
+  if (!showWelcome) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/10 p-4">
@@ -50,10 +58,8 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
               <button
                 key={link.href}
                 onClick={() => {
-                  onContinue();
-                  if (link.href !== '/') {
-                    navigate(link.href);
-                  }
+                  setShowWelcome(false);
+                  navigate(link.href);
                 }}
                 className="flex items-center gap-3 rounded-xl bg-muted/50 p-4 text-left transition-all hover:bg-primary/10 hover:shadow-md"
               >
@@ -68,7 +74,7 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
 
         {/* Continue Button */}
         <Button
-          onClick={onContinue}
+          onClick={handleContinue}
           size="lg"
           className="w-full gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
         >
@@ -91,30 +97,3 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
     </div>
   );
 }
-
-const Index = () => {
-  const [showWelcome, setShowWelcome] = useState(false);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    // Check if user just logged in (session storage flag)
-    const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-    if (justLoggedIn === 'true' && user) {
-      setShowWelcome(true);
-      sessionStorage.removeItem('justLoggedIn');
-    }
-  }, [user]);
-
-  const handleContinue = () => {
-    setShowWelcome(false);
-  };
-
-  return (
-    <>
-      {showWelcome && <WelcomeScreen onContinue={handleContinue} />}
-      <Dashboard />
-    </>
-  );
-};
-
-export default Index;
