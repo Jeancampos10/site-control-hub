@@ -100,6 +100,10 @@ export function Sidebar() {
           alt="ApropriAPP Logo" 
           className="h-10 object-contain"
         />
+        <div>
+          <h1 className="text-base font-bold text-sidebar-foreground">ApropriAPP</h1>
+          <p className="text-[10px] text-sidebar-foreground/60">Gestão Inteligente</p>
+        </div>
       </div>
 
       {/* Navigation */}
