@@ -16,67 +16,52 @@ interface ProductionChartProps {
 }
 
 export function ProductionChart({ cargaData }: ProductionChartProps) {
+  // Summary chart: total trips per excavator
   const chartData = useMemo(() => {
-    const grouped: Record<string, Record<string, number>> = {};
+    const grouped: Record<string, number> = {};
 
     cargaData.forEach(row => {
       const escavadeira = row.Prefixo_Eq;
-      const material = row.Material || 'Outros';
-      const volume = parseFloat(row.Volume_Total) || 0;
+      const viagens = parseInt(row.N_Viagens) || 1;
 
       if (!escavadeira) return;
 
-      if (!grouped[escavadeira]) {
-        grouped[escavadeira] = {};
-      }
-      grouped[escavadeira][material] = (grouped[escavadeira][material] || 0) + volume;
+      grouped[escavadeira] = (grouped[escavadeira] || 0) + viagens;
     });
 
-    return Object.entries(grouped).slice(0, 6).map(([escavadeira, materiais]) => ({
-      escavadeira,
-      ...materiais,
-    }));
+    return Object.entries(grouped)
+      .slice(0, 8)
+      .map(([escavadeira, viagens]) => ({
+        escavadeira,
+        viagens,
+      }))
+      .sort((a, b) => b.viagens - a.viagens);
   }, [cargaData]);
-
-  // Get unique materials for bars
-  const materials = useMemo(() => {
-    const mats = new Set<string>();
-    chartData.forEach(d => {
-      Object.keys(d).forEach(k => {
-        if (k !== 'escavadeira') mats.add(k);
-      });
-    });
-    return Array.from(mats).slice(0, 4);
-  }, [chartData]);
-
-  const colors = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-  ];
 
   return (
     <div className="chart-container animate-slide-up">
       <div className="mb-4">
         <h3 className="text-base font-semibold text-foreground">Produção por Escavadeira</h3>
-        <p className="text-sm text-muted-foreground">Volume movimentado por material (m³)</p>
+        <p className="text-sm text-muted-foreground">Total de viagens do dia</p>
       </div>
       <div className="h-[300px]">
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
               <XAxis
-                dataKey="escavadeira"
+                type="number"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
                 tickLine={false}
               />
               <YAxis
+                type="category"
+                dataKey="escavadeira"
                 tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
                 tickLine={false}
+                width={60}
               />
               <Tooltip
                 contentStyle={{
@@ -86,22 +71,20 @@ export function ProductionChart({ cargaData }: ProductionChartProps) {
                   boxShadow: "var(--shadow-lg)",
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
-                formatter={(value: number) => [`${value.toFixed(0)} m³`]}
+                formatter={(value: number) => [`${value} viagens`]}
               />
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                iconType="circle"
-                iconSize={8}
+              <Bar
+                dataKey="viagens"
+                name="Viagens"
+                fill="hsl(var(--chart-1))"
+                radius={[0, 4, 4, 0]}
+                label={{
+                  position: 'right',
+                  fill: 'hsl(var(--foreground))',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
               />
-              {materials.map((material, idx) => (
-                <Bar
-                  key={material}
-                  dataKey={material}
-                  name={material}
-                  fill={colors[idx % colors.length]}
-                  radius={[4, 4, 0, 0]}
-                />
-              ))}
             </BarChart>
           </ResponsiveContainer>
         ) : (
