@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Plus, Filter, Settings, Shield, MessageCircle } from "lucide-react";
+import { Users, Plus, Filter, Settings, Shield, MessageCircle, Check, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,6 +24,7 @@ interface ColaboradorData {
   whatsapp: string;
   foto_url: string | null;
   role: string;
+  approved: boolean;
 }
 
 const perfilConfig = {
@@ -48,6 +49,7 @@ export default function Colaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [showPending, setShowPending] = useState(false);
 
   const fetchColaboradores = async () => {
     try {
@@ -59,22 +61,26 @@ export default function Colaboradores() {
 
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('user_id, role');
+        .select('user_id, role, approved');
 
       if (rolesError) throw rolesError;
 
-      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+      const rolesMap = new Map(roles?.map(r => [r.user_id, { role: r.role, approved: r.approved }]) || []);
 
-      const colaboradoresData: ColaboradorData[] = (profiles || []).map(p => ({
-        id: p.id,
-        nome: p.nome,
-        sobrenome: p.sobrenome,
-        email: p.email,
-        telefone: p.telefone || '',
-        whatsapp: p.whatsapp || '',
-        foto_url: p.foto_url,
-        role: rolesMap.get(p.id) || 'colaborador',
-      }));
+      const colaboradoresData: ColaboradorData[] = (profiles || []).map(p => {
+        const roleInfo = rolesMap.get(p.id) || { role: 'colaborador', approved: false };
+        return {
+          id: p.id,
+          nome: p.nome,
+          sobrenome: p.sobrenome,
+          email: p.email,
+          telefone: p.telefone || '',
+          whatsapp: p.whatsapp || '',
+          foto_url: p.foto_url,
+          role: roleInfo.role,
+          approved: roleInfo.approved,
+        };
+      });
 
       setColaboradores(colaboradoresData);
     } catch (error) {
@@ -90,11 +96,8 @@ export default function Colaboradores() {
   }, []);
 
   const canEdit = (colaborador: ColaboradorData) => {
-    // Admin principal can edit anyone
     if (isAdminPrincipal) return true;
-    // Admins can edit colaboradores and visualização (but not other admins)
     if (isAdmin && (colaborador.role === 'colaborador' || colaborador.role === 'visualizacao')) return true;
-    // Users can only edit themselves
     return colaborador.id === user?.id;
   };
 
@@ -138,7 +141,7 @@ export default function Colaboradores() {
   const handleSave = async (data: Record<string, string>) => {
     try {
       if (isNew) {
-        toast.info('Para criar novos colaboradores, eles devem se cadastrar no sistema.');
+        toast.info('Para criar novos colaboradores, eles devem se cadastrar no sistema e você pode aprovar em seguida.');
         setDialogOpen(false);
         return;
       }
@@ -170,15 +173,46 @@ export default function Colaboradores() {
       toast.error('Apenas o Administrador Principal pode excluir colaboradores');
       return;
     }
+    toast.error('Exclusão de usuários deve ser feita pelo administrador do sistema');
+    setDialogOpen(false);
+  };
 
+  const handleApprove = async (userId: string) => {
     try {
-      // Note: This will trigger cascade delete of profile and roles
-      // In a real app, you might want to just deactivate instead of delete
-      toast.error('Exclusão de usuários deve ser feita pelo administrador do sistema');
-      setDialogOpen(false);
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ 
+          approved: true, 
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id 
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast.success('Usuário aprovado com sucesso!');
+      fetchColaboradores();
     } catch (error) {
-      console.error('Error deleting colaborador:', error);
-      toast.error('Erro ao excluir colaborador');
+      console.error('Error approving user:', error);
+      toast.error('Erro ao aprovar usuário');
+    }
+  };
+
+  const handleReject = async (userId: string) => {
+    try {
+      // Delete profile and role (cascade)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      toast.success('Usuário rejeitado e removido');
+      fetchColaboradores();
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      toast.error('Erro ao rejeitar usuário');
     }
   };
 
@@ -201,6 +235,10 @@ export default function Colaboradores() {
     );
   }
 
+  const approvedUsers = colaboradores.filter(c => c.approved);
+  const pendingUsers = colaboradores.filter(c => !c.approved);
+  const displayedUsers = showPending ? pendingUsers : approvedUsers;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -219,31 +257,54 @@ export default function Colaboradores() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          {isAdminPrincipal && (
-            <Button 
-              size="sm" 
-              className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
-              onClick={handleNew}
-            >
-              <Plus className="h-4 w-4" />
-              Novo Colaborador
-            </Button>
-          )}
         </div>
       </div>
 
       {/* Summary */}
       <div className="flex flex-wrap gap-4">
-        <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-          <div className="h-2 w-2 rounded-full bg-success" />
-          <span className="text-sm font-medium">{colaboradores.length} Colaboradores</span>
-        </div>
+        <button
+          onClick={() => setShowPending(false)}
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer ${
+            !showPending ? 'bg-success text-success-foreground ring-2 ring-success ring-offset-2' : 'bg-success/10 hover:bg-success/20'
+          }`}
+        >
+          <div className={`h-2 w-2 rounded-full ${!showPending ? 'bg-success-foreground' : 'bg-success'}`} />
+          <span className="text-sm font-medium">{approvedUsers.length} Ativos</span>
+        </button>
+
+        {isAdminPrincipal && pendingUsers.length > 0 && (
+          <button
+            onClick={() => setShowPending(true)}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer ${
+              showPending ? 'bg-warning text-warning-foreground ring-2 ring-warning ring-offset-2' : 'bg-warning/10 hover:bg-warning/20'
+            }`}
+          >
+            <Clock className={`h-4 w-4 ${showPending ? 'text-warning-foreground' : 'text-warning'}`} />
+            <span className="text-sm font-medium">{pendingUsers.length} Pendentes</span>
+          </button>
+        )}
+
         {!isAdminPrincipal && !isAdmin && (
           <div className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2">
             <span className="text-sm text-warning">Você pode editar apenas seu próprio perfil</span>
           </div>
         )}
       </div>
+
+      {/* Pending Users Alert */}
+      {isAdminPrincipal && pendingUsers.length > 0 && !showPending && (
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-warning">
+              <Clock className="h-5 w-5" />
+              <span className="font-semibold">{pendingUsers.length} usuário(s) aguardando aprovação</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowPending(true)}>
+              Ver pendentes
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Data Table */}
       <div className="chart-container overflow-hidden">
@@ -255,18 +316,19 @@ export default function Colaboradores() {
                 <TableHead className="data-table-header">Email</TableHead>
                 <TableHead className="data-table-header">WhatsApp</TableHead>
                 <TableHead className="data-table-header">Perfil</TableHead>
-                <TableHead className="data-table-header w-[100px]"></TableHead>
+                <TableHead className="data-table-header w-[140px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {colaboradores.map((row) => {
+              {displayedUsers.map((row) => {
                 const initials = `${row.nome?.[0] || ''}${row.sobrenome?.[0] || ''}`.toUpperCase();
                 const perfil = perfilConfig[row.role as keyof typeof perfilConfig] || perfilConfig.colaborador;
                 const canEditRow = canEdit(row);
                 const isCurrentUser = row.id === user?.id;
+                const isPending = !row.approved;
 
                 return (
-                  <TableRow key={row.id} className={`data-table-row ${isCurrentUser ? 'bg-accent/5' : ''}`}>
+                  <TableRow key={row.id} className={`data-table-row ${isCurrentUser ? 'bg-accent/5' : ''} ${isPending ? 'bg-warning/5' : ''}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
@@ -281,6 +343,9 @@ export default function Colaboradores() {
                             {isCurrentUser && (
                               <span className="ml-2 text-xs text-accent">(você)</span>
                             )}
+                            {isPending && (
+                              <span className="ml-2 text-xs text-warning">(pendente)</span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -294,35 +359,60 @@ export default function Colaboradores() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        {row.whatsapp && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleWhatsApp(row.whatsapp, row.nome)}
-                          >
-                            <MessageCircle className="h-4 w-4 text-success" />
-                          </Button>
-                        )}
-                        {canEditRow && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleEdit(row)}
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
+                        {isPending && isAdminPrincipal ? (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+                              onClick={() => handleApprove(row.id)}
+                              title="Aprovar"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleReject(row.id)}
+                              title="Rejeitar"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {row.whatsapp && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleWhatsApp(row.whatsapp, row.nome)}
+                              >
+                                <MessageCircle className="h-4 w-4 text-success" />
+                              </Button>
+                            )}
+                            {canEditRow && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleEdit(row)}
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
-              {colaboradores.length === 0 && (
+              {displayedUsers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Nenhum colaborador cadastrado
+                    {showPending ? 'Nenhum usuário pendente de aprovação' : 'Nenhum colaborador cadastrado'}
                   </TableCell>
                 </TableRow>
               )}

@@ -19,9 +19,11 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   role: AppRole | null;
+  isApproved: boolean;
   isAdmin: boolean;
   isAdminPrincipal: boolean;
   loading: boolean;
+  pendingApproval: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, nome: string, sobrenome: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [isApproved, setIsApproved] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -51,12 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: roleData } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, approved')
         .eq('user_id', userId)
         .single();
 
       if (roleData) {
         setRole(roleData.role as AppRole);
+        setIsApproved(roleData.approved);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -78,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRole(null);
+          setIsApproved(false);
         }
         
         setLoading(false);
@@ -128,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRole(null);
+    setIsApproved(false);
   };
 
   const refreshProfile = async () => {
@@ -138,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = role === 'admin_principal' || role === 'admin';
   const isAdminPrincipal = role === 'admin_principal';
+  const pendingApproval = !!user && !isApproved;
 
   return (
     <AuthContext.Provider
@@ -146,9 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         role,
+        isApproved,
         isAdmin,
         isAdminPrincipal,
         loading,
+        pendingApproval,
         signIn,
         signUp,
         signOut,
