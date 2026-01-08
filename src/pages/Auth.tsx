@@ -80,6 +80,7 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
+          sessionStorage.setItem('justLoggedIn', 'true');
           toast.success("Login realizado com sucesso!");
           navigate("/");
         }
