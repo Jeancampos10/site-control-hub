@@ -26,30 +26,30 @@ const caminhaoFields: FormField[] = [
 
 export default function Caminhoes() {
   const { data: caminhoesData, isLoading, error, refetch } = useGoogleSheets<CaminhaoRow>('caminhao');
-  const [editingItem, setEditingItem] = useState<CaminhaoRow | null>(null);
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
 
   const totalCaminhoes = caminhoesData?.length || 0;
 
   const handleEdit = (item: CaminhaoRow) => {
-    setEditingItem(item);
+    setEditingItem(item as unknown as Record<string, string>);
     setIsNew(false);
     setIsDialogOpen(true);
   };
 
   const handleNew = () => {
-    setEditingItem({} as CaminhaoRow);
+    setEditingItem({});
     setIsNew(true);
     setIsDialogOpen(true);
   };
 
-  const handleSave = (data: CaminhaoRow) => {
+  const handleSave = (data: Record<string, string>) => {
     console.log('Saving:', data);
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (data: CaminhaoRow) => {
+  const handleDelete = (data: Record<string, string>) => {
     console.log('Deleting:', data);
     setIsDialogOpen(false);
   };

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Truck, Plus, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,48 @@ import {
 import { useGoogleSheets, CamReboqueRow } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
+
+const reboqueFields: FormField[] = [
+  { key: 'Prefixo_Cb', label: 'Prefixo', required: true },
+  { key: 'Descricao', label: 'Descrição', required: true },
+  { key: 'Motorista', label: 'Motorista' },
+  { key: 'Modelo', label: 'Modelo' },
+  { key: 'Placa', label: 'Placa' },
+  { key: 'Peso_Vazio', label: 'Peso Vazio' },
+  { key: 'Volume', label: 'Volume' },
+  { key: 'Empresa', label: 'Empresa' },
+];
 
 export default function Reboque() {
   const { data: reboqueData, isLoading, error, refetch } = useGoogleSheets<CamReboqueRow>('cam_reboque');
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
   const totalReboques = reboqueData?.length || 0;
+
+  const handleEdit = (item: CamReboqueRow) => {
+    setEditingItem(item as unknown as Record<string, string>);
+    setIsNew(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({});
+    setIsNew(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = (data: Record<string, string>) => {
+    console.log('Saving:', data);
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (data: Record<string, string>) => {
+    console.log('Deleting:', data);
+    setIsDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +73,11 @@ export default function Reboque() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Reboque
           </Button>
@@ -88,7 +130,12 @@ export default function Reboque() {
                       <TableCell>{row.Volume}</TableCell>
                       <TableCell>{row.Empresa_Cb || row.Empresa}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(row)}
+                        >
                           <Settings className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -106,6 +153,17 @@ export default function Reboque() {
           </div>
         </div>
       )}
+
+      <EditDialog
+        title="Reboque"
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={editingItem}
+        fields={reboqueFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }

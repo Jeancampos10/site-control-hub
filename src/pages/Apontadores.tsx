@@ -71,7 +71,7 @@ const statusConfig = {
 
 export default function Apontadores() {
   const [apontadores, setApontadores] = useState<ApontadorData[]>(initialData);
-  const [editingItem, setEditingItem] = useState<ApontadorData | null>(null);
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
 
@@ -80,7 +80,7 @@ export default function Apontadores() {
   const totalRegistros = apontadores.reduce((acc, a) => acc + (parseInt(a.registrosHoje) || 0), 0);
 
   const handleEdit = (item: ApontadorData) => {
-    setEditingItem(item);
+    setEditingItem(item as unknown as Record<string, string>);
     setIsNew(false);
     setIsDialogOpen(true);
   };
@@ -91,18 +91,19 @@ export default function Apontadores() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = (data: ApontadorData) => {
+  const handleSave = (data: Record<string, string>) => {
+    const apontadorData = data as unknown as ApontadorData;
     if (isNew) {
-      setApontadores([...apontadores, { ...data, registrosHoje: '0' }]);
+      setApontadores([...apontadores, { ...apontadorData, registrosHoje: '0' }]);
     } else {
       setApontadores(apontadores.map(a => 
-        a.matricula === editingItem?.matricula ? { ...a, ...data } : a
+        a.matricula === editingItem?.matricula ? { ...a, ...apontadorData } : a
       ));
     }
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (data: ApontadorData) => {
+  const handleDelete = (data: Record<string, string>) => {
     setApontadores(apontadores.filter(a => a.matricula !== data.matricula));
     setIsDialogOpen(false);
   };

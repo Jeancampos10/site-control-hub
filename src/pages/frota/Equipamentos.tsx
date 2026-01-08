@@ -25,33 +25,30 @@ const equipamentoFields: FormField[] = [
 
 export default function Equipamentos() {
   const { data: equipamentosData, isLoading, error, refetch } = useGoogleSheets<EquipamentoRow>('equipamentos');
-  const [editingItem, setEditingItem] = useState<EquipamentoRow | null>(null);
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isNew, setIsNew] = useState(false);
 
   const totalEquipamentos = equipamentosData?.length || 0;
 
   const handleEdit = (item: EquipamentoRow) => {
-    setEditingItem(item);
+    setEditingItem(item as unknown as Record<string, string>);
     setIsNew(false);
     setIsDialogOpen(true);
   };
 
   const handleNew = () => {
-    setEditingItem({} as EquipamentoRow);
+    setEditingItem({});
     setIsNew(true);
     setIsDialogOpen(true);
   };
 
-  const handleSave = (data: EquipamentoRow) => {
-    // In a real app, this would update the Google Sheet
+  const handleSave = (data: Record<string, string>) => {
     console.log('Saving:', data);
-    // For now, just close the dialog
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (data: EquipamentoRow) => {
-    // In a real app, this would delete from the Google Sheet
+  const handleDelete = (data: Record<string, string>) => {
     console.log('Deleting:', data);
     setIsDialogOpen(false);
   };

@@ -65,7 +65,7 @@ export function EditDialog({
       return;
     }
 
-    onSave(formData as T);
+    onSave(formData);
     toast.success(isNew ? 'Registro criado com sucesso!' : 'Registro atualizado com sucesso!');
     onClose();
   };
