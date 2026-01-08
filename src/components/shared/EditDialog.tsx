@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Pencil, Trash2, Camera, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 export interface FormField {
   key: string;
   label: string;
-  type?: "text" | "number" | "email";
+  type?: "text" | "number" | "email" | "tel";
   required?: boolean;
 }
 
@@ -28,6 +29,7 @@ interface EditDialogProps {
   onSave: (data: Record<string, string>) => void;
   onDelete?: (data: Record<string, string>) => void;
   isNew?: boolean;
+  showPhoto?: boolean;
 }
 
 export function EditDialog({
@@ -39,8 +41,10 @@ export function EditDialog({
   onSave,
   onDelete,
   isNew = false,
+  showPhoto = false,
 }: EditDialogProps) {
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize form data when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
@@ -83,6 +87,19 @@ export function EditDialog({
     }
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, foto: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const initials = `${(formData.nome || '')[0] || ''}${(formData.sobrenome || '')[0] || ''}`.toUpperCase();
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -94,6 +111,39 @@ export function EditDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {showPhoto && (
+            <div className="flex flex-col items-center gap-3 mb-4">
+              <div className="relative">
+                <Avatar className="h-24 w-24 border-2 border-border">
+                  {formData.foto ? (
+                    <AvatarImage src={formData.foto} alt="Foto" />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                      {initials || <User className="h-10 w-10" />}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-background shadow-md"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+              <span className="text-xs text-muted-foreground">Clique para adicionar foto</span>
+            </div>
+          )}
+
           {fields.map((field) => (
             <div key={field.key} className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor={field.key} className="text-right">
