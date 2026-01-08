@@ -1,12 +1,20 @@
-import { Clock, LogOut, Mail } from "lucide-react";
+import { useEffect } from "react";
+import { Clock, LogOut, Mail, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function PendingApproval() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { profile, isApproved, isAdminPrincipal, signOut, refreshProfile, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is approved or is admin principal
+  useEffect(() => {
+    if (!loading && (isApproved || isAdminPrincipal)) {
+      navigate("/", { replace: true });
+    }
+  }, [isApproved, isAdminPrincipal, loading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -18,6 +26,15 @@ export default function PendingApproval() {
     await refreshProfile();
     toast.info("Verificando status de aprovação...");
   };
+
+  // Show loading while checking
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
@@ -68,8 +85,9 @@ export default function PendingApproval() {
           <Button
             variant="outline"
             onClick={handleRefresh}
-            className="w-full"
+            className="w-full gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Verificar status
           </Button>
           <Button
