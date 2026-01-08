@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Truck, Box, HardHat, MapPin, Activity, Package } from "lucide-react";
+import { Truck, Box, HardHat, Activity, Building2 } from "lucide-react";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { LocalChart } from "@/components/dashboard/LocalChart";
@@ -7,6 +7,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DataTable } from "@/components/dashboard/DataTable";
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -38,8 +39,8 @@ export default function Dashboard() {
     const caminhoesAtivos = new Set(cargaData?.map(row => row.Prefixo_Cb).filter(Boolean)).size;
     const totalCaminhoes = caminhoesData?.length || caminhoesAtivos;
 
-    const materiaisDoDia = new Set(cargaData?.map(row => row.Material).filter(Boolean)).size;
-    const locaisAtivos = new Set(cargaData?.map(row => row.Local_da_Obra).filter(Boolean)).size;
+    // Média de viagens por caminhão
+    const mediaViagensPorCaminhao = caminhoesAtivos > 0 ? (totalViagens / caminhoesAtivos) : 0;
 
     return {
       totalViagens,
@@ -48,10 +49,43 @@ export default function Dashboard() {
       totalEscavadeiras,
       caminhoesAtivos,
       totalCaminhoes,
-      materiaisDoDia,
-      locaisAtivos,
+      mediaViagensPorCaminhao,
     };
   }, [cargaData, equipamentosData, caminhoesData]);
+
+  // Resumo por empresa (equipamentos e caminhões)
+  const resumoPorEmpresa = useMemo(() => {
+    if (!cargaData || cargaData.length === 0) return [];
+
+    const empresaEquipamentos: Record<string, Set<string>> = {};
+    const empresaCaminhoes: Record<string, Set<string>> = {};
+
+    cargaData.forEach(row => {
+      // Equipamentos por empresa
+      const empresaEq = row.Empresa_Eq || 'Não Informada';
+      if (!empresaEquipamentos[empresaEq]) {
+        empresaEquipamentos[empresaEq] = new Set();
+      }
+      if (row.Prefixo_Eq) empresaEquipamentos[empresaEq].add(row.Prefixo_Eq);
+
+      // Caminhões por empresa
+      const empresaCb = row.Empresa_Cb || 'Não Informada';
+      if (!empresaCaminhoes[empresaCb]) {
+        empresaCaminhoes[empresaCb] = new Set();
+      }
+      if (row.Prefixo_Cb) empresaCaminhoes[empresaCb].add(row.Prefixo_Cb);
+    });
+
+    // Combinar todas as empresas
+    const todasEmpresas = new Set([...Object.keys(empresaEquipamentos), ...Object.keys(empresaCaminhoes)]);
+
+    return Array.from(todasEmpresas).map(empresa => ({
+      empresa,
+      equipamentos: empresaEquipamentos[empresa]?.size || 0,
+      caminhoes: empresaCaminhoes[empresa]?.size || 0,
+    })).filter(e => e.equipamentos > 0 || e.caminhoes > 0)
+      .sort((a, b) => (b.equipamentos + b.caminhoes) - (a.equipamentos + a.caminhoes));
+  }, [cargaData]);
 
   // Calculate material by excavator table - WITH TRIP COUNTS
   const materialByExcavatorData = useMemo(() => {
@@ -172,8 +206,8 @@ export default function Dashboard() {
       {/* Filters */}
       <FilterBar selectedDate={selectedDate} onDateChange={setSelectedDate} />
 
-      {/* KPI Cards - Better responsive grid */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      {/* KPI Cards */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <KPICard
           title="Viagens"
           value={kpis.totalViagens.toLocaleString('pt-BR')}
@@ -182,7 +216,7 @@ export default function Dashboard() {
           variant="accent"
         />
         <KPICard
-          title="Volume"
+          title="Vol. Transportado"
           value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
           subtitle="Movimentado"
           icon={Box}
@@ -203,20 +237,47 @@ export default function Dashboard() {
           variant="default"
         />
         <KPICard
-          title="Materiais"
-          value={kpis.materiaisDoDia}
-          subtitle="Tipos"
-          icon={Package}
-          variant="default"
-        />
-        <KPICard
-          title="Locais"
-          value={kpis.locaisAtivos}
-          subtitle="Ativos"
-          icon={MapPin}
+          title="Média/Caminhão"
+          value={kpis.mediaViagensPorCaminhao.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
+          subtitle="Viagens"
+          icon={Truck}
           variant="default"
         />
       </div>
+
+      {/* Resumo por Empresa */}
+      {resumoPorEmpresa.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="h-4 w-4" />
+              Resumo por Empresa
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {resumoPorEmpresa.map((item) => (
+                <div 
+                  key={item.empresa} 
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                >
+                  <span className="font-medium text-sm truncate flex-1">{item.empresa}</span>
+                  <div className="flex gap-3 text-sm text-muted-foreground ml-2">
+                    <span className="flex items-center gap-1">
+                      <HardHat className="h-3 w-3" />
+                      {item.equipamentos}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Truck className="h-3 w-3" />
+                      {item.caminhoes}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Row - Full width on mobile */}
       <div className="grid gap-6 lg:grid-cols-2">
