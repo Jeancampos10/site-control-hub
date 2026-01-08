@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { HardHat, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,11 +137,11 @@ export default function Auth() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-accent mb-4">
-            <HardHat className="h-8 w-8 text-accent-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">ApropriaAPP</h1>
-          <p className="text-muted-foreground mt-1">Sistema de Gestão de Obra</p>
+          <img 
+            src={logoApropriapp} 
+            alt="ApropriAPP Logo" 
+            className="h-32 mx-auto mb-2"
+          />
         </div>
 
         {/* Card */}
@@ -289,9 +290,14 @@ export default function Auth() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2025 ApropriaAPP. Todos os direitos reservados.
-        </p>
+        <div className="text-center mt-6 space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Desenvolvido por <span className="font-semibold text-foreground">Jean Campos</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            © 2025 ApropriAPP. Todos os direitos reservados.
+          </p>
+        </div>
       </div>
     </div>
   );
