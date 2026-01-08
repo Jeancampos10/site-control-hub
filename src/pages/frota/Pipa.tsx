@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Droplets, Plus, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,46 @@ import {
 import { useGoogleSheets, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { EditDialog, FormField } from "@/components/shared/EditDialog";
+
+const pipaFields: FormField[] = [
+  { key: 'Prefixo', label: 'Prefixo', required: true },
+  { key: 'Descricao', label: 'Descrição', required: true },
+  { key: 'Motorista', label: 'Motorista' },
+  { key: 'Capacidade', label: 'Capacidade' },
+  { key: 'Placa', label: 'Placa' },
+  { key: 'Empresa', label: 'Empresa' },
+];
 
 export default function FrotaPipa() {
   const { data: pipaData, isLoading, error, refetch } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
+  const [editingItem, setEditingItem] = useState<Record<string, string> | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
   const totalPipas = pipaData?.length || 0;
+
+  const handleEdit = (item: CaminhaoPipaRow) => {
+    setEditingItem(item as unknown as Record<string, string>);
+    setIsNew(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditingItem({});
+    setIsNew(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = (data: Record<string, string>) => {
+    console.log('Saving:', data);
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (data: Record<string, string>) => {
+    console.log('Deleting:', data);
+    setIsDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +71,11 @@ export default function FrotaPipa() {
             <Filter className="h-4 w-4" />
             Filtros
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90"
+            onClick={handleNew}
+          >
             <Plus className="h-4 w-4" />
             Novo Pipa
           </Button>
@@ -86,7 +126,12 @@ export default function FrotaPipa() {
                       </TableCell>
                       <TableCell className="font-mono">{row.Placa}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(row)}
+                        >
                           <Settings className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -104,6 +149,17 @@ export default function FrotaPipa() {
           </div>
         </div>
       )}
+
+      <EditDialog
+        title="Caminhão Pipa"
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        data={editingItem}
+        fields={pipaFields}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        isNew={isNew}
+      />
     </div>
   );
 }
