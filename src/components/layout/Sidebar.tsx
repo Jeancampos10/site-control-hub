@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Truck,
@@ -8,7 +8,6 @@ import {
   Users,
   FileText,
   Bell,
-  Settings,
   ChevronDown,
   ChevronRight,
   HardHat,
@@ -19,6 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface NavItem {
   label: string;
@@ -49,8 +50,17 @@ const navigation: NavItem[] = [
   { label: "Alertas", icon: Bell, href: "/alertas" },
 ];
 
+const roleLabels: Record<string, string> = {
+  admin_principal: "Administrador Principal",
+  admin: "Administrador",
+  colaborador: "Colaborador",
+  visualizacao: "Visualização",
+};
+
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, role, signOut } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>(["Frota Geral"]);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -60,9 +70,25 @@ export function Sidebar() {
     );
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Logout realizado com sucesso!");
+    navigate("/auth");
+  };
+
   const isActive = (href: string) => location.pathname === href;
   const isChildActive = (children?: { label: string; href: string }[]) =>
     children?.some((child) => location.pathname === child.href);
+
+  const initials = profile 
+    ? `${profile.nome?.[0] || ''}${profile.sobrenome?.[0] || ''}`.toUpperCase()
+    : 'US';
+
+  const displayName = profile 
+    ? `${profile.nome} ${profile.sobrenome}`.trim() || 'Usuário'
+    : 'Usuário';
+
+  const roleLabel = role ? roleLabels[role] || role : 'Carregando...';
 
   const NavContent = () => (
     <>
@@ -142,13 +168,17 @@ export function Sidebar() {
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 px-3 py-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-            JC
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">Jean Campos</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">Administrador</p>
+            <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">{roleLabel}</p>
           </div>
-          <button className="rounded-md p-1.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground">
+          <button 
+            onClick={handleSignOut}
+            className="rounded-md p-1.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            title="Sair"
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
