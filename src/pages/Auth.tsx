@@ -133,22 +133,8 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 relative overflow-hidden">
-      {/* Watermark Background */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `url(${logoApropriapp})`,
-          backgroundSize: '300px',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'repeat',
-        }}
-      />
-      
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
-      
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <img 
@@ -159,7 +145,7 @@ export default function Auth() {
         </div>
 
         {/* Card */}
-        <div className="bg-card/95 backdrop-blur-sm rounded-2xl shadow-card p-8 border border-border">
+        <div className="bg-card rounded-2xl shadow-card p-8 border border-border">
           <div className="flex mb-6">
             <button
               type="button"
