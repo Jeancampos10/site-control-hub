@@ -48,7 +48,8 @@ interface BulkEditDialogProps<T> {
   data: T[];
   filterOptions: FilterOption[];
   editableFields: EditableField[];
-  onSave: (filters: Record<string, string>, updates: Record<string, string>, affectedRows: T[]) => Promise<void>;
+  onSave: (filters: Record<string, string>, updates: Record<string, string>, affectedRows: T[]) => Promise<{ logId?: string } | void>;
+  onSaveComplete?: (logId: string) => void;
   dateField?: string; // Field name that contains the date
   getFieldValue: (item: T, field: string) => string; // Helper to get field value from item
 }
@@ -62,6 +63,7 @@ export function BulkEditDialog<T>({
   filterOptions,
   editableFields,
   onSave,
+  onSaveComplete,
   dateField = "Data",
   getFieldValue,
 }: BulkEditDialogProps<T>) {
@@ -211,7 +213,7 @@ export function BulkEditDialog<T>({
 
     setIsSaving(true);
     try {
-      await onSave(
+      const result = await onSave(
         { ...filters, [dateField]: selectedDate ? format(selectedDate, "dd/MM/yyyy") : "" },
         activeUpdates,
         filteredData
@@ -221,6 +223,11 @@ export function BulkEditDialog<T>({
       setUpdates({});
       setSelectedDate(undefined);
       onOpenChange(false);
+      
+      // Call onSaveComplete with the logId if available
+      if (result && typeof result === 'object' && 'logId' in result && result.logId && onSaveComplete) {
+        onSaveComplete(result.logId);
+      }
     } catch (error) {
       console.error("Bulk edit failed:", error);
     } finally {

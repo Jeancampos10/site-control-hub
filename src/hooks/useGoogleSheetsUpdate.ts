@@ -65,9 +65,11 @@ export function useGoogleSheetsUpdate<T = unknown>() {
       };
     },
     onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["bulk-edit-logs"] });
       toast.success(`${result.affectedCount} registros marcados para alteração`, {
         description: "A alteração foi registrada e está aguardando aplicação.",
       });
+      return result;
     },
     onError: (error: Error) => {
       console.error("Bulk update error:", error);

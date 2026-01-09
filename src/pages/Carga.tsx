@@ -20,6 +20,7 @@ export default function Carga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [highlightedLogId, setHighlightedLogId] = useState<string | null>(null);
   const { data: allCargaData, isLoading, error, refetch } = useGoogleSheets<CargaRow>('carga');
   const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<CargaRow>();
 
@@ -52,12 +53,18 @@ export default function Carga() {
     updates: Record<string, string>,
     affectedRows: CargaRow[]
   ) => {
-    await updateSheet({
+    const result = await updateSheet({
       sheetName: "carga",
       filters,
       updates,
       affectedRows,
     });
+    return result;
+  };
+
+  const handleBulkSaveComplete = (logId: string) => {
+    setHighlightedLogId(logId);
+    setHistoryOpen(true);
   };
 
   // Filter data by selected date
@@ -186,6 +193,7 @@ export default function Carga() {
         filterOptions={filterOptions}
         editableFields={editableFields}
         onSave={handleBulkSave}
+        onSaveComplete={handleBulkSaveComplete}
         dateField="Data"
         getFieldValue={getFieldValue}
       />
@@ -196,6 +204,8 @@ export default function Carga() {
         onOpenChange={setHistoryOpen}
         sheetName="carga"
         title="Histórico de Alterações - Carga"
+        highlightedLogId={highlightedLogId}
+        onHighlightClear={() => setHighlightedLogId(null)}
       />
     </div>
   );
