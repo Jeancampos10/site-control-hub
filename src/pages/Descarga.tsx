@@ -25,6 +25,7 @@ export default function Descarga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [highlightedLogId, setHighlightedLogId] = useState<string | null>(null);
   const { data: allDescargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
   const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<DescargaRow>();
 
@@ -55,12 +56,18 @@ export default function Descarga() {
     updates: Record<string, string>,
     affectedRows: DescargaRow[]
   ) => {
-    await updateSheet({
+    const result = await updateSheet({
       sheetName: "descarga",
       filters,
       updates,
       affectedRows,
     });
+    return result;
+  };
+
+  const handleBulkSaveComplete = (logId: string) => {
+    setHighlightedLogId(logId);
+    setHistoryOpen(true);
   };
 
   // Filter data by selected date
@@ -242,6 +249,7 @@ export default function Descarga() {
         filterOptions={filterOptions}
         editableFields={editableFields}
         onSave={handleBulkSave}
+        onSaveComplete={handleBulkSaveComplete}
         dateField="Data"
         getFieldValue={getFieldValue}
       />
@@ -252,6 +260,8 @@ export default function Descarga() {
         onOpenChange={setHistoryOpen}
         sheetName="descarga"
         title="Histórico de Alterações - Descarga"
+        highlightedLogId={highlightedLogId}
+        onHighlightClear={() => setHighlightedLogId(null)}
       />
     </div>
   );
