@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Upload, Download } from "lucide-react";
+import { Upload, Download, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Box, Truck, Activity, Calculator } from "lucide-react";
 import { useGoogleSheets, CargaRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { useGoogleSheetsUpdate } from "@/hooks/useGoogleSheetsUpdate";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { format } from "date-fns";
@@ -12,10 +13,50 @@ import { ExcavatorProductionTable } from "@/components/carga/ExcavatorProduction
 import { TopTrucksChart } from "@/components/carga/TopTrucksChart";
 import { TruckProductionTable } from "@/components/carga/TruckProductionTable";
 import { DateFilter } from "@/components/shared/DateFilter";
+import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
 
 export default function Carga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const { data: allCargaData, isLoading, error, refetch } = useGoogleSheets<CargaRow>('carga');
+  const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<CargaRow>();
+
+  // Helper to get field value
+  const getFieldValue = (row: CargaRow, field: string): string => {
+    return (row as unknown as Record<string, string>)[field] || "";
+  };
+
+  // Filter options for bulk edit
+  const filterOptions: FilterOption[] = useMemo(() => [
+    { key: "Prefixo_Cb", label: "Caminhão", values: [] },
+    { key: "Prefixo_Eq", label: "Escavadeira", values: [] },
+    { key: "Material", label: "Material", values: [] },
+    { key: "Local_da_Obra", label: "Local", values: [] },
+    { key: "Empresa_Cb", label: "Empresa Caminhão", values: [] },
+  ], []);
+
+  // Editable fields for bulk edit
+  const editableFields: EditableField[] = useMemo(() => [
+    { key: "Motorista", label: "Motorista", type: "text" },
+    { key: "Operador", label: "Operador", type: "text" },
+    { key: "Material", label: "Material", type: "select" },
+    { key: "Local_da_Obra", label: "Local da Obra", type: "select" },
+    { key: "Estaca", label: "Estaca", type: "text" },
+    { key: "Observacao", label: "Observação", type: "text" },
+  ], []);
+
+  const handleBulkSave = async (
+    filters: Record<string, string>,
+    updates: Record<string, string>,
+    affectedRows: CargaRow[]
+  ) => {
+    await updateSheet({
+      sheetName: "carga",
+      filters,
+      updates,
+      affectedRows,
+    });
+  };
 
   // Filter data by selected date
   const cargaData = useMemo(() => {
@@ -55,6 +96,15 @@ export default function Carga() {
         </div>
         <div className="flex gap-2">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setBulkEditOpen(true)}
+          >
+            <Edit className="h-4 w-4" />
+            Editar Lote
+          </Button>
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
@@ -114,6 +164,20 @@ export default function Carga() {
           <TruckProductionTable cargaData={cargaData || []} />
         </div>
       )}
+
+      {/* Bulk Edit Dialog */}
+      <BulkEditDialog<CargaRow>
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        title="Edição em Lote - Carga"
+        description="Altere dados de múltiplos registros de uma só vez"
+        data={allCargaData || []}
+        filterOptions={filterOptions}
+        editableFields={editableFields}
+        onSave={handleBulkSave}
+        dateField="Data"
+        getFieldValue={getFieldValue}
+      />
     </div>
   );
 }
