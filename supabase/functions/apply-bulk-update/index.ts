@@ -12,6 +12,46 @@ interface ApplyBulkUpdateRequest {
   updates: Record<string, string>;
 }
 
+async function validateAppsScript(url: string, secret: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        authToken: secret,
+        action: 'healthcheck',
+      }),
+    });
+
+    const text = await response.text();
+    
+    // Check if response is HTML (error page)
+    if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+      return { 
+        valid: false, 
+        error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App.' 
+      };
+    }
+
+    try {
+      const data = JSON.parse(text);
+      if (data.success || data.status === 'ok') {
+        return { valid: true };
+      }
+      // If it's valid JSON but not a healthcheck response, it's still a valid endpoint
+      return { valid: true };
+    } catch {
+      return { 
+        valid: false, 
+        error: `Resposta inválida do Apps Script: ${text.substring(0, 100)}` 
+      };
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    return { valid: false, error: `Erro de conexão: ${errorMsg}` };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -32,9 +72,36 @@ serve(async (req) => {
       );
     }
 
+    const url = new URL(req.url);
+    const isHealthCheck = url.searchParams.get('healthcheck') === 'true';
+
+    // Health check mode
+    if (isHealthCheck) {
+      console.log('Running Apps Script health check...');
+      const validation = await validateAppsScript(APPS_SCRIPT_URL, APPS_SCRIPT_SECRET || '');
+      
+      return new Response(
+        JSON.stringify({
+          success: validation.valid,
+          message: validation.valid ? 'Apps Script está respondendo corretamente' : validation.error,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const body: ApplyBulkUpdateRequest = await req.json();
     
-    console.log('Applying bulk update:', {
+    console.log('Validating Apps Script connection before applying update...');
+    const validation = await validateAppsScript(APPS_SCRIPT_URL, APPS_SCRIPT_SECRET || '');
+    
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ success: false, error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Apps Script validated. Applying bulk update:', {
       sheetName: body.sheetName,
       dateFilter: body.dateFilter,
       filtersCount: Object.keys(body.filters).length,
@@ -56,14 +123,22 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Apps Script error:', errorText);
-      throw new Error(`Erro ao chamar Google Apps Script: ${response.status}`);
+    const responseText = await response.text();
+    
+    // Parse response safely
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      console.error('Invalid JSON response:', responseText.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Apps Script retornou resposta inválida. Verifique a implantação do script.' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const result = await response.json();
-    console.log('Apps Script result:', result);
 
     if (!result.success) {
       return new Response(

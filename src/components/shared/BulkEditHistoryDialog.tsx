@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { History, Check, X, Clock, ChevronDown, ChevronUp, User, Play, Loader2, Sparkles } from "lucide-react";
+import { History, Check, X, Clock, ChevronDown, ChevronUp, User, Play, Loader2, Sparkles, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +16,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useBulkEditLogs, useUpdateBulkEditStatus, useApplyBulkEdit, BulkEditLog } from "@/hooks/useBulkEditLogs";
+import { useAppsScriptHealth } from "@/hooks/useAppsScriptHealth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TableLoader } from "@/components/ui/loading-spinner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BulkEditHistoryDialogProps {
   open: boolean;
@@ -40,9 +42,12 @@ export function BulkEditHistoryDialog({
   const { data: logs, isLoading } = useBulkEditLogs(sheetName);
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateBulkEditStatus();
   const { mutate: applyBulkEdit, isPending: isApplying } = useApplyBulkEdit();
+  const { data: healthCheck, isLoading: isCheckingHealth, refetch: recheckHealth } = useAppsScriptHealth(open);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [applyingLogId, setApplyingLogId] = useState<string | null>(null);
   const highlightedRef = useRef<HTMLDivElement>(null);
+
+  const isAppsScriptConnected = healthCheck?.success === true;
 
   // Auto-expand and scroll to highlighted log
   useEffect(() => {
@@ -118,8 +123,46 @@ export function BulkEditHistoryDialog({
             <History className="h-5 w-5 text-primary" />
             {title}
           </DialogTitle>
-          <DialogDescription>
-            Visualize e gerencie as alterações em lote registradas
+          <DialogDescription className="flex items-center justify-between">
+            <span>Visualize e gerencie as alterações em lote registradas</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => recheckHealth()}
+                      disabled={isCheckingHealth}
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
+                    </Button>
+                    {isCheckingHealth ? (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Verificando...
+                      </Badge>
+                    ) : isAppsScriptConnected ? (
+                      <Badge variant="outline" className="text-xs gap-1 bg-success/10 text-success border-success/30">
+                        <Wifi className="h-3 w-3" />
+                        Apps Script Conectado
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs gap-1 bg-destructive/10 text-destructive border-destructive/30">
+                        <WifiOff className="h-3 w-3" />
+                        Desconectado
+                      </Badge>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isAppsScriptConnected 
+                    ? "Google Apps Script está respondendo corretamente" 
+                    : healthCheck?.message || "Clique para verificar a conexão"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </DialogDescription>
         </DialogHeader>
 
@@ -259,57 +302,65 @@ export function BulkEditHistoryDialog({
 
                             {/* Actions for pending logs */}
                             {log.status === "pending" && (
-                              <div className="flex gap-2 pt-2">
-                                <Button
-                                  size="sm"
-                                  className="gap-1 bg-success hover:bg-success/90"
-                                  onClick={() => handleApply(log)}
-                                  disabled={isApplying || isUpdating}
-                                >
-                                  {applyingLogId === log.id ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                      Aplicando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="h-3 w-3" />
-                                      Aplicar na Planilha
-                                    </>
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 text-muted-foreground"
-                                  onClick={() =>
-                                    updateStatus({
-                                      logId: log.id,
-                                      status: "applied",
-                                      notes: "Marcado manualmente como aplicado",
-                                    })
-                                  }
-                                  disabled={isApplying || isUpdating}
-                                >
-                                  <Check className="h-3 w-3" />
-                                  Marcar Aplicado
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() =>
-                                    updateStatus({
-                                      logId: log.id,
-                                      status: "rejected",
-                                      notes: "Rejeitado pelo administrador",
-                                    })
-                                  }
-                                  disabled={isApplying || isUpdating}
-                                >
-                                  <X className="h-3 w-3" />
-                                  Rejeitar
-                                </Button>
+                              <div className="space-y-2 pt-2">
+                                {!isAppsScriptConnected && (
+                                  <div className="text-xs text-destructive bg-destructive/10 p-2 rounded flex items-center gap-2">
+                                    <WifiOff className="h-3 w-3" />
+                                    Apps Script desconectado. Verifique a configuração antes de aplicar.
+                                  </div>
+                                )}
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1 bg-success hover:bg-success/90"
+                                    onClick={() => handleApply(log)}
+                                    disabled={isApplying || isUpdating || !isAppsScriptConnected}
+                                  >
+                                    {applyingLogId === log.id ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Aplicando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play className="h-3 w-3" />
+                                        Aplicar na Planilha
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 text-muted-foreground"
+                                    onClick={() =>
+                                      updateStatus({
+                                        logId: log.id,
+                                        status: "applied",
+                                        notes: "Marcado manualmente como aplicado",
+                                      })
+                                    }
+                                    disabled={isApplying || isUpdating}
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    Marcar Aplicado
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() =>
+                                      updateStatus({
+                                        logId: log.id,
+                                        status: "rejected",
+                                        notes: "Rejeitado pelo administrador",
+                                      })
+                                    }
+                                    disabled={isApplying || isUpdating}
+                                  >
+                                    <X className="h-3 w-3" />
+                                    Rejeitar
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>
