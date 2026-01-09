@@ -292,15 +292,15 @@ export function BulkEditDialog<T>({
                       <Label className="text-xs text-muted-foreground">{field.label}</Label>
                       {field.type === "select" && field.options ? (
                         <Select
-                          value={updates[field.key] || ""}
-                          onValueChange={(value) => handleUpdateChange(field.key, value)}
+                          value={updates[field.key] || "__keep__"}
+                          onValueChange={(value) => handleUpdateChange(field.key, value === "__keep__" ? "" : value)}
                         >
                           <SelectTrigger className="h-9">
                             <SelectValue placeholder={`Manter atual`} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Manter atual</SelectItem>
-                            {field.options.map((option) => (
+                            <SelectItem value="__keep__">Manter atual</SelectItem>
+                            {field.options.filter(Boolean).map((option) => (
                               <SelectItem key={option} value={option}>
                                 {option}
                               </SelectItem>
