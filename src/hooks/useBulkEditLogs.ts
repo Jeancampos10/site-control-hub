@@ -137,7 +137,35 @@ export function useApplyBulkEdit() {
         console.error("Error updating log status:", error);
       }
 
-      return result;
+      // Create notification for the user who created the bulk edit
+      if (log.created_by) {
+        const sheetNameMap: Record<string, string> = {
+          carga: "Carga",
+          descarga: "Descarga",
+        };
+        const sheetDisplayName = sheetNameMap[log.sheet_name] || log.sheet_name;
+        
+        const { error: notifError } = await supabase
+          .from("notifications")
+          .insert({
+            user_id: log.created_by,
+            type: "bulk_edit_applied",
+            title: "Alteração em lote aplicada",
+            message: `${result.updatedCount} registros foram atualizados na planilha ${sheetDisplayName}.`,
+            data: {
+              logId: log.id,
+              sheetName: log.sheet_name,
+              updatedCount: result.updatedCount,
+              updates: log.updates,
+            },
+          });
+
+        if (notifError) {
+          console.error("Error creating notification:", notifError);
+        }
+      }
+
+      return { ...result, log };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["bulk-edit-logs"] });
