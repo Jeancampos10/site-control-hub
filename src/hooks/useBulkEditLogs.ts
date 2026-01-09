@@ -88,3 +88,64 @@ export function useUpdateBulkEditStatus() {
     },
   });
 }
+
+export function useApplyBulkEdit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (log: BulkEditLog) => {
+      console.log("Applying bulk edit to spreadsheet:", log.id);
+
+      // Call the edge function to apply changes
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/apply-bulk-update`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sheetName: log.sheet_name,
+            dateFilter: log.date_filter,
+            filters: log.filters,
+            updates: log.updates,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Erro ao aplicar alterações");
+      }
+
+      // Update the log status
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from("bulk_edit_logs")
+        .update({
+          status: "applied",
+          applied_at: new Date().toISOString(),
+          applied_by: user?.id,
+          notes: `Aplicado automaticamente - ${result.updatedCount} registros atualizados`,
+        })
+        .eq("id", log.id);
+
+      if (error) {
+        console.error("Error updating log status:", error);
+      }
+
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["bulk-edit-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["google-sheets"] });
+      toast.success(`${result.updatedCount} registros atualizados na planilha!`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao aplicar: ${error.message}`);
+    },
+  });
+}
