@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { History, Check, X, Clock, ChevronDown, ChevronUp, User } from "lucide-react";
+import { History, Check, X, Clock, ChevronDown, ChevronUp, User, Play, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useBulkEditLogs, useUpdateBulkEditStatus, BulkEditLog } from "@/hooks/useBulkEditLogs";
+import { useBulkEditLogs, useUpdateBulkEditStatus, useApplyBulkEdit, BulkEditLog } from "@/hooks/useBulkEditLogs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TableLoader } from "@/components/ui/loading-spinner";
@@ -34,8 +34,10 @@ export function BulkEditHistoryDialog({
   title = "Histórico de Alterações",
 }: BulkEditHistoryDialogProps) {
   const { data: logs, isLoading } = useBulkEditLogs(sheetName);
-  const { mutate: updateStatus, isPending } = useUpdateBulkEditStatus();
+  const { mutate: updateStatus, isPending: isUpdating } = useUpdateBulkEditStatus();
+  const { mutate: applyBulkEdit, isPending: isApplying } = useApplyBulkEdit();
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [applyingLogId, setApplyingLogId] = useState<string | null>(null);
 
   const getStatusBadge = (status: BulkEditLog["status"]) => {
     switch (status) {
@@ -74,6 +76,15 @@ export function BulkEditHistoryDialog({
     return Object.entries(updates)
       .map(([key, value]) => `${key} → ${value}`)
       .join(", ");
+  };
+
+  const handleApply = (log: BulkEditLog) => {
+    setApplyingLogId(log.id);
+    applyBulkEdit(log, {
+      onSettled: () => {
+        setApplyingLogId(null);
+      },
+    });
   };
 
   return (
@@ -211,19 +222,37 @@ export function BulkEditHistoryDialog({
                           <div className="flex gap-2 pt-2">
                             <Button
                               size="sm"
+                              className="gap-1 bg-success hover:bg-success/90"
+                              onClick={() => handleApply(log)}
+                              disabled={isApplying || isUpdating}
+                            >
+                              {applyingLogId === log.id ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  Aplicando...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-3 w-3" />
+                                  Aplicar na Planilha
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
                               variant="outline"
-                              className="gap-1 text-success hover:text-success hover:bg-success/10"
+                              className="gap-1 text-muted-foreground"
                               onClick={() =>
                                 updateStatus({
                                   logId: log.id,
                                   status: "applied",
-                                  notes: "Aplicado manualmente na planilha",
+                                  notes: "Marcado manualmente como aplicado",
                                 })
                               }
-                              disabled={isPending}
+                              disabled={isApplying || isUpdating}
                             >
                               <Check className="h-3 w-3" />
-                              Marcar como Aplicado
+                              Marcar Aplicado
                             </Button>
                             <Button
                               size="sm"
@@ -236,7 +265,7 @@ export function BulkEditHistoryDialog({
                                   notes: "Rejeitado pelo administrador",
                                 })
                               }
-                              disabled={isPending}
+                              disabled={isApplying || isUpdating}
                             >
                               <X className="h-3 w-3" />
                               Rejeitar
