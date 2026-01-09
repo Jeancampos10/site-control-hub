@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Download, Plus, FileDown } from "lucide-react";
+import { Download, Plus, FileDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,15 +12,54 @@ import {
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Box, Truck, Activity } from "lucide-react";
 import { useGoogleSheets, DescargaRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { useGoogleSheetsUpdate } from "@/hooks/useGoogleSheetsUpdate";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
+import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Descarga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const { data: allDescargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
+  const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<DescargaRow>();
+
+  // Helper to get field value
+  const getFieldValue = (row: DescargaRow, field: string): string => {
+    return (row as unknown as Record<string, string>)[field] || "";
+  };
+
+  // Filter options for bulk edit
+  const filterOptions: FilterOption[] = useMemo(() => [
+    { key: "Prefixo_Cb", label: "Caminhão", values: [] },
+    { key: "Material", label: "Material", values: [] },
+    { key: "Local_da_Obra", label: "Local", values: [] },
+    { key: "Empresa_Cb", label: "Empresa", values: [] },
+  ], []);
+
+  // Editable fields for bulk edit
+  const editableFields: EditableField[] = useMemo(() => [
+    { key: "Motorista", label: "Motorista", type: "text" },
+    { key: "Material", label: "Material", type: "select" },
+    { key: "Local_da_Obra", label: "Local da Obra", type: "select" },
+    { key: "Estaca", label: "Estaca", type: "text" },
+    { key: "Observacao", label: "Observação", type: "text" },
+  ], []);
+
+  const handleBulkSave = async (
+    filters: Record<string, string>,
+    updates: Record<string, string>,
+    affectedRows: DescargaRow[]
+  ) => {
+    await updateSheet({
+      sheetName: "descarga",
+      filters,
+      updates,
+      affectedRows,
+    });
+  };
 
   // Filter data by selected date
   const descargaData = useMemo(() => {
@@ -57,6 +96,15 @@ export default function Descarga() {
         </div>
         <div className="flex gap-2">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setBulkEditOpen(true)}
+          >
+            <Edit className="h-4 w-4" />
+            Editar Lote
+          </Button>
           <Button variant="outline" size="sm" className="gap-2">
             <FileDown className="h-4 w-4" />
             Exportar
@@ -172,6 +220,20 @@ export default function Descarga() {
           )}
         </div>
       )}
+
+      {/* Bulk Edit Dialog */}
+      <BulkEditDialog<DescargaRow>
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        title="Edição em Lote - Descarga"
+        description="Altere dados de múltiplos registros de uma só vez"
+        data={allDescargaData || []}
+        filterOptions={filterOptions}
+        editableFields={editableFields}
+        onSave={handleBulkSave}
+        dateField="Data"
+        getFieldValue={getFieldValue}
+      />
     </div>
   );
 }
