@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      bulk_edit_logs: {
+        Row: {
+          affected_rows_count: number
+          affected_rows_sample: Json | null
+          applied_at: string | null
+          applied_by: string | null
+          created_at: string
+          created_by: string | null
+          date_filter: string | null
+          filters: Json
+          id: string
+          notes: string | null
+          sheet_name: string
+          status: string
+          updates: Json
+        }
+        Insert: {
+          affected_rows_count?: number
+          affected_rows_sample?: Json | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_filter?: string | null
+          filters?: Json
+          id?: string
+          notes?: string | null
+          sheet_name: string
+          status?: string
+          updates?: Json
+        }
+        Update: {
+          affected_rows_count?: number
+          affected_rows_sample?: Json | null
+          applied_at?: string | null
+          applied_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_filter?: string | null
+          filters?: Json
+          id?: string
+          notes?: string | null
+          sheet_name?: string
+          status?: string
+          updates?: Json
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

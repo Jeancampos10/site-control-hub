@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Download, Plus, FileDown, Edit } from "lucide-react";
+import { Download, Plus, FileDown, Edit, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,12 +17,14 @@ import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
+import { BulkEditHistoryDialog } from "@/components/shared/BulkEditHistoryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Descarga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { data: allDescargaData, isLoading, error, refetch } = useGoogleSheets<DescargaRow>('descarga');
   const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<DescargaRow>();
 
@@ -94,7 +96,7 @@ export default function Descarga() {
             Acompanhamento de descargas • {formattedDate}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           <Button 
             variant="outline" 
@@ -104,6 +106,15 @@ export default function Descarga() {
           >
             <Edit className="h-4 w-4" />
             Editar Lote
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History className="h-4 w-4" />
+            Histórico
           </Button>
           <Button variant="outline" size="sm" className="gap-2">
             <FileDown className="h-4 w-4" />
@@ -233,6 +244,14 @@ export default function Descarga() {
         onSave={handleBulkSave}
         dateField="Data"
         getFieldValue={getFieldValue}
+      />
+
+      {/* Bulk Edit History Dialog */}
+      <BulkEditHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        sheetName="descarga"
+        title="Histórico de Alterações - Descarga"
       />
     </div>
   );

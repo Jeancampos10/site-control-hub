@@ -1,0 +1,262 @@
+import { useState } from "react";
+import { History, Check, X, Clock, ChevronDown, ChevronUp, User } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useBulkEditLogs, useUpdateBulkEditStatus, BulkEditLog } from "@/hooks/useBulkEditLogs";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { TableLoader } from "@/components/ui/loading-spinner";
+
+interface BulkEditHistoryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sheetName: string;
+  title?: string;
+}
+
+export function BulkEditHistoryDialog({
+  open,
+  onOpenChange,
+  sheetName,
+  title = "Histórico de Alterações",
+}: BulkEditHistoryDialogProps) {
+  const { data: logs, isLoading } = useBulkEditLogs(sheetName);
+  const { mutate: updateStatus, isPending } = useUpdateBulkEditStatus();
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+
+  const getStatusBadge = (status: BulkEditLog["status"]) => {
+    switch (status) {
+      case "pending":
+        return (
+          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+            <Clock className="h-3 w-3 mr-1" />
+            Pendente
+          </Badge>
+        );
+      case "applied":
+        return (
+          <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+            <Check className="h-3 w-3 mr-1" />
+            Aplicado
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+            <X className="h-3 w-3 mr-1" />
+            Rejeitado
+          </Badge>
+        );
+    }
+  };
+
+  const formatFilters = (filters: Record<string, string>) => {
+    return Object.entries(filters)
+      .filter(([_, value]) => value && value !== "__all__")
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ");
+  };
+
+  const formatUpdates = (updates: Record<string, string>) => {
+    return Object.entries(updates)
+      .map(([key, value]) => `${key} → ${value}`)
+      .join(", ");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            {title}
+          </DialogTitle>
+          <DialogDescription>
+            Visualize e gerencie as alterações em lote registradas
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[60vh]">
+          {isLoading ? (
+            <TableLoader />
+          ) : logs && logs.length > 0 ? (
+            <div className="space-y-3 pr-4">
+              {logs.map((log) => (
+                <Collapsible
+                  key={log.id}
+                  open={expandedLog === log.id}
+                  onOpenChange={() =>
+                    setExpandedLog(expandedLog === log.id ? null : log.id)
+                  }
+                >
+                  <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <button className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors text-left">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getStatusBadge(log.status)}
+                              <span className="text-sm font-medium">
+                                {log.affected_rows_count} registro(s)
+                              </span>
+                              {log.date_filter && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {log.date_filter}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Alterações: {formatUpdates(log.updates)}
+                            </p>
+                          </div>
+                          <div className="text-right text-xs text-muted-foreground shrink-0">
+                            {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", {
+                              locale: ptBR,
+                            })}
+                          </div>
+                        </div>
+                        {expandedLog === log.id ? (
+                          <ChevronUp className="h-4 w-4 ml-2 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 ml-2 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent>
+                      <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+                        {/* Filters */}
+                        {Object.keys(log.filters).length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Filtros aplicados:
+                            </p>
+                            <p className="text-sm">{formatFilters(log.filters) || "Nenhum"}</p>
+                          </div>
+                        )}
+
+                        {/* Updates */}
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                            Alterações:
+                          </p>
+                          <div className="space-y-1">
+                            {Object.entries(log.updates).map(([key, value]) => (
+                              <div
+                                key={key}
+                                className="text-sm flex items-center gap-2"
+                              >
+                                <span className="text-muted-foreground">{key}:</span>
+                                <span className="font-medium">{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Sample rows */}
+                        {log.affected_rows_sample && log.affected_rows_sample.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Amostra de registros afetados:
+                            </p>
+                            <div className="bg-muted/30 rounded p-2 text-xs font-mono overflow-x-auto">
+                              {log.affected_rows_sample.slice(0, 3).map((row, idx) => (
+                                <div key={idx} className="truncate">
+                                  {Object.entries(row)
+                                    .slice(0, 4)
+                                    .map(([k, v]) => `${k}: ${v}`)
+                                    .join(" | ")}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {log.notes && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Observações:
+                            </p>
+                            <p className="text-sm">{log.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Applied info */}
+                        {log.applied_at && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            {log.status === "applied" ? "Aplicado" : "Rejeitado"} em{" "}
+                            {format(new Date(log.applied_at), "dd/MM/yyyy HH:mm", {
+                              locale: ptBR,
+                            })}
+                          </div>
+                        )}
+
+                        {/* Actions for pending logs */}
+                        {log.status === "pending" && (
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-success hover:text-success hover:bg-success/10"
+                              onClick={() =>
+                                updateStatus({
+                                  logId: log.id,
+                                  status: "applied",
+                                  notes: "Aplicado manualmente na planilha",
+                                })
+                              }
+                              disabled={isPending}
+                            >
+                              <Check className="h-3 w-3" />
+                              Marcar como Aplicado
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() =>
+                                updateStatus({
+                                  logId: log.id,
+                                  status: "rejected",
+                                  notes: "Rejeitado pelo administrador",
+                                })
+                              }
+                              disabled={isPending}
+                            >
+                              <X className="h-3 w-3" />
+                              Rejeitar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>Nenhuma alteração registrada</p>
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Upload, Download, Edit } from "lucide-react";
+import { Upload, Download, Edit, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Box, Truck, Activity, Calculator } from "lucide-react";
@@ -14,10 +14,12 @@ import { TopTrucksChart } from "@/components/carga/TopTrucksChart";
 import { TruckProductionTable } from "@/components/carga/TruckProductionTable";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
+import { BulkEditHistoryDialog } from "@/components/shared/BulkEditHistoryDialog";
 
 export default function Carga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { data: allCargaData, isLoading, error, refetch } = useGoogleSheets<CargaRow>('carga');
   const { mutateAsync: updateSheet } = useGoogleSheetsUpdate<CargaRow>();
 
@@ -94,7 +96,7 @@ export default function Carga() {
             Acompanhamento de carregamentos • {formattedDate}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           <Button 
             variant="outline" 
@@ -104,6 +106,15 @@ export default function Carga() {
           >
             <Edit className="h-4 w-4" />
             Editar Lote
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History className="h-4 w-4" />
+            Histórico
           </Button>
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
@@ -177,6 +188,14 @@ export default function Carga() {
         onSave={handleBulkSave}
         dateField="Data"
         getFieldValue={getFieldValue}
+      />
+
+      {/* Bulk Edit History Dialog */}
+      <BulkEditHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        sheetName="carga"
+        title="Histórico de Alterações - Carga"
       />
     </div>
   );
