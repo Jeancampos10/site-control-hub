@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, UserPlus } from 'lucide-react';
+import { Bell, Check, CheckCheck, UserPlus, FileEdit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -25,6 +25,8 @@ function NotificationItem({
     switch (notification.type) {
       case 'new_user_registration':
         return <UserPlus className="h-4 w-4 text-primary" />;
+      case 'bulk_edit_applied':
+        return <FileEdit className="h-4 w-4 text-success" />;
       default:
         return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
@@ -79,6 +81,13 @@ export function NotificationDropdown() {
   const handleNotificationClick = (notification: Notification) => {
     if (notification.type === 'new_user_registration') {
       navigate('/colaboradores');
+    } else if (notification.type === 'bulk_edit_applied') {
+      const data = notification.data as { sheetName?: string } | null;
+      if (data?.sheetName === 'carga') {
+        navigate('/carga');
+      } else if (data?.sheetName === 'descarga') {
+        navigate('/descarga');
+      }
     }
   };
 
