@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Edit, Filter, Save, Loader2, AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Check } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -70,16 +70,76 @@ export function BulkEditDialog<T>({
   const [updates, setUpdates] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  const normalizeDateForComparison = (dateStr: string): string => {
+    const raw = (dateStr || "").trim();
+
+    // DD/MM/YYYY or D/M/YYYY (optionally with extra text/time)
+    const brMatch = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (brMatch) {
+      const [, day, month, yearRaw] = brMatch;
+      const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+
+    // DD-MM-YYYY
+    const brDashMatch = raw.match(/(\d{1,2})-(\d{1,2})-(\d{2,4})/);
+    if (brDashMatch) {
+      const [, day, month, yearRaw] = brDashMatch;
+      const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+
+    // ISO YYYY-MM-DD (optionally with time)
+    const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      return `${day}/${month}/${year}`;
+    }
+
+    return raw;
+  };
+
+  const { minDate, maxDate } = useMemo(() => {
+    const parsedDates: Date[] = [];
+
+    for (const row of data) {
+      const normalized = normalizeDateForComparison(getFieldValue(row, dateField));
+      // parse expects dd/MM/yyyy
+      const d = parse(normalized, "dd/MM/yyyy", new Date());
+      if (isValid(d)) parsedDates.push(d);
+    }
+
+    if (parsedDates.length === 0) return { minDate: undefined as Date | undefined, maxDate: undefined as Date | undefined };
+
+    parsedDates.sort((a, b) => a.getTime() - b.getTime());
+    return {
+      minDate: parsedDates[0],
+      maxDate: parsedDates[parsedDates.length - 1],
+    };
+  }, [data, dateField, getFieldValue]);
+
+  // Default to latest available date when opening the dialog
+  useEffect(() => {
+    if (open && !selectedDate && maxDate) {
+      setSelectedDate(maxDate);
+    }
+  }, [open, selectedDate, maxDate]);
+
+  const selectedDateOutOfRange = !!(
+    selectedDate && ((minDate && selectedDate < minDate) || (maxDate && selectedDate > maxDate))
+  );
+
   // Filter data based on selected date and filters
   const filteredData = useMemo(() => {
     let result = [...data];
 
     // Filter by date if selected
     if (selectedDate) {
-      const formattedDate = format(selectedDate, "dd/MM/yyyy");
+      const formattedDate = normalizeDateForComparison(format(selectedDate, "dd/MM/yyyy"));
       result = result.filter((row) => {
-        const rowDate = getFieldValue(row, dateField)?.trim() || "";
-        return rowDate === formattedDate || rowDate.startsWith(formattedDate);
+        const rowDateRaw = getFieldValue(row, dateField)?.trim() || "";
+        const rowDate = normalizeDateForComparison(rowDateRaw);
+        return rowDate === formattedDate;
       });
     }
 
@@ -99,10 +159,11 @@ export function BulkEditDialog<T>({
       // Get unique values from data (filtered by date if selected)
       let sourceData = [...data];
       if (selectedDate) {
-        const formattedDate = format(selectedDate, "dd/MM/yyyy");
+        const formattedDate = normalizeDateForComparison(format(selectedDate, "dd/MM/yyyy"));
         sourceData = sourceData.filter((row) => {
-          const rowDate = getFieldValue(row, dateField)?.trim() || "";
-          return rowDate === formattedDate || rowDate.startsWith(formattedDate);
+          const rowDateRaw = getFieldValue(row, dateField)?.trim() || "";
+          const rowDate = normalizeDateForComparison(rowDateRaw);
+          return rowDate === formattedDate;
         });
       }
 
@@ -113,7 +174,9 @@ export function BulkEditDialog<T>({
         }
       });
 
-      const uniqueValues = [...new Set(sourceData.map((row) => getFieldValue(row, option.key)).filter(Boolean))];
+      const uniqueValues = [
+        ...new Set(sourceData.map((row) => getFieldValue(row, option.key)).filter(Boolean)),
+      ];
       return { ...option, values: uniqueValues.sort() };
     });
   }, [data, filterOptions, selectedDate, filters, dateField, getFieldValue]);
