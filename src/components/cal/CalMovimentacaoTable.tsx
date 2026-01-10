@@ -15,6 +15,15 @@ interface CalMovimentacaoTableProps {
   data: MovCalRow[];
 }
 
+// Parse Brazilian number format: 1.234,56 -> 1234.56
+const parseNumber = (value: string | undefined): number => {
+  if (!value || value.trim() === '') return 0;
+  // Remove dots (thousand separators) and replace comma with dot
+  const cleaned = value.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
 export function CalMovimentacaoTable({ data }: CalMovimentacaoTableProps) {
   if (!data || data.length === 0) {
     return (
@@ -36,28 +45,30 @@ export function CalMovimentacaoTable({ data }: CalMovimentacaoTableProps) {
     const tipoLower = tipo?.toLowerCase().trim();
     if (tipoLower === 'entrada' || tipoLower === 'compra') {
       return (
-        <Badge variant="default" className="bg-success/10 text-success border-success/20">
+        <Badge variant="default" className="bg-green-600 text-white border-green-700">
           <ArrowDownToLine className="h-3 w-3 mr-1" />
-          {tipo}
+          {tipo || 'Entrada'}
         </Badge>
       );
     }
     return (
-      <Badge variant="default" className="bg-accent/10 text-accent border-accent/20">
+      <Badge variant="default" className="bg-red-600 text-white border-red-700">
         <ArrowUpFromLine className="h-3 w-3 mr-1" />
-        {tipo}
+        {tipo || 'Saída'}
       </Badge>
     );
   };
 
   const formatCurrency = (value: string) => {
-    const num = parseFloat(value?.replace(',', '.') || '0');
+    const num = parseNumber(value);
+    if (num === 0) return '-';
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   const formatNumber = (value: string) => {
-    const num = parseFloat(value?.replace(',', '.') || '0');
-    return num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+    const num = parseNumber(value);
+    if (num === 0) return '-';
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -89,7 +100,7 @@ export function CalMovimentacaoTable({ data }: CalMovimentacaoTableProps) {
             <TableBody>
               {data.map((row, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{row.Data}</TableCell>
+                  <TableCell className="font-medium">{row.Data || '-'}</TableCell>
                   <TableCell>{row.Hora || '-'}</TableCell>
                   <TableCell>{getTipoBadge(row.Tipo)}</TableCell>
                   <TableCell>{row.Fornecedor || '-'}</TableCell>
