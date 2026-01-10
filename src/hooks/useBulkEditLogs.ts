@@ -120,6 +120,11 @@ export function useApplyBulkEdit() {
         throw new Error(result.error || "Erro ao aplicar alterações");
       }
 
+      const updatedCount = Number(result.updatedCount ?? 0);
+      if (!Number.isFinite(updatedCount) || updatedCount <= 0) {
+        throw new Error(result.message || "Nenhum registro foi atualizado na planilha (verifique data e filtros). ");
+      }
+
       // Update the log status
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -129,7 +134,7 @@ export function useApplyBulkEdit() {
           status: "applied",
           applied_at: new Date().toISOString(),
           applied_by: user?.id,
-          notes: `Aplicado automaticamente - ${result.updatedCount} registros atualizados`,
+          notes: `Aplicado automaticamente - ${updatedCount} registros atualizados`,
         })
         .eq("id", log.id);
 
@@ -151,11 +156,11 @@ export function useApplyBulkEdit() {
             user_id: log.created_by,
             type: "bulk_edit_applied",
             title: "Alteração em lote aplicada",
-            message: `${result.updatedCount} registros foram atualizados na planilha ${sheetDisplayName}.`,
+            message: `${updatedCount} registros foram atualizados na planilha ${sheetDisplayName}.`,
             data: {
               logId: log.id,
               sheetName: log.sheet_name,
-              updatedCount: result.updatedCount,
+              updatedCount,
               updates: log.updates,
             },
           });

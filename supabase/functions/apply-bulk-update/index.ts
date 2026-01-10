@@ -12,10 +12,29 @@ interface ApplyBulkUpdateRequest {
   updates: Record<string, string>;
 }
 
+function normalizeBrDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const raw = String(dateStr).trim();
+  const match = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!match) return raw;
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = match[3];
+  return `${day}/${month}/${year}`;
+}
+
+function normalizeRecordValues(record: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(record || {})) {
+    out[k] = String(v ?? '').trim();
+  }
+  return out;
+}
+
 async function validateAppsScript(url: string, _secret: string): Promise<{ valid: boolean; error?: string }> {
   try {
     console.log('Validating Apps Script URL:', url);
-    
+
     // Use GET request for healthcheck since doGet doesn't require auth
     // Follow redirects explicitly (Google Apps Script uses 302 redirects)
     const response = await fetch(url, {
@@ -29,12 +48,12 @@ async function validateAppsScript(url: string, _secret: string): Promise<{ valid
     console.log('Apps Script response status:', response.status);
     const text = await response.text();
     console.log('Apps Script response (first 200 chars):', text.substring(0, 200));
-    
+
     // Check if response is HTML (error page)
     if (text.trim().startsWith('<!') || text.trim().startsWith('<html') || text.trim().startsWith('<HTML')) {
-      return { 
-        valid: false, 
-        error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App com acesso "Qualquer pessoa".' 
+      return {
+        valid: false,
+        error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App com acesso "Qualquer pessoa".',
       };
     }
 
@@ -46,9 +65,9 @@ async function validateAppsScript(url: string, _secret: string): Promise<{ valid
       // If it's valid JSON but not a healthcheck response, it's still a valid endpoint
       return { valid: true };
     } catch {
-      return { 
-        valid: false, 
-        error: `Resposta inválida do Apps Script: ${text.substring(0, 100)}` 
+      return {
+        valid: false,
+        error: `Resposta inválida do Apps Script: ${text.substring(0, 100)}`,
       };
     }
   } catch (error) {
@@ -123,9 +142,10 @@ serve(async (req) => {
       body: JSON.stringify({
         authToken: APPS_SCRIPT_SECRET,
         sheetName: body.sheetName,
-        dateFilter: body.dateFilter,
-        filters: body.filters,
-        updates: body.updates,
+        // Important: normalize date format because Sheets sometimes returns 9/1/2026 while the UI stores 09/01/2026
+        dateFilter: normalizeBrDate(body.dateFilter),
+        filters: normalizeRecordValues(body.filters),
+        updates: normalizeRecordValues(body.updates),
       }),
     });
 
