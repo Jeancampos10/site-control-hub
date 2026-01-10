@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Mountain, Plus, Download, Building2 } from "lucide-react";
+import { Mountain, Plus, Download, Building2, DollarSign, Calendar, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,20 +11,24 @@ import {
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Box, Activity } from "lucide-react";
-import { useGoogleSheets, ApontamentoPedreiraRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { useGoogleSheets, ApontamentoPedreiraRow, CamReboqueRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { parsePtBrNumber } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+const FRETE_POR_TONELADA = 0.45;
 
 interface MaterialSummary {
   material: string;
   viagens: number;
   toneladas: number;
+  frete: number;
 }
 
 interface CompanySummary {
@@ -33,41 +37,84 @@ interface CompanySummary {
   viagens: number;
 }
 
+// Helper to parse Brazilian date to Date object
+const parsePtBrDate = (dateStr?: string): Date | null => {
+  if (!dateStr) return null;
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!match) return null;
+  const [, d, m, y] = match;
+  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+};
+
 export default function Pedreira() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { data: allData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPedreiraRow>('apontamento_pedreira');
+  const { data: reboqueData } = useGoogleSheets<CamReboqueRow>('cam_reboque');
+
+  // Total mobilizado (reboques cadastrados)
+  const totalMobilizado = reboqueData?.length || 0;
 
   // Filter data by selected date
   const pedreiraData = useMemo(() => {
     return filterByDate(allData, selectedDate);
   }, [allData, selectedDate]);
 
-  // Calculate KPIs from filtered data
+  // Filter data for current month
+  const pedreiraDataMes = useMemo(() => {
+    if (!allData) return [];
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(selectedDate);
+    
+    return allData.filter(row => {
+      const rowDate = parsePtBrDate(row.Data);
+      if (!rowDate) return false;
+      return isWithinInterval(rowDate, { start: monthStart, end: monthEnd });
+    });
+  }, [allData, selectedDate]);
+
+  // Calculate KPIs from filtered data (day)
   const totalRegistros = pedreiraData?.length || 0;
   const pesoTotal = pedreiraData?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
-  const volumeTotal = pedreiraData?.reduce((acc, row) => acc + parsePtBrNumber(row.Metro_Cubico), 0) || 0;
   const veiculosAtivos = new Set(pedreiraData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
 
-  // Summary by material
-  const materialSummary = useMemo((): MaterialSummary[] => {
-    if (!pedreiraData) return [];
+  // Totals for period (all data)
+  const totalPesoPeriodo = allData?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
+  const totalFretePeriodo = totalPesoPeriodo * FRETE_POR_TONELADA;
+
+  // Totals for month
+  const totalPesoMes = pedreiraDataMes?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
+  const totalFreteMes = totalPesoMes * FRETE_POR_TONELADA;
+
+  // Totals for day
+  const totalPesoDia = pesoTotal;
+  const totalFreteDia = totalPesoDia * FRETE_POR_TONELADA;
+
+  // Summary by material for each period
+  const createMaterialSummary = (data: ApontamentoPedreiraRow[] | undefined): MaterialSummary[] => {
+    if (!data) return [];
     
     const grouped = new Map<string, MaterialSummary>();
     
-    pedreiraData.forEach(row => {
+    data.forEach(row => {
       const material = row.Material || 'Outros';
+      const toneladas = parsePtBrNumber(row.Tonelada);
       
       if (!grouped.has(material)) {
-        grouped.set(material, { material, viagens: 0, toneladas: 0 });
+        grouped.set(material, { material, viagens: 0, toneladas: 0, frete: 0 });
       }
       
       const summary = grouped.get(material)!;
       summary.viagens += 1;
-      summary.toneladas += parsePtBrNumber(row.Tonelada);
+      summary.toneladas += toneladas;
+      summary.frete = summary.toneladas * FRETE_POR_TONELADA;
     });
     
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
-  }, [pedreiraData]);
+  };
+
+  const materialSummaryPeriodo = useMemo(() => createMaterialSummary(allData), [allData]);
+  const materialSummaryMes = useMemo(() => createMaterialSummary(pedreiraDataMes), [pedreiraDataMes]);
+  const materialSummaryDia = useMemo(() => createMaterialSummary(pedreiraData), [pedreiraData]);
 
   // Summary by company (truck companies like Engemat, L. Pereira)
   const companySummary = useMemo((): CompanySummary[] => {
@@ -96,6 +143,7 @@ export default function Pedreira() {
   }, [pedreiraData]);
 
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
+  const formattedMonth = format(selectedDate, "MMMM/yyyy", { locale: ptBR });
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -108,18 +156,19 @@ export default function Pedreira() {
     doc.text(`Data: ${dateStr}`, 14, 30);
     doc.text(`Total de Carregamentos: ${totalRegistros}`, 14, 36);
     doc.text(`Peso Total: ${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`, 14, 42);
-    doc.text(`Volume Total: ${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m³`, 14, 48);
+    doc.text(`Valor Frete: R$ ${totalFreteDia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 48);
 
     // Material Summary
     doc.setFontSize(14);
     doc.text('Resumo por Material', 14, 60);
     
     autoTable(doc, {
-      head: [['Material', 'Viagens', 'Toneladas']],
-      body: materialSummary.map(row => [
+      head: [['Material', 'Viagens', 'Toneladas', 'Frete (R$)']],
+      body: materialSummaryDia.map(row => [
         row.material,
         row.viagens.toString(),
-        row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' t',
+        row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' t',
+        'R$ ' + row.frete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       ]),
       startY: 65,
       theme: 'striped',
@@ -154,14 +203,14 @@ export default function Pedreira() {
     }
 
     autoTable(doc, {
-      head: [['Hora', 'Ordem', 'Veículo', 'Material', 'Peso Líq.', 'm³']],
+      head: [['Hora', 'Ordem', 'Veículo', 'Material', 'Peso Líq.', 'Ton']],
       body: (pedreiraData || []).map(row => [
         row.Hora,
         row.Ordem_Carregamento,
         row.Prefixo_Eq,
         row.Material,
         row.Peso_Liquido,
-        row.Metro_Cubico,
+        row.Tonelada,
       ]),
       startY: finalY2 > 220 ? 27 : finalY2 + 20,
       theme: 'striped',
@@ -170,6 +219,62 @@ export default function Pedreira() {
 
     doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
   };
+
+  // Material Summary Table Component
+  const MaterialSummaryTable = ({ data, title, subtitle }: { data: MaterialSummary[], title: string, subtitle: string }) => (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>{subtitle}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="data-table-header">Material</TableHead>
+                <TableHead className="data-table-header text-right">Toneladas</TableHead>
+                <TableHead className="data-table-header text-right">Frete (R$)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.length > 0 ? (
+                <>
+                  {data.map((row) => (
+                    <TableRow key={row.material} className="data-table-row">
+                      <TableCell className="font-medium">{row.material}</TableCell>
+                      <TableCell className="text-right">
+                        {row.toneladas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-success">
+                        R$ {row.frete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Total Row */}
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right">
+                      {data.reduce((sum, r) => sum + r.toneladas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t
+                    </TableCell>
+                    <TableCell className="text-right text-success">
+                      R$ {data.reduce((sum, r) => sum + r.frete, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                </>
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
+                    Nenhum registro encontrado
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -197,44 +302,6 @@ export default function Pedreira() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Carregamentos com destaque especial */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-medium opacity-90">Carregamentos</p>
-              <p className="text-3xl font-bold tracking-tight">{totalRegistros}</p>
-              <p className="text-xs opacity-80">Hoje</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
-              <Activity className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-        <KPICard
-          title="Peso Total"
-          value={`${pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`}
-          subtitle="Transportado"
-          icon={Box}
-          variant="accent"
-        />
-        <KPICard
-          title="Volume"
-          value={`${volumeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`}
-          subtitle="Material"
-          icon={Mountain}
-          variant="success"
-        />
-        <KPICard
-          title="Veículos"
-          value={veiculosAtivos}
-          subtitle="Utilizados"
-          icon={Truck}
-          variant="default"
-        />
-      </div>
-
       {/* Content */}
       {isLoading ? (
         <TableLoader />
@@ -245,11 +312,61 @@ export default function Pedreira() {
         />
       ) : (
         <div className="space-y-6">
+          {/* Material Summaries - Above KPIs */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <MaterialSummaryTable 
+              data={materialSummaryPeriodo} 
+              title="Período Total" 
+              subtitle="Resumo de todo o período disponível"
+            />
+            <MaterialSummaryTable 
+              data={materialSummaryMes} 
+              title={`Mês: ${formattedMonth}`} 
+              subtitle="Resumo do mês selecionado"
+            />
+            <MaterialSummaryTable 
+              data={materialSummaryDia} 
+              title={`Dia: ${formattedDate}`} 
+              subtitle="Resumo do dia selecionado"
+            />
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Carregamentos com destaque especial */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium opacity-90">Carregamentos</p>
+                  <p className="text-3xl font-bold tracking-tight">{totalRegistros}</p>
+                  <p className="text-xs opacity-80">Hoje</p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
+                  <Activity className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+            <KPICard
+              title="Peso Total"
+              value={`${pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`}
+              subtitle="Transportado"
+              icon={Box}
+              variant="accent"
+            />
+            <KPICard
+              title="Veículos"
+              value={`${veiculosAtivos} / ${totalMobilizado}`}
+              subtitle="Utilizados / Mobilizados"
+              icon={Truck}
+              variant="default"
+            />
+          </div>
+
           {/* Summaries side by side */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Material Summary */}
+            {/* Material Summary (Day) */}
             <div className="chart-container">
-              <h3 className="mb-4 font-semibold">Resumo por Material</h3>
+              <h3 className="mb-4 font-semibold">Resumo por Material (Dia)</h3>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -260,15 +377,15 @@ export default function Pedreira() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {materialSummary.length > 0 ? (
-                      materialSummary.map((row) => (
+                    {materialSummaryDia.length > 0 ? (
+                      materialSummaryDia.map((row) => (
                         <TableRow key={row.material} className="data-table-row">
                           <TableCell>
                             <span className="status-badge bg-accent/10 text-accent">{row.material}</span>
                           </TableCell>
                           <TableCell className="text-right font-medium">{row.viagens}</TableCell>
                           <TableCell className="text-right font-semibold">
-                            {row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t
+                            {row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t
                           </TableCell>
                         </TableRow>
                       ))
@@ -341,7 +458,7 @@ export default function Pedreira() {
                     <TableHead className="data-table-header">Motorista</TableHead>
                     <TableHead className="data-table-header">Material</TableHead>
                     <TableHead className="data-table-header text-right">P. Líquido</TableHead>
-                    <TableHead className="data-table-header text-right">m³</TableHead>
+                    <TableHead className="data-table-header text-right">Toneladas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -363,7 +480,7 @@ export default function Pedreira() {
                           <span className="status-badge bg-accent/10 text-accent">{row.Material}</span>
                         </TableCell>
                         <TableCell className="text-right font-semibold">{row.Peso_Liquido}</TableCell>
-                        <TableCell className="text-right">{row.Metro_Cubico}</TableCell>
+                        <TableCell className="text-right">{row.Tonelada}</TableCell>
                       </TableRow>
                     ))
                   ) : (
