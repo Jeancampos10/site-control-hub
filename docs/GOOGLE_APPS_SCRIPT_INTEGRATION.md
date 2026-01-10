@@ -156,20 +156,32 @@ function applyBulkUpdate(sheetNameKey, dateFilter, filters, updates) {
 function formatDateForComparison(date) {
   if (!date) return '';
   
-  // Se já for string, retornar como está
-  if (typeof date === 'string') {
-    return date.trim();
-  }
-  
-  // Se for objeto Date, formatar como DD/MM/YYYY
+  // Se for objeto Date, formatar
   if (date instanceof Date) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   }
   
+  // Se for string, normalizar removendo zeros à esquerda
+  if (typeof date === 'string') {
+    return normalizeDate(date.trim());
+  }
+  
   return String(date);
+}
+
+// Normaliza data para comparação (remove zeros à esquerda)
+function normalizeDate(dateStr) {
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const year = match[3];
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
 }
 
 // ===============================================
