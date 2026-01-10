@@ -134,22 +134,31 @@ serve(async (req) => {
     });
 
     // Call Google Apps Script
+    const normalizedDate = normalizeBrDate(body.dateFilter);
+    const normalizedFilters = normalizeRecordValues(body.filters);
+    const normalizedUpdates = normalizeRecordValues(body.updates);
+    
+    const requestBody = {
+      authToken: APPS_SCRIPT_SECRET,
+      sheetName: body.sheetName,
+      dateFilter: normalizedDate,
+      filters: normalizedFilters,
+      updates: normalizedUpdates,
+    };
+    
+    console.log('Sending to Apps Script:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
+      redirect: 'follow',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        authToken: APPS_SCRIPT_SECRET,
-        sheetName: body.sheetName,
-        // Important: normalize date format because Sheets sometimes returns 9/1/2026 while the UI stores 09/01/2026
-        dateFilter: normalizeBrDate(body.dateFilter),
-        filters: normalizeRecordValues(body.filters),
-        updates: normalizeRecordValues(body.updates),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const responseText = await response.text();
+    console.log('Apps Script POST response:', responseText.substring(0, 500));
     
     // Parse response safely
     let result;
