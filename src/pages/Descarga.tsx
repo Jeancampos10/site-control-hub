@@ -136,7 +136,7 @@ export default function Descarga() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Total Viagens com destaque especial */}
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
           <div className="flex items-start justify-between">
@@ -151,13 +151,6 @@ export default function Descarga() {
           </div>
         </div>
         <KPICard
-          title="Descargas Hoje"
-          value={totalRegistros}
-          subtitle="Registros"
-          icon={Activity}
-          variant="accent"
-        />
-        <KPICard
           title="Volume Total"
           value={`${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
           subtitle="Descarregado"
@@ -169,7 +162,7 @@ export default function Descarga() {
           value={locaisAtivos}
           subtitle={`${caminhoesAtivos} caminhões`}
           icon={Download}
-          variant="default"
+          variant="accent"
         />
       </div>
 
@@ -197,13 +190,9 @@ export default function Descarga() {
                   <TableHead className="data-table-header">Caminhão</TableHead>
                   <TableHead className="data-table-header">Empresa</TableHead>
                   <TableHead className="data-table-header">Motorista</TableHead>
-                  <TableHead className="data-table-header text-right">Vol. Unit.</TableHead>
-                  <TableHead className="data-table-header text-right">Viagens</TableHead>
-                  <TableHead className="data-table-header text-right">Vol. Total</TableHead>
                   <TableHead className="data-table-header">Local</TableHead>
                   <TableHead className="data-table-header">Estaca</TableHead>
                   <TableHead className="data-table-header">Material</TableHead>
-                  <TableHead className="data-table-header">Apontador</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -215,22 +204,14 @@ export default function Descarga() {
                       <TableCell className="font-medium">{row.Prefixo_Cb}</TableCell>
                       <TableCell>{row.Empresa_Cb}</TableCell>
                       <TableCell>{row.Motorista}</TableCell>
-                      <TableCell className="text-right">{row.Volume} m³</TableCell>
-                      <TableCell className="text-right">{row.N_Viagens}</TableCell>
-                      <TableCell className="text-right font-semibold">{row.Volume_Total} m³</TableCell>
-                      <TableCell>
-                        <span className="status-badge bg-primary/10 text-primary">{row.Local_da_Obra}</span>
-                      </TableCell>
+                      <TableCell>{row.Local_da_Obra}</TableCell>
                       <TableCell>{row.Estaca}</TableCell>
-                      <TableCell>
-                        <span className="status-badge bg-accent/10 text-accent">{row.Material}</span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{row.Usuario}</TableCell>
+                      <TableCell>{row.Material}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={12} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Nenhum registro encontrado para esta data
                     </TableCell>
                   </TableRow>
