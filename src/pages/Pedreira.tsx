@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 
 const FRETE_POR_TONELADA = 0.45;
+const DMT = 35;
 
 interface MaterialSummary {
   material: string;
@@ -68,35 +69,48 @@ export default function Pedreira() {
     return filterByDate(allData, selectedDate);
   }, [allData, selectedDate]);
 
-  // Filter data for current month
+  // Filter data for current month (up to yesterday)
   const pedreiraDataMes = useMemo(() => {
     if (!allData) return [];
     const monthStart = startOfMonth(selectedDate);
-    const monthEnd = endOfMonth(selectedDate);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
     
     return allData.filter(row => {
       const rowDate = parsePtBrDate(row.Data);
       if (!rowDate) return false;
-      return isWithinInterval(rowDate, { start: monthStart, end: monthEnd });
+      return isWithinInterval(rowDate, { start: monthStart, end: yesterday });
     });
   }, [allData, selectedDate]);
+
+  // Calculate date range for month
+  const monthDateRange = useMemo(() => {
+    const monthStart = startOfMonth(selectedDate);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    return {
+      start: format(monthStart, "dd/MM/yyyy"),
+      end: format(yesterday, "dd/MM/yyyy"),
+    };
+  }, [selectedDate]);
 
   // Calculate KPIs from filtered data (day)
   const totalRegistros = pedreiraData?.length || 0;
   const pesoTotal = pedreiraData?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
   const veiculosAtivos = new Set(pedreiraData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
 
-  // Totals for period (all data)
+  // Totals for period (all data) - Frete = ton × 0.45 × DMT(35)
   const totalPesoPeriodo = allData?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
-  const totalFretePeriodo = totalPesoPeriodo * FRETE_POR_TONELADA;
+  const totalFretePeriodo = totalPesoPeriodo * FRETE_POR_TONELADA * DMT;
 
-  // Totals for month
+  // Totals for month - Frete = ton × 0.45 × DMT(35)
   const totalPesoMes = pedreiraDataMes?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
-  const totalFreteMes = totalPesoMes * FRETE_POR_TONELADA;
+  const totalFreteMes = totalPesoMes * FRETE_POR_TONELADA * DMT;
 
-  // Totals for day
+  // Totals for day - Frete = ton × 0.45 × DMT(35)
   const totalPesoDia = pesoTotal;
-  const totalFreteDia = totalPesoDia * FRETE_POR_TONELADA;
+  const totalFreteDia = totalPesoDia * FRETE_POR_TONELADA * DMT;
 
   // Summary by material for each period
   const createMaterialSummary = (data: ApontamentoPedreiraRow[] | undefined): MaterialSummary[] => {
@@ -115,7 +129,7 @@ export default function Pedreira() {
       const summary = grouped.get(material)!;
       summary.viagens += 1;
       summary.toneladas += toneladas;
-      summary.frete = summary.toneladas * FRETE_POR_TONELADA;
+      summary.frete = summary.toneladas * FRETE_POR_TONELADA * DMT;
     });
     
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
@@ -146,7 +160,7 @@ export default function Pedreira() {
       caminhoes: data.trucks.size,
       viagens: data.viagens,
       toneladas: data.toneladas,
-      frete: data.toneladas * FRETE_POR_TONELADA,
+      frete: data.toneladas * FRETE_POR_TONELADA * DMT,
     })).sort((a, b) => b.viagens - a.viagens);
   };
 
@@ -276,7 +290,7 @@ export default function Pedreira() {
   const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon, showCaminhoes = false }: PeriodSummaryProps) => {
     const totalViagens = materialData.reduce((sum, r) => sum + r.viagens, 0);
     const totalToneladas = materialData.reduce((sum, r) => sum + r.toneladas, 0);
-    const totalFrete = totalToneladas * FRETE_POR_TONELADA;
+    const totalFrete = totalToneladas * FRETE_POR_TONELADA * DMT;
 
     const colorClasses = {
       blue: {
@@ -476,7 +490,7 @@ export default function Pedreira() {
                 materialData={materialSummaryMes}
                 empresaData={empresaSummaryMes}
                 title={formattedMonth} 
-                subtitle="Mês selecionado"
+                subtitle={`${monthDateRange.start} à ${monthDateRange.end}`}
                 colorScheme="amber"
                 icon={<CalendarDays className="h-5 w-5 text-amber-500" />}
                 showCaminhoes={false}
@@ -507,32 +521,42 @@ export default function Pedreira() {
           {/* Daily KPIs Section */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Carregamentos com destaque especial */}
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-lg animate-fade-in">
               <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium opacity-90">Carregamentos</p>
-                  <p className="text-3xl font-bold tracking-tight">{totalRegistros}</p>
-                  <p className="text-xs opacity-80">Hoje</p>
+                <div className="space-y-2">
+                  <p className="text-base font-semibold opacity-90">Carregamentos</p>
+                  <p className="text-4xl font-bold tracking-tight">{totalRegistros}</p>
+                  <p className="text-sm opacity-80">Hoje</p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
-                  <Activity className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-foreground/20">
+                  <Activity className="h-6 w-6" />
                 </div>
               </div>
             </div>
-            <KPICard
-              title="Peso Total"
-              value={`${pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`}
-              subtitle="Transportado"
-              icon={Box}
-              variant="accent"
-            />
-            <KPICard
-              title="Veículos"
-              value={`${veiculosAtivos} / ${totalMobilizado}`}
-              subtitle="Utilizados / Mobilizados"
-              icon={Truck}
-              variant="default"
-            />
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-accent to-accent/80 p-6 text-accent-foreground shadow-lg animate-fade-in">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-base font-semibold opacity-90">Peso Total</p>
+                  <p className="text-4xl font-bold tracking-tight">{pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="text-sm opacity-80">Toneladas transportadas</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent-foreground/20">
+                  <Box className="h-6 w-6" />
+                </div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-muted to-muted/80 p-6 text-foreground shadow-lg animate-fade-in border">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-base font-semibold opacity-90">Veículos</p>
+                  <p className="text-4xl font-bold tracking-tight">{veiculosAtivos} / {totalMobilizado}</p>
+                  <p className="text-sm opacity-80">Utilizados / Mobilizados</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-foreground/10">
+                  <Truck className="h-6 w-6" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Summaries side by side */}
