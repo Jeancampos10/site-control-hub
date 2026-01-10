@@ -22,7 +22,7 @@ const SHEET_RANGES: SheetRange = {
   caminhao_pipa: 'Caminhao_Pipa!A:G',
   apontamento_pedreira: 'Apontamento_Pedreira!A:Q',
   apontamento_pipa: 'Apontamento_Pipa!A:J',
-  mov_cal: 'Mov_Cal!A:G',
+  mov_cal: 'Mov_Cal!B:L',
   estoque_cal: 'Estoque_Cal!A:F',
 };
 

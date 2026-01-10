@@ -34,20 +34,30 @@ export function CalMovimentacaoTable({ data }: CalMovimentacaoTableProps) {
 
   const getTipoBadge = (tipo: string) => {
     const tipoLower = tipo?.toLowerCase().trim();
-    if (tipoLower === 'entrada') {
+    if (tipoLower === 'entrada' || tipoLower === 'compra') {
       return (
         <Badge variant="default" className="bg-success/10 text-success border-success/20">
           <ArrowDownToLine className="h-3 w-3 mr-1" />
-          Entrada
+          {tipo}
         </Badge>
       );
     }
     return (
       <Badge variant="default" className="bg-accent/10 text-accent border-accent/20">
         <ArrowUpFromLine className="h-3 w-3 mr-1" />
-        Saída
+        {tipo}
       </Badge>
     );
+  };
+
+  const formatCurrency = (value: string) => {
+    const num = parseFloat(value?.replace(',', '.') || '0');
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const formatNumber = (value: string) => {
+    const num = parseFloat(value?.replace(',', '.') || '0');
+    return num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
   };
 
   return (
@@ -66,26 +76,36 @@ export function CalMovimentacaoTable({ data }: CalMovimentacaoTableProps) {
                 <TableHead>Data</TableHead>
                 <TableHead>Hora</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Quantidade</TableHead>
-                <TableHead>Origem/Destino</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Observação</TableHead>
+                <TableHead>Fornecedor</TableHead>
+                <TableHead>Prefixo</TableHead>
+                <TableHead>Und</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
+                <TableHead>NF</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Frete</TableHead>
+                <TableHead>Local</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{row.Data}</TableCell>
-                  <TableCell>{row.Hora}</TableCell>
+                  <TableCell>{row.Hora || '-'}</TableCell>
                   <TableCell>{getTipoBadge(row.Tipo)}</TableCell>
+                  <TableCell>{row.Fornecedor || '-'}</TableCell>
+                  <TableCell>{row.Prefixo_Eq || '-'}</TableCell>
+                  <TableCell>{row.Und || '-'}</TableCell>
                   <TableCell className="text-right font-mono">
-                    {parseFloat(row.Quantidade?.replace(',', '.') || '0').toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                    {formatNumber(row.Qtd)}
                   </TableCell>
-                  <TableCell>{row.Origem_Destino || '-'}</TableCell>
-                  <TableCell>{row.Responsavel || '-'}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {row.Observacao || '-'}
+                  <TableCell>{row.NF || '-'}</TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrency(row.Valor)}
                   </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {formatCurrency(row.Frete)}
+                  </TableCell>
+                  <TableCell>{row.Local || '-'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
