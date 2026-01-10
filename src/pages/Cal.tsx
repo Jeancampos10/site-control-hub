@@ -374,64 +374,22 @@ export default function Cal() {
               icon={ArrowUpFromLine}
               variant="accent"
             />
-            <KPICard
-              title="Estoque Atual"
-              value={`${estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`Dia ${estoqueInfo.ultimaAtualizacao}`}
-              icon={Warehouse}
-              variant="primary"
-            />
-          </div>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                Registros Recentes
-              </CardTitle>
-              <CardDescription>Últimas movimentações registradas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {registrosRecentes.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nenhum registro encontrado</p>
-                ) : (
-                  registrosRecentes.map((registro, index) => {
-                    const isEntrada =
-                      registro.Tipo?.toLowerCase().includes("entrada") ||
-                      registro.Tipo?.toLowerCase().includes("compra");
-
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-2 h-2 rounded-full ${isEntrada ? "bg-success" : "bg-warning"}`}
-                          />
-                          <div>
-                            <p className="font-medium text-sm">{registro.Tipo || "-"}</p>
-                            <p className="text-xs text-muted-foreground">{registro.Fornecedor || "-"}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-sm">
-                            {parseNumber(registro.Qtd).toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}{" "}
-                            ton
-                          </p>
-                          <p className="text-xs text-muted-foreground">{registro.Data || "-"}</p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+            {/* Estoque Atual com destaque especial */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium opacity-90">Estoque Atual</p>
+                  <p className="text-2xl font-bold tracking-tight">
+                    {estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                  </p>
+                  <p className="text-xs opacity-80">Dia {estoqueInfo.ultimaAtualizacao}</p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
+                  <Warehouse className="h-5 w-5" />
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <CalResumoChart data={movimentacoes || []} />
 
