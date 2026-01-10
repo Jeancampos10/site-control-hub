@@ -270,9 +270,10 @@ export default function Pedreira() {
     subtitle: string;
     colorScheme: 'blue' | 'amber' | 'emerald';
     icon: React.ReactNode;
+    showCaminhoes?: boolean;
   }
 
-  const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon }: PeriodSummaryProps) => {
+  const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon, showCaminhoes = false }: PeriodSummaryProps) => {
     const totalViagens = materialData.reduce((sum, r) => sum + r.viagens, 0);
     const totalToneladas = materialData.reduce((sum, r) => sum + r.toneladas, 0);
     const totalFrete = totalToneladas * FRETE_POR_TONELADA;
@@ -372,7 +373,7 @@ export default function Pedreira() {
                 <TableHeader>
                   <TableRow className="text-xs">
                     <TableHead className="py-1 px-2">Empresa</TableHead>
-                    <TableHead className="py-1 px-2 text-right">Cam.</TableHead>
+                    {showCaminhoes && <TableHead className="py-1 px-2 text-right">Cam.</TableHead>}
                     <TableHead className="py-1 px-2 text-right">Viagens</TableHead>
                     <TableHead className="py-1 px-2 text-right">Ton</TableHead>
                   </TableRow>
@@ -382,13 +383,13 @@ export default function Pedreira() {
                     empresaData.map((row) => (
                       <TableRow key={row.empresa} className="text-xs">
                         <TableCell className="py-1 px-2 font-medium">{row.empresa}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{row.caminhoes}</TableCell>
+                        {showCaminhoes && <TableCell className="py-1 px-2 text-right">{row.caminhoes}</TableCell>}
                         <TableCell className="py-1 px-2 text-right">{row.viagens}</TableCell>
                         <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</TableCell>
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow><TableCell colSpan={4} className="text-center text-xs py-2">Sem dados</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={showCaminhoes ? 4 : 3} className="text-center text-xs py-2">Sem dados</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -398,6 +399,27 @@ export default function Pedreira() {
       </Card>
     );
   };
+
+  // Calculate date range for period total
+  const periodDateRange = useMemo(() => {
+    if (!allData || allData.length === 0) return null;
+    
+    const dates = allData
+      .map(row => parsePtBrDate(row.Data))
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => a.getTime() - b.getTime());
+    
+    if (dates.length === 0) return null;
+    
+    const firstDate = dates[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    return {
+      start: format(firstDate, "dd/MM/yyyy"),
+      end: format(yesterday, "dd/MM/yyyy"),
+    };
+  }, [allData]);
 
   return (
     <div className="space-y-6">
@@ -413,7 +435,6 @@ export default function Pedreira() {
           </p>
         </div>
         <div className="flex gap-2">
-          <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           <Button variant="outline" size="sm" className="gap-2" onClick={exportToPDF}>
             <Download className="h-4 w-4" />
             Exportar PDF
@@ -446,9 +467,10 @@ export default function Pedreira() {
                 materialData={materialSummaryPeriodo}
                 empresaData={empresaSummaryPeriodo}
                 title="Período Total" 
-                subtitle="Todo o período disponível"
+                subtitle={periodDateRange ? `${periodDateRange.start} à ${periodDateRange.end}` : "Todo o período disponível"}
                 colorScheme="blue"
                 icon={<Calendar className="h-5 w-5 text-blue-500" />}
+                showCaminhoes={false}
               />
               <PeriodSummaryCard 
                 materialData={materialSummaryMes}
@@ -457,6 +479,7 @@ export default function Pedreira() {
                 subtitle="Mês selecionado"
                 colorScheme="amber"
                 icon={<CalendarDays className="h-5 w-5 text-amber-500" />}
+                showCaminhoes={false}
               />
               <PeriodSummaryCard 
                 materialData={materialSummaryDia}
@@ -465,16 +488,20 @@ export default function Pedreira() {
                 subtitle="Dia selecionado"
                 colorScheme="emerald"
                 icon={<Calendar className="h-5 w-5 text-emerald-500" />}
+                showCaminhoes={true}
               />
             </div>
           </div>
 
-          {/* Visual Separator */}
-          <div className="relative py-2">
-            <Separator className="bg-border" />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 text-sm font-medium text-muted-foreground">
-              Informações do Dia
-            </span>
+          {/* Visual Separator with Date Filter */}
+          <div className="relative py-4">
+            <Separator className="bg-primary/30" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-6 flex items-center gap-4">
+              <span className="text-base font-bold text-primary uppercase tracking-wide">
+                📅 Informações do Dia
+              </span>
+              <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
+            </div>
           </div>
 
           {/* Daily KPIs Section */}
