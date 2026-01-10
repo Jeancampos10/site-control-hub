@@ -41,16 +41,22 @@ export default function Pedreira() {
     return filterByDate(allData, selectedDate);
   }, [allData, selectedDate]);
 
+  // Helpers for pt-BR numbers (e.g. "55,52")
+  const parsePtBrNumber = (value: string | undefined): number => {
+    if (!value) return 0;
+    const cleaned = value.replace(/[^0-9,.-]/g, "").trim();
+    if (!cleaned) return 0;
+
+    // If comma is used as decimal separator, remove thousands dots and replace comma with dot.
+    const normalized = cleaned.includes(",") ? cleaned.replace(/\./g, "").replace(",", ".") : cleaned;
+    const num = Number.parseFloat(normalized);
+    return Number.isFinite(num) ? num : 0;
+  };
+
   // Calculate KPIs from filtered data
   const totalRegistros = pedreiraData?.length || 0;
-  const pesoTotal = pedreiraData?.reduce((acc, row) => {
-    const peso = parseFloat(row.Tonelada) || 0;
-    return acc + peso;
-  }, 0) || 0;
-  const volumeTotal = pedreiraData?.reduce((acc, row) => {
-    const vol = parseFloat(row.Metro_Cubico) || 0;
-    return acc + vol;
-  }, 0) || 0;
+  const pesoTotal = pedreiraData?.reduce((acc, row) => acc + parsePtBrNumber(row.Tonelada), 0) || 0;
+  const volumeTotal = pedreiraData?.reduce((acc, row) => acc + parsePtBrNumber(row.Metro_Cubico), 0) || 0;
   const veiculosAtivos = new Set(pedreiraData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
 
   // Summary by material
@@ -68,7 +74,7 @@ export default function Pedreira() {
       
       const summary = grouped.get(material)!;
       summary.viagens += 1;
-      summary.toneladas += parseFloat(row.Tonelada) || 0;
+      summary.toneladas += parsePtBrNumber(row.Tonelada);
     });
     
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
