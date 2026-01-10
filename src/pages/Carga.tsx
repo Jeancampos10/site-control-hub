@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExcavatorProductionTable } from "@/components/carga/ExcavatorProductionTable";
 import { TopTrucksChart } from "@/components/carga/TopTrucksChart";
+import { TopExcavatorsChart } from "@/components/carga/TopExcavatorsChart";
 import { TruckProductionTable } from "@/components/carga/TruckProductionTable";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
@@ -179,8 +180,14 @@ export default function Carga() {
         />
       ) : (
         <div className="space-y-6">
-          {/* Top 10 Trucks Chart */}
-          <TopTrucksChart cargaData={cargaData || []} />
+          {/* Charts side by side */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Top 10 Trucks Chart */}
+            <TopTrucksChart cargaData={cargaData || []} />
+            
+            {/* Excavators Production Chart */}
+            <TopExcavatorsChart cargaData={cargaData || []} />
+          </div>
 
           {/* Excavator Production Table */}
           <ExcavatorProductionTable cargaData={cargaData || []} />

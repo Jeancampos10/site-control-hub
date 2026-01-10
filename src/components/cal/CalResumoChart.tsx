@@ -91,20 +91,32 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
           </div>
 
           {/* Totais com destaque */}
-          <div className="flex flex-col justify-center gap-6">
-            <div className="rounded-xl bg-success p-6 text-success-foreground shadow-lg">
-              <p className="text-lg font-medium opacity-90">Total Entradas</p>
-              <p className="text-4xl font-bold">
+          <div className="flex flex-col justify-center gap-4">
+            <div className="rounded-xl bg-success p-5 text-success-foreground shadow-lg">
+              <p className="text-sm font-medium opacity-90">Total Entradas</p>
+              <p className="text-3xl font-bold">
                 {resumoData.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-lg font-medium opacity-90">toneladas</p>
+              <p className="text-sm font-medium opacity-90">toneladas</p>
             </div>
-            <div className="rounded-xl bg-destructive p-6 text-destructive-foreground shadow-lg">
-              <p className="text-lg font-medium opacity-90">Total Saídas</p>
-              <p className="text-4xl font-bold">
+            <div className="rounded-xl bg-destructive p-5 text-destructive-foreground shadow-lg">
+              <p className="text-sm font-medium opacity-90">Total Saídas</p>
+              <p className="text-3xl font-bold">
                 {resumoData.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-lg font-medium opacity-90">toneladas</p>
+              <p className="text-sm font-medium opacity-90">toneladas</p>
+            </div>
+            {/* Diferença */}
+            <div className={`rounded-xl p-5 shadow-lg ${
+              (resumoData.totalEntradas - resumoData.totalSaidas) >= 0 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-warning text-warning-foreground'
+            }`}>
+              <p className="text-sm font-medium opacity-90">Diferença (Entradas - Saídas)</p>
+              <p className="text-3xl font-bold">
+                {(resumoData.totalEntradas - resumoData.totalSaidas).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className="text-sm font-medium opacity-90">toneladas</p>
             </div>
           </div>
         </div>
