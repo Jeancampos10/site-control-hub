@@ -30,26 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-// Parse Brazilian number formats safely.
-// Examples:
-// - "25.200" -> 25.2
-// - "49.590,00" -> 49590
-// - "-3.000,00" -> -3000
-const parseNumber = (value: string | undefined): number => {
-  if (!value || value.trim() === "") return 0;
-
-  const cleaned = value
-    .replace(/[^0-9,.-]/g, "") // strips currency and other chars
-    .trim();
-
-  const normalized = cleaned.includes(",")
-    ? cleaned.replace(/\./g, "").replace(",", ".")
-    : cleaned;
-
-  const num = parseFloat(normalized);
-  return Number.isFinite(num) ? num : 0;
-};
+import { parsePtBrNumber } from "@/lib/utils";
 
 const normalizeDateStr = (dateStr?: string) => {
   if (!dateStr) return null;
@@ -163,7 +144,7 @@ export default function Cal() {
     let countSaidas = 0;
 
     movimentacoesDoDia.forEach((mov) => {
-      const quantidade = parseNumber(mov.Qtd);
+      const quantidade = parsePtBrNumber(mov.Qtd);
       const tipo = mov.Tipo?.toLowerCase().trim();
 
       if (tipo === "entrada" || tipo === "compra") {
@@ -193,8 +174,8 @@ export default function Cal() {
       : estoque[estoque.length - 1];
 
     return {
-      estoqueAnterior: parseNumber(row.EstoqueAnterior),
-      estoqueAtual: parseNumber(row.EstoqueAtual),
+      estoqueAnterior: parsePtBrNumber(row.EstoqueAnterior),
+      estoqueAtual: parsePtBrNumber(row.EstoqueAtual),
       ultimaAtualizacao: normalizeDateStr(row.Data) || row.Data || "-",
       descricao: (row.Descricao || "CAL").trim(),
       baseDiaLabel: baseDia.label,
@@ -266,7 +247,7 @@ export default function Cal() {
           r.Data || "-",
           r.Tipo || "-",
           r.Fornecedor || "-",
-          `${parseNumber(r.Qtd).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `${parsePtBrNumber(r.Qtd).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         ]);
 
         autoTable(doc, {

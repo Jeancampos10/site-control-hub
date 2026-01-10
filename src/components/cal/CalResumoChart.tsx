@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { MovCalRow } from "@/hooks/useGoogleSheets";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
+import { parsePtBrNumber } from "@/lib/utils";
 
 interface CalResumoChartProps {
   data: MovCalRow[];
@@ -20,22 +21,8 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
     let totalEntradas = 0;
     let totalSaidas = 0;
 
-    const parseNumber = (value: string | undefined): number => {
-      if (!value || value.trim() === "") return 0;
-      const cleaned = value
-        .replace(/[^0-9,.-]/g, "")
-        .trim();
-
-      const normalized = cleaned.includes(",")
-        ? cleaned.replace(/\./g, "").replace(",", ".")
-        : cleaned;
-
-      const num = parseFloat(normalized);
-      return Number.isFinite(num) ? num : 0;
-    };
-
     data.forEach(mov => {
-      const quantidade = parseNumber(mov.Qtd);
+      const quantidade = parsePtBrNumber(mov.Qtd);
       const tipo = mov.Tipo?.trim().toLowerCase();
 
       // Verifica se contém "entrada" no tipo
