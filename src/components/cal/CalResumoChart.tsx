@@ -36,11 +36,14 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
 
     data.forEach(mov => {
       const quantidade = parseNumber(mov.Qtd);
-      const tipo = mov.Tipo?.toLowerCase().trim();
+      const tipo = mov.Tipo?.trim().toLowerCase();
 
-      if (tipo === 'entrada' || tipo === 'compra') {
+      // Verifica se contém "entrada" no tipo
+      if (tipo?.includes('entrada')) {
         totalEntradas += quantidade;
-      } else if (tipo === 'saída' || tipo === 'saida' || tipo === 'consumo') {
+      } 
+      // Verifica se contém "saída" ou "saida" no tipo
+      else if (tipo?.includes('saída') || tipo?.includes('saida')) {
         totalSaidas += quantidade;
       }
     });
