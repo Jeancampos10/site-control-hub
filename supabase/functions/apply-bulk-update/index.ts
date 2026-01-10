@@ -14,15 +14,24 @@ interface ApplyBulkUpdateRequest {
 
 async function validateAppsScript(url: string, _secret: string): Promise<{ valid: boolean; error?: string }> {
   try {
+    console.log('Validating Apps Script URL:', url);
+    
     // Use GET request for healthcheck since doGet doesn't require auth
+    // Follow redirects explicitly (Google Apps Script uses 302 redirects)
     const response = await fetch(url, {
       method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'Accept': 'application/json',
+      },
     });
 
+    console.log('Apps Script response status:', response.status);
     const text = await response.text();
+    console.log('Apps Script response (first 200 chars):', text.substring(0, 200));
     
     // Check if response is HTML (error page)
-    if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+    if (text.trim().startsWith('<!') || text.trim().startsWith('<html') || text.trim().startsWith('<HTML')) {
       return { 
         valid: false, 
         error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App com acesso "Qualquer pessoa".' 
@@ -44,6 +53,7 @@ async function validateAppsScript(url: string, _secret: string): Promise<{ valid
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Apps Script validation error:', errorMsg);
     return { valid: false, error: `Erro de conexão: ${errorMsg}` };
   }
 }
