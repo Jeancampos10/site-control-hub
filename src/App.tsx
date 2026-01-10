@@ -13,6 +13,7 @@ import Equipamentos from "./pages/frota/Equipamentos";
 import Caminhoes from "./pages/frota/Caminhoes";
 import Reboque from "./pages/frota/Reboque";
 import FrotaPipa from "./pages/frota/Pipa";
+import FrotaGeral from "./pages/frota/FrotaGeral";
 import Cal from "./pages/Cal";
 import Pedreira from "./pages/Pedreira";
 import Pipas from "./pages/Pipas";
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
             <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
+            <Route path="/frota" element={<ProtectedRoute><FrotaGeral /></ProtectedRoute>} />
             <Route path="/frota/equipamentos" element={<ProtectedRoute><Equipamentos /></ProtectedRoute>} />
             <Route path="/frota/caminhoes" element={<ProtectedRoute><Caminhoes /></ProtectedRoute>} />
             <Route path="/frota/reboque" element={<ProtectedRoute><Reboque /></ProtectedRoute>} />

@@ -38,6 +38,7 @@ const navigation: NavItem[] = [
     label: "Frota Geral",
     icon: Truck,
     children: [
+      { label: "Resumo Geral", href: "/frota" },
       { label: "Equipamentos", href: "/frota/equipamentos" },
       { label: "Caminhões", href: "/frota/caminhoes" },
       { label: "Caminhão Reboque", href: "/frota/reboque" },

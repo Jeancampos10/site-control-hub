@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { MovCalRow } from "@/hooks/useGoogleSheets";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { parsePtBrNumber } from "@/lib/utils";
+import { ArrowDownToLine, ArrowUpFromLine, TrendingDown, TrendingUp, DollarSign, Truck } from "lucide-react";
 
 interface CalResumoChartProps {
   data: MovCalRow[];
@@ -12,17 +12,22 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
   const resumoData = useMemo(() => {
     if (!data || data.length === 0) {
       return {
-        porTipo: [],
         totalEntradas: 0,
         totalSaidas: 0,
+        totalValor: 0,
+        totalFrete: 0,
       };
     }
 
     let totalEntradas = 0;
     let totalSaidas = 0;
+    let totalValor = 0;
+    let totalFrete = 0;
 
     data.forEach(mov => {
       const quantidade = parsePtBrNumber(mov.Qtd);
+      const valor = parsePtBrNumber(mov.Valor);
+      const frete = parsePtBrNumber(mov.Frete);
       const tipo = mov.Tipo?.trim().toLowerCase();
 
       // Verifica se contém "entrada" no tipo
@@ -33,17 +38,16 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
       else if (tipo?.includes('saída') || tipo?.includes('saida')) {
         totalSaidas += quantidade;
       }
+
+      totalValor += valor;
+      totalFrete += frete;
     });
 
-    const porTipo = [
-      { name: 'Entradas', value: totalEntradas, color: 'hsl(var(--success))' },
-      { name: 'Saídas', value: totalSaidas, color: 'hsl(var(--destructive))' },
-    ];
-
     return {
-      porTipo,
       totalEntradas,
       totalSaidas,
+      totalValor,
+      totalFrete,
     };
   }, [data]);
 
@@ -51,73 +55,91 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
     return null;
   }
 
+  const diferenca = resumoData.totalEntradas - resumoData.totalSaidas;
+  const valorTotal = resumoData.totalValor + resumoData.totalFrete;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Resumo Total do Período (toneladas)</CardTitle>
-        <CardDescription>Distribuição de entradas e saídas de todo o período em toneladas</CardDescription>
+        <CardDescription>Distribuição de entradas, saídas, valores e frete de todo o período</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Gráfico */}
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={resumoData.porTipo}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`}
-                >
-                  {resumoData.porTipo.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                  formatter={(value: number) => [`${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`, '']}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {/* Total Entradas */}
+          <div className="rounded-xl bg-success p-4 text-success-foreground shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowDownToLine className="h-4 w-4" />
+              <p className="text-sm font-medium opacity-90">Total Entradas</p>
+            </div>
+            <p className="text-2xl font-bold">
+              {resumoData.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">toneladas</p>
           </div>
 
-          {/* Totais com destaque */}
-          <div className="flex flex-col justify-center gap-4">
-            <div className="rounded-xl bg-success p-5 text-success-foreground shadow-lg">
-              <p className="text-sm font-medium opacity-90">Total Entradas</p>
-              <p className="text-3xl font-bold">
-                {resumoData.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-sm font-medium opacity-90">toneladas</p>
-            </div>
-            <div className="rounded-xl bg-destructive p-5 text-destructive-foreground shadow-lg">
+          {/* Total Saídas */}
+          <div className="rounded-xl bg-destructive p-4 text-destructive-foreground shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowUpFromLine className="h-4 w-4" />
               <p className="text-sm font-medium opacity-90">Total Saídas</p>
-              <p className="text-3xl font-bold">
-                {resumoData.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-sm font-medium opacity-90">toneladas</p>
             </div>
-            {/* Diferença */}
-            <div className={`rounded-xl p-5 shadow-lg ${
-              (resumoData.totalEntradas - resumoData.totalSaidas) >= 0 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-warning text-warning-foreground'
-            }`}>
-              <p className="text-sm font-medium opacity-90">Diferença (Entradas - Saídas)</p>
-              <p className="text-3xl font-bold">
-                {(resumoData.totalEntradas - resumoData.totalSaidas).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-sm font-medium opacity-90">toneladas</p>
+            <p className="text-2xl font-bold">
+              {resumoData.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">toneladas</p>
+          </div>
+
+          {/* Diferença */}
+          <div className={`rounded-xl p-4 shadow-lg ${
+            diferenca >= 0 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-warning text-warning-foreground'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              {diferenca >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              <p className="text-sm font-medium opacity-90">Diferença</p>
             </div>
+            <p className="text-2xl font-bold">
+              {diferenca.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">toneladas</p>
+          </div>
+
+          {/* Valor */}
+          <div className="rounded-xl bg-accent p-4 text-accent-foreground shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-4 w-4" />
+              <p className="text-sm font-medium opacity-90">Valor Total</p>
+            </div>
+            <p className="text-2xl font-bold">
+              R$ {resumoData.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">materiais</p>
+          </div>
+
+          {/* Frete */}
+          <div className="rounded-xl bg-info p-4 text-info-foreground shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Truck className="h-4 w-4" />
+              <p className="text-sm font-medium opacity-90">Total Frete</p>
+            </div>
+            <p className="text-2xl font-bold">
+              R$ {resumoData.totalFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">transporte</p>
+          </div>
+
+          {/* Valor + Frete */}
+          <div className="rounded-xl bg-gradient-to-br from-primary to-accent p-4 text-primary-foreground shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-4 w-4" />
+              <p className="text-sm font-medium opacity-90">Valor + Frete</p>
+            </div>
+            <p className="text-2xl font-bold">
+              R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs font-medium opacity-80">total geral</p>
           </div>
         </div>
       </CardContent>
