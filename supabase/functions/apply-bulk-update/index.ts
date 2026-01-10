@@ -12,15 +12,11 @@ interface ApplyBulkUpdateRequest {
   updates: Record<string, string>;
 }
 
-async function validateAppsScript(url: string, secret: string): Promise<{ valid: boolean; error?: string }> {
+async function validateAppsScript(url: string, _secret: string): Promise<{ valid: boolean; error?: string }> {
   try {
+    // Use GET request for healthcheck since doGet doesn't require auth
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        authToken: secret,
-        action: 'healthcheck',
-      }),
+      method: 'GET',
     });
 
     const text = await response.text();
@@ -29,7 +25,7 @@ async function validateAppsScript(url: string, secret: string): Promise<{ valid:
     if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
       return { 
         valid: false, 
-        error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App.' 
+        error: 'Apps Script retornou página HTML. Verifique se o script está implantado corretamente como Web App com acesso "Qualquer pessoa".' 
       };
     }
 
