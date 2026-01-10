@@ -121,11 +121,24 @@ export function useApplyBulkEdit() {
       }
 
       const updatedCount = Number(result.updatedCount ?? 0);
+      
+      // If no records were updated, keep as pending with error message
       if (!Number.isFinite(updatedCount) || updatedCount <= 0) {
-        throw new Error(result.message || "Nenhum registro foi atualizado na planilha (verifique data e filtros). ");
+        const errorMessage = `Nenhum registro encontrado. Verifique: data "${log.date_filter}" e filtros aplicados podem não corresponder aos dados da planilha.`;
+        
+        // Update log to pending with error note
+        await supabase
+          .from("bulk_edit_logs")
+          .update({
+            status: "pending",
+            notes: `⚠️ Tentativa falhou: ${errorMessage}`,
+          })
+          .eq("id", log.id);
+        
+        throw new Error(errorMessage);
       }
 
-      // Update the log status
+      // Update the log status to applied
       const { data: { user } } = await supabase.auth.getUser();
       
       const { error } = await supabase
@@ -134,7 +147,7 @@ export function useApplyBulkEdit() {
           status: "applied",
           applied_at: new Date().toISOString(),
           applied_by: user?.id,
-          notes: `Aplicado automaticamente - ${updatedCount} registros atualizados`,
+          notes: `✅ Aplicado automaticamente - ${updatedCount} registro(s) atualizado(s)`,
         })
         .eq("id", log.id);
 
