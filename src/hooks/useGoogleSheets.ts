@@ -206,8 +206,8 @@ export interface MovCalRow {
 export interface EstoqueCalRow {
   Descricao: string;
   Data: string;
-  Estoque_Anterior: string;
+  EstoqueAnterior: string;
   Saida: string;
   Entrada: string;
-  Estoque_Atual: string;
+  EstoqueAtual: string;
 }
