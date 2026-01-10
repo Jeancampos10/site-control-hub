@@ -204,23 +204,29 @@ export default function Pedreira() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Carregamentos com destaque especial */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium opacity-90">Carregamentos</p>
+              <p className="text-3xl font-bold tracking-tight">{totalRegistros}</p>
+              <p className="text-xs opacity-80">Hoje</p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
+              <Activity className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
         <KPICard
-          title="Carregamentos"
-          value={totalRegistros}
-          subtitle="Hoje"
-          icon={Activity}
+          title="Peso Total"
+          value={`${pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t`}
+          subtitle="Transportado"
+          icon={Box}
           variant="accent"
         />
         <KPICard
-          title="Peso Total"
-          value={`${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`}
-          subtitle="Transportado"
-          icon={Box}
-          variant="primary"
-        />
-        <KPICard
           title="Volume"
-          value={`${volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m³`}
+          value={`${volumeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m³`}
           subtitle="Material"
           icon={Mountain}
           variant="success"
