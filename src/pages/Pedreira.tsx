@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Mountain, Plus, Download, Building2, DollarSign, Calendar, CalendarDays } from "lucide-react";
+import { Mountain, Plus, Download, Building2, DollarSign, Calendar, CalendarDays, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -21,11 +21,20 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { parsePtBrNumber } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 const FRETE_POR_TONELADA = 0.45;
 
 interface MaterialSummary {
   material: string;
+  viagens: number;
+  toneladas: number;
+  frete: number;
+}
+
+interface EmpresaSummary {
+  empresa: string;
+  caminhoes: number;
   viagens: number;
   toneladas: number;
   frete: number;
@@ -112,9 +121,42 @@ export default function Pedreira() {
     return Array.from(grouped.values()).sort((a, b) => b.toneladas - a.toneladas);
   };
 
+  // Summary by empresa for each period
+  const createEmpresaSummary = (data: ApontamentoPedreiraRow[] | undefined): EmpresaSummary[] => {
+    if (!data) return [];
+    
+    const grouped = new Map<string, { trucks: Set<string>; viagens: number; toneladas: number }>();
+    
+    data.forEach(row => {
+      const empresa = row.Empresa_Eq || row.Fornecedor || 'Outros';
+      const toneladas = parsePtBrNumber(row.Tonelada);
+      
+      if (!grouped.has(empresa)) {
+        grouped.set(empresa, { trucks: new Set(), viagens: 0, toneladas: 0 });
+      }
+      
+      const summary = grouped.get(empresa)!;
+      summary.viagens += 1;
+      summary.toneladas += toneladas;
+      if (row.Prefixo_Eq) summary.trucks.add(row.Prefixo_Eq);
+    });
+    
+    return Array.from(grouped.entries()).map(([empresa, data]) => ({
+      empresa,
+      caminhoes: data.trucks.size,
+      viagens: data.viagens,
+      toneladas: data.toneladas,
+      frete: data.toneladas * FRETE_POR_TONELADA,
+    })).sort((a, b) => b.viagens - a.viagens);
+  };
+
   const materialSummaryPeriodo = useMemo(() => createMaterialSummary(allData), [allData]);
   const materialSummaryMes = useMemo(() => createMaterialSummary(pedreiraDataMes), [pedreiraDataMes]);
   const materialSummaryDia = useMemo(() => createMaterialSummary(pedreiraData), [pedreiraData]);
+
+  const empresaSummaryPeriodo = useMemo(() => createEmpresaSummary(allData), [allData]);
+  const empresaSummaryMes = useMemo(() => createEmpresaSummary(pedreiraDataMes), [pedreiraDataMes]);
+  const empresaSummaryDia = useMemo(() => createEmpresaSummary(pedreiraData), [pedreiraData]);
 
   // Summary by company (truck companies like Engemat, L. Pereira)
   const companySummary = useMemo((): CompanySummary[] => {
@@ -220,61 +262,142 @@ export default function Pedreira() {
     doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
   };
 
-  // Material Summary Table Component
-  const MaterialSummaryTable = ({ data, title, subtitle }: { data: MaterialSummary[], title: string, subtitle: string }) => (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{subtitle}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="data-table-header">Material</TableHead>
-                <TableHead className="data-table-header text-right">Toneladas</TableHead>
-                <TableHead className="data-table-header text-right">Frete (R$)</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.length > 0 ? (
-                <>
-                  {data.map((row) => (
-                    <TableRow key={row.material} className="data-table-row">
-                      <TableCell className="font-medium">{row.material}</TableCell>
-                      <TableCell className="text-right">
-                        {row.toneladas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-success">
-                        R$ {row.frete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {/* Total Row */}
-                  <TableRow className="bg-muted/50 font-bold">
-                    <TableCell>TOTAL</TableCell>
-                    <TableCell className="text-right">
-                      {data.reduce((sum, r) => sum + r.toneladas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t
-                    </TableCell>
-                    <TableCell className="text-right text-success">
-                      R$ {data.reduce((sum, r) => sum + r.frete, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
+  // Period Summary Card Component with distinct styling
+  interface PeriodSummaryProps {
+    materialData: MaterialSummary[];
+    empresaData: EmpresaSummary[];
+    title: string;
+    subtitle: string;
+    colorScheme: 'blue' | 'amber' | 'emerald';
+    icon: React.ReactNode;
+  }
+
+  const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon }: PeriodSummaryProps) => {
+    const totalViagens = materialData.reduce((sum, r) => sum + r.viagens, 0);
+    const totalToneladas = materialData.reduce((sum, r) => sum + r.toneladas, 0);
+    const totalFrete = totalToneladas * FRETE_POR_TONELADA;
+
+    const colorClasses = {
+      blue: {
+        border: 'border-l-4 border-l-blue-500',
+        header: 'bg-blue-500/10',
+        title: 'text-blue-700 dark:text-blue-400',
+        badge: 'bg-blue-500 text-white',
+      },
+      amber: {
+        border: 'border-l-4 border-l-amber-500',
+        header: 'bg-amber-500/10',
+        title: 'text-amber-700 dark:text-amber-400',
+        badge: 'bg-amber-500 text-white',
+      },
+      emerald: {
+        border: 'border-l-4 border-l-emerald-500',
+        header: 'bg-emerald-500/10',
+        title: 'text-emerald-700 dark:text-emerald-400',
+        badge: 'bg-emerald-500 text-white',
+      },
+    };
+
+    const colors = colorClasses[colorScheme];
+
+    return (
+      <Card className={`${colors.border} overflow-hidden`}>
+        <CardHeader className={`${colors.header} pb-3`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {icon}
+              <div>
+                <CardTitle className={`text-lg font-bold ${colors.title}`}>{title}</CardTitle>
+                <CardDescription className="text-xs">{subtitle}</CardDescription>
+              </div>
+            </div>
+            <span className={`${colors.badge} px-3 py-1 rounded-full text-sm font-bold`}>
+              {totalViagens} viagens
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          {/* Totals */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-2xl font-bold">{totalToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t</p>
+              <p className="text-xs text-muted-foreground">Total Toneladas</p>
+            </div>
+            <div className="text-center p-3 bg-success/10 rounded-lg">
+              <p className="text-2xl font-bold text-success">R$ {totalFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-xs text-muted-foreground">Total Frete</p>
+            </div>
+          </div>
+
+          {/* Material Summary */}
+          <div>
+            <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+              <Box className="h-3 w-3" /> Por Material
+            </h4>
+            <div className="overflow-x-auto max-h-32 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2">Material</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Viagens</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Ton</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Frete</TableHead>
                   </TableRow>
-                </>
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
-                    Nenhum registro encontrado
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
-  );
+                </TableHeader>
+                <TableBody>
+                  {materialData.length > 0 ? (
+                    materialData.map((row) => (
+                      <TableRow key={row.material} className="text-xs">
+                        <TableCell className="py-1 px-2 font-medium">{row.material}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.viagens}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</TableCell>
+                        <TableCell className="py-1 px-2 text-right text-success">R$ {row.frete.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow><TableCell colSpan={4} className="text-center text-xs py-2">Sem dados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Empresa Summary */}
+          <div>
+            <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+              <Building2 className="h-3 w-3" /> Por Empresa
+            </h4>
+            <div className="overflow-x-auto max-h-32 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2">Empresa</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Cam.</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Viagens</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Ton</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {empresaData.length > 0 ? (
+                    empresaData.map((row) => (
+                      <TableRow key={row.empresa} className="text-xs">
+                        <TableCell className="py-1 px-2 font-medium">{row.empresa}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.caminhoes}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.viagens}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow><TableCell colSpan={4} className="text-center text-xs py-2">Sem dados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -312,26 +435,49 @@ export default function Pedreira() {
         />
       ) : (
         <div className="space-y-6">
-          {/* Material Summaries - Above KPIs */}
-          <div className="grid gap-4 lg:grid-cols-3">
-            <MaterialSummaryTable 
-              data={materialSummaryPeriodo} 
-              title="Período Total" 
-              subtitle="Resumo de todo o período disponível"
-            />
-            <MaterialSummaryTable 
-              data={materialSummaryMes} 
-              title={`Mês: ${formattedMonth}`} 
-              subtitle="Resumo do mês selecionado"
-            />
-            <MaterialSummaryTable 
-              data={materialSummaryDia} 
-              title={`Dia: ${formattedDate}`} 
-              subtitle="Resumo do dia selecionado"
-            />
+          {/* Period Summaries Section - Distinct from KPIs */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Resumo por Período</h2>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <PeriodSummaryCard 
+                materialData={materialSummaryPeriodo}
+                empresaData={empresaSummaryPeriodo}
+                title="Período Total" 
+                subtitle="Todo o período disponível"
+                colorScheme="blue"
+                icon={<Calendar className="h-5 w-5 text-blue-500" />}
+              />
+              <PeriodSummaryCard 
+                materialData={materialSummaryMes}
+                empresaData={empresaSummaryMes}
+                title={formattedMonth} 
+                subtitle="Mês selecionado"
+                colorScheme="amber"
+                icon={<CalendarDays className="h-5 w-5 text-amber-500" />}
+              />
+              <PeriodSummaryCard 
+                materialData={materialSummaryDia}
+                empresaData={empresaSummaryDia}
+                title={formattedDate} 
+                subtitle="Dia selecionado"
+                colorScheme="emerald"
+                icon={<Calendar className="h-5 w-5 text-emerald-500" />}
+              />
+            </div>
           </div>
 
-          {/* Summary Cards */}
+          {/* Visual Separator */}
+          <div className="relative py-2">
+            <Separator className="bg-border" />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 text-sm font-medium text-muted-foreground">
+              Informações do Dia
+            </span>
+          </div>
+
+          {/* Daily KPIs Section */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Carregamentos com destaque especial */}
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
