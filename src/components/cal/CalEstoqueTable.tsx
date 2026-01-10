@@ -33,6 +33,11 @@ export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
   // Ordenar do mais recente para o mais antigo
   const sortedData = [...data].reverse();
 
+  const formatNumber = (value: string) => {
+    const num = parseFloat(value?.replace(',', '.') || '0');
+    return num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -46,38 +51,36 @@ export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="text-right">Estoque Anterior</TableHead>
-                <TableHead className="text-right">Entradas</TableHead>
-                <TableHead className="text-right">Saídas</TableHead>
+                <TableHead className="text-right">Saída</TableHead>
+                <TableHead className="text-right">Entrada</TableHead>
                 <TableHead className="text-right">Estoque Atual</TableHead>
-                <TableHead>Observação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedData.map((row, index) => {
                 const estoqueAnterior = parseFloat(row.Estoque_Anterior?.replace(',', '.') || '0');
-                const entradas = parseFloat(row.Entradas?.replace(',', '.') || '0');
-                const saidas = parseFloat(row.Saidas?.replace(',', '.') || '0');
+                const entrada = parseFloat(row.Entrada?.replace(',', '.') || '0');
+                const saida = parseFloat(row.Saida?.replace(',', '.') || '0');
                 const estoqueAtual = parseFloat(row.Estoque_Atual?.replace(',', '.') || '0');
                 
                 return (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">{row.Data}</TableCell>
+                    <TableCell className="font-medium">{row.Descricao || '-'}</TableCell>
+                    <TableCell>{row.Data}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {estoqueAnterior.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-success">
-                      +{entradas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                      {formatNumber(row.Estoque_Anterior)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-destructive">
-                      -{saidas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+                      {saida > 0 ? `-${formatNumber(row.Saida)}` : '-'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-success">
+                      {entrada > 0 ? `+${formatNumber(row.Entrada)}` : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold">
-                      {estoqueAtual.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {row.Observacao || '-'}
+                      {formatNumber(row.Estoque_Atual)}
                     </TableCell>
                   </TableRow>
                 );

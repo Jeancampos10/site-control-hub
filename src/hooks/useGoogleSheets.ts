@@ -193,17 +193,21 @@ export interface MovCalRow {
   Data: string;
   Hora: string;
   Tipo: string;
-  Quantidade: string;
-  Origem_Destino: string;
-  Responsavel: string;
-  Observacao: string;
+  Fornecedor: string;
+  Prefixo_Eq: string;
+  Und: string;
+  Qtd: string;
+  NF: string;
+  Valor: string;
+  Frete: string;
+  Local: string;
 }
 
 export interface EstoqueCalRow {
+  Descricao: string;
   Data: string;
   Estoque_Anterior: string;
-  Entradas: string;
-  Saidas: string;
+  Saida: string;
+  Entrada: string;
   Estoque_Atual: string;
-  Observacao: string;
 }

@@ -15,8 +15,8 @@ export function CalEstoqueChart({ data }: CalEstoqueChartProps) {
   const chartData = data.map(row => ({
     data: row.Data,
     estoqueAtual: parseFloat(row.Estoque_Atual?.replace(',', '.') || '0'),
-    entradas: parseFloat(row.Entradas?.replace(',', '.') || '0'),
-    saidas: parseFloat(row.Saidas?.replace(',', '.') || '0'),
+    entrada: parseFloat(row.Entrada?.replace(',', '.') || '0'),
+    saida: parseFloat(row.Saida?.replace(',', '.') || '0'),
   }));
 
   // Limitar a últimas 30 entradas para melhor visualização
@@ -102,19 +102,19 @@ export function CalEstoqueChart({ data }: CalEstoqueChartProps) {
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: number, name: string) => [
                     value.toLocaleString('pt-BR', { maximumFractionDigits: 2 }),
-                    name === 'entradas' ? 'Entradas' : 'Saídas'
+                    name === 'entrada' ? 'Entrada' : 'Saída'
                   ]}
                 />
                 <Legend 
-                  formatter={(value) => value === 'entradas' ? 'Entradas' : 'Saídas'}
+                  formatter={(value) => value === 'entrada' ? 'Entrada' : 'Saída'}
                 />
                 <Bar 
-                  dataKey="entradas" 
+                  dataKey="entrada" 
                   fill="hsl(var(--success))" 
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar 
-                  dataKey="saidas" 
+                  dataKey="saida" 
                   fill="hsl(var(--destructive))" 
                   radius={[4, 4, 0, 0]}
                 />

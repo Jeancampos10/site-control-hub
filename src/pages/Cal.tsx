@@ -30,7 +30,7 @@ export default function Cal() {
   // Filtrar movimentações por data
   const filteredMovimentacoes = filterByDate(movimentacoes, selectedDate);
 
-  // Calcular KPIs
+  // Calcular KPIs das movimentações
   const calcularKPIs = () => {
     if (!filteredMovimentacoes || filteredMovimentacoes.length === 0) {
       return {
@@ -38,19 +38,24 @@ export default function Cal() {
         totalSaidas: 0,
         saldoMovimentacao: 0,
         quantidadeOperacoes: 0,
+        valorTotal: 0,
       };
     }
 
     let totalEntradas = 0;
     let totalSaidas = 0;
+    let valorTotal = 0;
 
     filteredMovimentacoes.forEach(mov => {
-      const quantidade = parseFloat(mov.Quantidade?.replace(',', '.') || '0');
+      const quantidade = parseFloat(mov.Qtd?.replace(',', '.') || '0');
+      const valor = parseFloat(mov.Valor?.replace(',', '.') || '0');
       const tipo = mov.Tipo?.toLowerCase().trim();
       
-      if (tipo === 'entrada') {
+      valorTotal += valor;
+      
+      if (tipo === 'entrada' || tipo === 'compra') {
         totalEntradas += quantidade;
-      } else if (tipo === 'saída' || tipo === 'saida') {
+      } else if (tipo === 'saída' || tipo === 'saida' || tipo === 'consumo') {
         totalSaidas += quantidade;
       }
     });
@@ -60,15 +65,20 @@ export default function Cal() {
       totalSaidas,
       saldoMovimentacao: totalEntradas - totalSaidas,
       quantidadeOperacoes: filteredMovimentacoes.length,
+      valorTotal,
     };
   };
 
+  // Calcular estoque atual (último registro)
   const calcularEstoque = () => {
     if (!estoque || estoque.length === 0) {
       return {
         estoqueAtual: 0,
         estoqueAnterior: 0,
+        totalEntradas: 0,
+        totalSaidas: 0,
         ultimaAtualizacao: '-',
+        descricao: '-',
       };
     }
 
@@ -76,11 +86,16 @@ export default function Cal() {
     const ultimoEstoque = estoque[estoque.length - 1];
     const estoqueAtual = parseFloat(ultimoEstoque?.Estoque_Atual?.replace(',', '.') || '0');
     const estoqueAnterior = parseFloat(ultimoEstoque?.Estoque_Anterior?.replace(',', '.') || '0');
+    const totalEntradas = parseFloat(ultimoEstoque?.Entrada?.replace(',', '.') || '0');
+    const totalSaidas = parseFloat(ultimoEstoque?.Saida?.replace(',', '.') || '0');
 
     return {
       estoqueAtual,
       estoqueAnterior,
+      totalEntradas,
+      totalSaidas,
       ultimaAtualizacao: ultimoEstoque?.Data || '-',
+      descricao: ultimoEstoque?.Descricao || 'CAL',
     };
   };
 
@@ -114,7 +129,7 @@ export default function Cal() {
         </div>
       ) : (
         <>
-          {/* KPI Cards */}
+          {/* KPI Cards - Estoque */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title="Estoque Atual"
@@ -132,22 +147,22 @@ export default function Cal() {
             />
             <KPICard
               title="Total Entradas"
-              value={kpis.totalEntradas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-              subtitle={`${selectedDate ? 'No dia selecionado' : 'Todas as entradas'}`}
+              value={estoqueInfo.totalEntradas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+              subtitle="Último período"
               icon={ArrowDownToLine}
               variant="success"
             />
             <KPICard
               title="Total Saídas"
-              value={kpis.totalSaidas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-              subtitle={`${selectedDate ? 'No dia selecionado' : 'Todas as saídas'}`}
+              value={estoqueInfo.totalSaidas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
+              subtitle="Último período"
               icon={ArrowUpFromLine}
               variant="accent"
             />
           </div>
 
           {/* Saldo e Operações */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -159,7 +174,7 @@ export default function Cal() {
                   Saldo de Movimentação
                 </CardTitle>
                 <CardDescription>
-                  Diferença entre entradas e saídas
+                  Diferença entre entradas e saídas {selectedDate ? '(data filtrada)' : '(total)'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -178,6 +193,19 @@ export default function Cal() {
               <CardContent>
                 <p className="text-3xl font-bold text-foreground">
                   {kpis.quantidadeOperacoes}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Valor Total Movimentado</CardTitle>
+                <CardDescription>
+                  Soma dos valores das movimentações
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">
+                  R$ {kpis.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </CardContent>
             </Card>
