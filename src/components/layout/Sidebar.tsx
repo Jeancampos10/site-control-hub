@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   X,
+  FlaskConical,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ const navigation: NavItem[] = [
       { label: "Caminhão Pipa", href: "/frota/pipa" },
     ],
   },
+  { label: "Controle de CAL", icon: FlaskConical, href: "/cal" },
   { label: "Apontamento Pedreira", icon: Mountain, href: "/pedreira" },
   { label: "Apontamento Pipas", icon: Droplets, href: "/pipas" },
   { label: "Apontadores", icon: HardHat, href: "/apontadores" },
