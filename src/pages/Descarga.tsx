@@ -136,19 +136,25 @@ export default function Descarga() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Total Viagens com destaque especial */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium opacity-90">Total Viagens</p>
+              <p className="text-3xl font-bold tracking-tight">{totalViagens}</p>
+              <p className="text-xs opacity-80">Hoje</p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
+              <Truck className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
         <KPICard
           title="Descargas Hoje"
           value={totalRegistros}
           subtitle="Registros"
           icon={Activity}
           variant="accent"
-        />
-        <KPICard
-          title="Total Viagens"
-          value={totalViagens}
-          subtitle="Hoje"
-          icon={Truck}
-          variant="primary"
         />
         <KPICard
           title="Volume Total"
