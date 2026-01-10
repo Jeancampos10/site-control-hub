@@ -22,6 +22,8 @@ const SHEET_RANGES: SheetRange = {
   caminhao_pipa: 'Caminhao_Pipa!A:G',
   apontamento_pedreira: 'Apontamento_Pedreira!A:Q',
   apontamento_pipa: 'Apontamento_Pipa!A:J',
+  mov_cal: 'Mov_Cal!A:G',
+  estoque_cal: 'Estoque_Cal!A:F',
 };
 
 async function fetchSheetData(sheetName: string): Promise<any[]> {
