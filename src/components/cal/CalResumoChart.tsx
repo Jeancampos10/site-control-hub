@@ -20,10 +20,22 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
     let totalEntradas = 0;
     let totalSaidas = 0;
 
+    const parseNumber = (value: string | undefined): number => {
+      if (!value || value.trim() === "") return 0;
+      const cleaned = value
+        .replace(/[^0-9,.-]/g, "")
+        .trim();
+
+      const normalized = cleaned.includes(",")
+        ? cleaned.replace(/\./g, "").replace(",", ".")
+        : cleaned;
+
+      const num = parseFloat(normalized);
+      return Number.isFinite(num) ? num : 0;
+    };
+
     data.forEach(mov => {
-      // Parse Brazilian number format: 1.234,56 -> 1234.56
-      const qtdStr = mov.Qtd?.replace(/\./g, '').replace(',', '.') || '0';
-      const quantidade = parseFloat(qtdStr);
+      const quantidade = parseNumber(mov.Qtd);
       const tipo = mov.Tipo?.toLowerCase().trim();
 
       if (tipo === 'entrada' || tipo === 'compra') {
@@ -34,8 +46,8 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
     });
 
     const porTipo = [
-      { name: 'Entradas', value: totalEntradas, color: 'hsl(142, 76%, 36%)' },
-      { name: 'Saídas', value: totalSaidas, color: 'hsl(0, 84%, 60%)' },
+      { name: 'Entradas', value: totalEntradas, color: 'hsl(var(--success))' },
+      { name: 'Saídas', value: totalSaidas, color: 'hsl(var(--destructive))' },
     ];
 
     return {
@@ -90,14 +102,14 @@ export function CalResumoChart({ data }: CalResumoChartProps) {
 
           {/* Totais com destaque */}
           <div className="flex flex-col justify-center gap-6">
-            <div className="rounded-xl bg-green-600 p-6 text-white shadow-lg">
+            <div className="rounded-xl bg-success p-6 text-success-foreground shadow-lg">
               <p className="text-lg font-medium opacity-90">Total Entradas</p>
               <p className="text-4xl font-bold">
                 {resumoData.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-lg font-medium opacity-90">toneladas</p>
             </div>
-            <div className="rounded-xl bg-red-600 p-6 text-white shadow-lg">
+            <div className="rounded-xl bg-destructive p-6 text-destructive-foreground shadow-lg">
               <p className="text-lg font-medium opacity-90">Total Saídas</p>
               <p className="text-4xl font-bold">
                 {resumoData.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

@@ -1,19 +1,19 @@
-import { useState, useMemo, useRef } from "react";
-import { useGoogleSheets, filterByDate, MovCalRow, EstoqueCalRow } from "@/hooks/useGoogleSheets";
+import { useMemo, useState } from "react";
+import { filterByDate, MovCalRow, EstoqueCalRow, useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { CalMovimentacaoTable } from "@/components/cal/CalMovimentacaoTable";
 import { CalEstoqueTable } from "@/components/cal/CalEstoqueTable";
 import { CalResumoChart } from "@/components/cal/CalResumoChart";
-import { 
-  Package, 
-  ArrowDownToLine, 
-  ArrowUpFromLine, 
-  Warehouse,
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Clock,
   FileDown,
-  Printer,
   MessageCircle,
-  Clock
+  Package,
+  Printer,
+  Warehouse,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,73 +21,140 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-// Helper to parse Brazilian number format
+// Parse Brazilian number formats safely.
+// Examples:
+// - "25.200" -> 25.2
+// - "49.590,00" -> 49590
+// - "-3.000,00" -> -3000
 const parseNumber = (value: string | undefined): number => {
-  if (!value) return 0;
-  const cleaned = value.replace(/\./g, '').replace(',', '.');
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
+  if (!value || value.trim() === "") return 0;
+
+  const cleaned = value
+    .replace(/[^0-9,.-]/g, "") // strips currency and other chars
+    .trim();
+
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+
+  const num = parseFloat(normalized);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const normalizeDateStr = (dateStr?: string) => {
+  if (!dateStr) return null;
+  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!match) return null;
+  const [, d, m, y] = match;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+};
+
+const parsePtBrDate = (dateStr?: string): Date | null => {
+  const norm = normalizeDateStr(dateStr);
+  if (!norm) return null;
+  const [dd, mm, yyyy] = norm.split("/").map((n) => parseInt(n, 10));
+  if (!dd || !mm || !yyyy) return null;
+  return new Date(yyyy, mm - 1, dd);
 };
 
 export default function Cal() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
-  const resumoRef = useRef<HTMLDivElement>(null);
-  
-  const { data: movimentacoes, isLoading: loadingMov, error: errorMov } = useGoogleSheets<MovCalRow>('mov_cal');
-  const { data: estoque, isLoading: loadingEstoque, error: errorEstoque } = useGoogleSheets<EstoqueCalRow>('estoque_cal');
+
+  const { data: movimentacoes, isLoading: loadingMov, error: errorMov } = useGoogleSheets<MovCalRow>("mov_cal");
+  const { data: estoque, isLoading: loadingEstoque, error: errorEstoque } = useGoogleSheets<EstoqueCalRow>("estoque_cal");
 
   const isLoading = loadingMov || loadingEstoque;
   const hasError = errorMov || errorEstoque;
 
-  // Filtrar movimentações por data
+  // =============== Base do DIA (para KPIs) ===============
+  // Regra:
+  // - Se o usuário filtrou uma data: KPIs mostram essa data
+  // - Se não filtrou: KPIs mostram o ÚLTIMO dia disponível na tabela de estoque (fallback: último dia em movimentações)
+  const baseDia = useMemo(() => {
+    if (selectedDate) {
+      return { date: selectedDate, label: selectedDate.toLocaleDateString("pt-BR") };
+    }
+
+    const candidates: { dt: Date; label: string }[] = [];
+
+    (estoque || []).forEach((r) => {
+      const dt = parsePtBrDate(r.Data);
+      const label = normalizeDateStr(r.Data);
+      if (dt && label) candidates.push({ dt, label });
+    });
+
+    if (candidates.length === 0) {
+      (movimentacoes || []).forEach((r) => {
+        const dt = parsePtBrDate(r.Data);
+        const label = normalizeDateStr(r.Data);
+        if (dt && label) candidates.push({ dt, label });
+      });
+    }
+
+    if (candidates.length === 0) {
+      const today = new Date();
+      return { date: today, label: today.toLocaleDateString("pt-BR") };
+    }
+
+    candidates.sort((a, b) => a.dt.getTime() - b.dt.getTime());
+    const latest = candidates[candidates.length - 1];
+    return { date: latest.dt, label: latest.label };
+  }, [selectedDate, estoque, movimentacoes]);
+
+  // =============== Tabelas (filtradas apenas quando usuário seleciona data) ===============
   const filteredByDate = filterByDate(movimentacoes, selectedDate);
 
-  // Filtrar por tipo
   const filteredMovimentacoes = useMemo(() => {
     if (!filteredByDate) return [];
     if (tipoFilter === "todos") return filteredByDate;
-    
-    return filteredByDate.filter(mov => {
+
+    return filteredByDate.filter((mov) => {
       const tipo = mov.Tipo?.toLowerCase().trim();
       if (tipoFilter === "entrada") {
-        return tipo === 'entrada' || tipo === 'compra';
-      } else if (tipoFilter === "saida") {
-        return tipo === 'saída' || tipo === 'saida' || tipo === 'consumo';
+        return tipo === "entrada" || tipo === "compra";
+      }
+      if (tipoFilter === "saida") {
+        return tipo === "saída" || tipo === "saida" || tipo === "consumo";
       }
       return true;
     });
   }, [filteredByDate, tipoFilter]);
 
-  // Ordenar movimentações por tipo
   const sortedMovimentacoes = useMemo(() => {
     if (!filteredMovimentacoes) return [];
     return [...filteredMovimentacoes].sort((a, b) => {
-      const tipoA = a.Tipo?.toLowerCase().trim() || '';
-      const tipoB = b.Tipo?.toLowerCase().trim() || '';
+      const tipoA = a.Tipo?.toLowerCase().trim() || "";
+      const tipoB = b.Tipo?.toLowerCase().trim() || "";
       return tipoA.localeCompare(tipoB);
     });
   }, [filteredMovimentacoes]);
 
-  // Registros recentes (últimos 5)
+  // Registros recentes (últimos 5 do dataset inteiro)
   const registrosRecentes = useMemo(() => {
     if (!movimentacoes || movimentacoes.length === 0) return [];
     return [...movimentacoes].slice(-5).reverse();
   }, [movimentacoes]);
 
-  // Calcular KPIs das movimentações (todo o período)
-  const calcularKPIsTodosPeriodos = useMemo(() => {
-    if (!movimentacoes || movimentacoes.length === 0) {
-      return {
-        totalEntradas: 0,
-        totalSaidas: 0,
-        countEntradas: 0,
-        countSaidas: 0,
-      };
+  // =============== KPIs do DIA ===============
+  const movimentacoesDoDia = useMemo(() => {
+    return filterByDate(movimentacoes, baseDia.date);
+  }, [movimentacoes, baseDia.date]);
+
+  const kpisDoDia = useMemo(() => {
+    if (!movimentacoesDoDia || movimentacoesDoDia.length === 0) {
+      return { totalEntradas: 0, totalSaidas: 0, countEntradas: 0, countSaidas: 0 };
     }
 
     let totalEntradas = 0;
@@ -95,197 +162,127 @@ export default function Cal() {
     let countEntradas = 0;
     let countSaidas = 0;
 
-    movimentacoes.forEach(mov => {
+    movimentacoesDoDia.forEach((mov) => {
       const quantidade = parseNumber(mov.Qtd);
       const tipo = mov.Tipo?.toLowerCase().trim();
-      
-      if (tipo === 'entrada' || tipo === 'compra') {
+
+      if (tipo === "entrada" || tipo === "compra") {
         totalEntradas += quantidade;
         countEntradas++;
-      } else if (tipo === 'saída' || tipo === 'saida' || tipo === 'consumo') {
+      } else if (tipo === "saída" || tipo === "saida" || tipo === "consumo") {
         totalSaidas += quantidade;
         countSaidas++;
       }
     });
 
-    return {
-      totalEntradas,
-      totalSaidas,
-      countEntradas,
-      countSaidas,
-    };
-  }, [movimentacoes]);
+    return { totalEntradas, totalSaidas, countEntradas, countSaidas };
+  }, [movimentacoesDoDia]);
 
-  // Calcular KPIs do período filtrado
-  const calcularKPIsFiltrados = useMemo(() => {
-    if (!filteredByDate || filteredByDate.length === 0) {
-      return {
-        totalEntradas: 0,
-        totalSaidas: 0,
-        countEntradas: 0,
-        countSaidas: 0,
-      };
-    }
+  const estoqueDoDia = useMemo(() => {
+    return filterByDate(estoque, baseDia.date);
+  }, [estoque, baseDia.date]);
 
-    let totalEntradas = 0;
-    let totalSaidas = 0;
-    let countEntradas = 0;
-    let countSaidas = 0;
-
-    filteredByDate.forEach(mov => {
-      const quantidade = parseNumber(mov.Qtd);
-      const tipo = mov.Tipo?.toLowerCase().trim();
-      
-      if (tipo === 'entrada' || tipo === 'compra') {
-        totalEntradas += quantidade;
-        countEntradas++;
-      } else if (tipo === 'saída' || tipo === 'saida' || tipo === 'consumo') {
-        totalSaidas += quantidade;
-        countSaidas++;
-      }
-    });
-
-    return {
-      totalEntradas,
-      totalSaidas,
-      countEntradas,
-      countSaidas,
-    };
-  }, [filteredByDate]);
-
-  // Calcular estoque atual e anterior (do primeiro registro válido com Estoque_Anterior na coluna C)
-  const calcularEstoque = useMemo(() => {
+  const estoqueInfo = useMemo(() => {
     if (!estoque || estoque.length === 0) {
-      return {
-        estoqueAtual: 0,
-        estoqueAnterior: 0,
-        ultimaAtualizacao: '-',
-        descricao: '-',
-      };
+      return { estoqueAnterior: 0, estoqueAtual: 0, ultimaAtualizacao: "-", descricao: "-", baseDiaLabel: baseDia.label };
     }
 
-    // Para Estoque Anterior: pegar o PRIMEIRO registro válido (coluna C - Estoque_Anterior)
-    let primeiroEstoqueAnterior = 0;
-    for (let i = 0; i < estoque.length; i++) {
-      if (estoque[i].Estoque_Anterior && estoque[i].Estoque_Anterior.trim() !== '') {
-        primeiroEstoqueAnterior = parseNumber(estoque[i].Estoque_Anterior);
-        break;
-      }
-    }
-
-    // Para Estoque Atual: pegar o ÚLTIMO registro válido
-    let estoqueAtual = 0;
-    let ultimaAtualizacao = '-';
-    let descricao = 'CAL';
-    
-    for (let i = estoque.length - 1; i >= 0; i--) {
-      if (estoque[i].Estoque_Atual && estoque[i].Estoque_Atual.trim() !== '') {
-        estoqueAtual = parseNumber(estoque[i].Estoque_Atual);
-        ultimaAtualizacao = estoque[i].Data || '-';
-        descricao = estoque[i].Descricao || 'CAL';
-        break;
-      }
-    }
+    // Preferir o registro do dia; se não existir, cair no último registro disponível.
+    const row = (estoqueDoDia && estoqueDoDia.length > 0)
+      ? estoqueDoDia[estoqueDoDia.length - 1]
+      : estoque[estoque.length - 1];
 
     return {
-      estoqueAtual,
-      estoqueAnterior: primeiroEstoqueAnterior,
-      ultimaAtualizacao,
-      descricao,
+      estoqueAnterior: parseNumber(row.EstoqueAnterior),
+      estoqueAtual: parseNumber(row.EstoqueAtual),
+      ultimaAtualizacao: normalizeDateStr(row.Data) || row.Data || "-",
+      descricao: (row.Descricao || "CAL").trim(),
+      baseDiaLabel: baseDia.label,
     };
-  }, [estoque]);
+  }, [estoque, estoqueDoDia, baseDia.label]);
 
-  const kpis = selectedDate ? calcularKPIsFiltrados : calcularKPIsTodosPeriodos;
-  const estoqueInfo = calcularEstoque;
+  const kpis = kpisDoDia;
 
-  // Gerar texto para WhatsApp
+  // =============== WhatsApp / Export ===============
   const gerarTextoWhatsApp = () => {
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
-    const texto = `📊 *RESUMO CAL - ${dataAtual}*
+    const tituloData = baseDia.label;
 
-📦 *Estoque Anterior:* ${estoqueInfo.estoqueAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
-
-⬇️ *Total Entradas:* ${kpis.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)
-
-⬆️ *Total Saídas:* ${kpis.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)
-
-🏭 *Estoque Atual:* ${estoqueInfo.estoqueAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
-
-📅 Atualizado em: ${estoqueInfo.ultimaAtualizacao}`;
-    
-    return texto;
+    return `📊 *RESUMO CAL - ${tituloData}*\n\n` +
+      `📦 *Estoque Anterior:* ${estoqueInfo.estoqueAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton\n\n` +
+      `⬇️ *Entradas:* ${kpis.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)\n\n` +
+      `⬆️ *Saídas:* ${kpis.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)\n\n` +
+      `🏭 *Estoque Atual:* ${estoqueInfo.estoqueAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton\n\n` +
+      `📅 Data do estoque: ${estoqueInfo.ultimaAtualizacao}`;
   };
 
-  const copiarParaWhatsApp = () => {
-    const texto = gerarTextoWhatsApp();
-    navigator.clipboard.writeText(texto);
-    toast.success("Texto copiado! Cole no WhatsApp.");
-    setWhatsappDialogOpen(false);
+  const copiarParaWhatsApp = async () => {
+    try {
+      await navigator.clipboard.writeText(gerarTextoWhatsApp());
+      toast.success("Texto copiado! Cole no WhatsApp.");
+      setWhatsappDialogOpen(false);
+    } catch {
+      toast.error("Não foi possível copiar. Tente novamente.");
+    }
   };
 
-  const imprimirRelatorio = () => {
-    window.print();
-  };
+  const imprimirRelatorio = () => window.print();
 
   const exportarPDF = async () => {
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
-      
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
       const doc = new jsPDF();
-      const dataAtual = new Date().toLocaleDateString('pt-BR');
-      
-      // Título
+      const dataGeracao = new Date().toLocaleDateString("pt-BR");
+
       doc.setFontSize(18);
-      doc.text('Relatório de CAL', 14, 22);
+      doc.text("Relatório de CAL", 14, 22);
       doc.setFontSize(10);
-      doc.text(`Gerado em: ${dataAtual}`, 14, 30);
-      
-      // KPIs
+      doc.text(`Gerado em: ${dataGeracao}`, 14, 30);
+
       doc.setFontSize(12);
-      doc.text('Resumo de Estoque e Movimentações', 14, 45);
-      
+      doc.text(`Resumo do dia: ${baseDia.label}`, 14, 45);
+
       const kpiData = [
-        ['Estoque Anterior', `${estoqueInfo.estoqueAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ton`],
-        ['Total Entradas', `${kpis.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)`],
-        ['Total Saídas', `${kpis.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)`],
-        ['Estoque Atual', `${estoqueInfo.estoqueAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ton`],
+        ["Estoque Anterior", `${estoqueInfo.estoqueAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`],
+        ["Total Entradas", `${kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)`],
+        ["Total Saídas", `${kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)`],
+        ["Estoque Atual", `${estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`],
       ];
-      
+
       autoTable(doc, {
         startY: 50,
-        head: [['Indicador', 'Valor']],
+        head: [["Indicador", "Valor"]],
         body: kpiData,
-        theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] },
+        theme: "striped",
+        headStyles: { fillColor: [34, 92, 176] },
       });
-      
-      // Registros recentes
+
       if (registrosRecentes.length > 0) {
         const finalY = (doc as any).lastAutoTable?.finalY || 90;
-        doc.text('Últimos Registros', 14, finalY + 15);
-        
-        const registrosData = registrosRecentes.map(r => [
-          r.Data || '-',
-          r.Tipo || '-',
-          r.Fornecedor || '-',
-          `${parseNumber(r.Qtd).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        doc.text("Últimos Registros", 14, finalY + 15);
+
+        const registrosData = registrosRecentes.map((r) => [
+          r.Data || "-",
+          r.Tipo || "-",
+          r.Fornecedor || "-",
+          `${parseNumber(r.Qtd).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         ]);
-        
+
         autoTable(doc, {
           startY: finalY + 20,
-          head: [['Data', 'Tipo', 'Fornecedor', 'Qtd (ton)']],
+          head: [["Data", "Tipo", "Fornecedor", "Qtd (ton)"]],
           body: registrosData,
-          theme: 'striped',
-          headStyles: { fillColor: [59, 130, 246] },
+          theme: "striped",
+          headStyles: { fillColor: [34, 92, 176] },
         });
       }
-      
-      doc.save(`relatorio-cal-${dataAtual.replace(/\//g, '-')}.pdf`);
+
+      doc.save(`relatorio-cal-${baseDia.label.replace(/\//g, "-")}.pdf`);
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
-      toast.error("Erro ao exportar PDF");
       console.error(error);
+      toast.error("Erro ao exportar PDF");
     }
   };
 
@@ -299,30 +296,32 @@ export default function Cal() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Controle de CAL</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestão de estoque e movimentações de CAL
-          </p>
+          <p className="text-sm text-muted-foreground">Gestão de estoque e movimentações de CAL</p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
-          
+
           <Button variant="outline" size="sm" onClick={imprimirRelatorio}>
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
           </Button>
-          
+
           <Button variant="outline" size="sm" onClick={exportarPDF}>
             <FileDown className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
-          
+
           <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-success/10 hover:bg-success/20 text-success border-success/30"
+              >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 WhatsApp
               </Button>
@@ -330,11 +329,15 @@ export default function Cal() {
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Resumo para WhatsApp</DialogTitle>
+                <DialogDescription>Copie o texto abaixo e cole no WhatsApp.</DialogDescription>
               </DialogHeader>
               <div className="bg-muted p-4 rounded-lg font-mono text-sm whitespace-pre-wrap">
                 {gerarTextoWhatsApp()}
               </div>
-              <Button onClick={copiarParaWhatsApp} className="w-full bg-green-600 hover:bg-green-700">
+              <Button
+                onClick={copiarParaWhatsApp}
+                className="w-full bg-success text-success-foreground hover:bg-success/90"
+              >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Copiar para WhatsApp
               </Button>
@@ -349,39 +352,37 @@ export default function Cal() {
         </div>
       ) : (
         <>
-          {/* KPI Cards - Nova ordem: Estoque Anterior, Entradas, Saídas, Estoque Atual */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title="Estoque Anterior"
-              value={`${estoqueInfo.estoqueAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle="Início do período"
+              value={`${estoqueInfo.estoqueAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
+              subtitle={`Dia ${estoqueInfo.baseDiaLabel}`}
               icon={Package}
               variant="default"
             />
             <KPICard
-              title="Total Entradas"
-              value={`${kpis.totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`${kpis.countEntradas} entrada${kpis.countEntradas !== 1 ? 's' : ''}`}
+              title="Entradas"
+              value={`${kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
+              subtitle={`${kpis.countEntradas} entrada${kpis.countEntradas !== 1 ? "s" : ""} (dia ${baseDia.label})`}
               icon={ArrowDownToLine}
               variant="success"
             />
             <KPICard
-              title="Total Saídas"
-              value={`${kpis.totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`${kpis.countSaidas} saída${kpis.countSaidas !== 1 ? 's' : ''}`}
+              title="Saídas"
+              value={`${kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
+              subtitle={`${kpis.countSaidas} saída${kpis.countSaidas !== 1 ? "s" : ""} (dia ${baseDia.label})`}
               icon={ArrowUpFromLine}
               variant="accent"
             />
             <KPICard
               title="Estoque Atual"
-              value={`${estoqueInfo.estoqueAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`Atualizado em ${estoqueInfo.ultimaAtualizacao}`}
+              value={`${estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
+              subtitle={`Dia ${estoqueInfo.ultimaAtualizacao}`}
               icon={Warehouse}
               variant="primary"
             />
           </div>
 
-          {/* Registros Recentes */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -395,47 +396,52 @@ export default function Cal() {
                 {registrosRecentes.length === 0 ? (
                   <p className="text-muted-foreground text-sm">Nenhum registro encontrado</p>
                 ) : (
-                  registrosRecentes.map((registro, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          registro.Tipo?.toLowerCase().includes('entrada') || registro.Tipo?.toLowerCase().includes('compra')
-                            ? 'bg-green-500' 
-                            : 'bg-orange-500'
-                        }`} />
-                        <div>
-                          <p className="font-medium text-sm">{registro.Tipo || '-'}</p>
-                          <p className="text-xs text-muted-foreground">{registro.Fornecedor || '-'}</p>
+                  registrosRecentes.map((registro, index) => {
+                    const isEntrada =
+                      registro.Tipo?.toLowerCase().includes("entrada") ||
+                      registro.Tipo?.toLowerCase().includes("compra");
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-2 h-2 rounded-full ${isEntrada ? "bg-success" : "bg-warning"}`}
+                          />
+                          <div>
+                            <p className="font-medium text-sm">{registro.Tipo || "-"}</p>
+                            <p className="text-xs text-muted-foreground">{registro.Fornecedor || "-"}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm">
+                            {parseNumber(registro.Qtd).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            ton
+                          </p>
+                          <p className="text-xs text-muted-foreground">{registro.Data || "-"}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm">
-                          {parseNumber(registro.Qtd).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
-                        </p>
-                        <p className="text-xs text-muted-foreground">{registro.Data || '-'}</p>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Resumo Total do Período */}
           <CalResumoChart data={movimentacoes || []} />
 
-          {/* Tabs com Tabelas */}
           <Tabs defaultValue="movimentacoes" className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <TabsList>
                 <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
                 <TabsTrigger value="estoque">Histórico de Estoque</TabsTrigger>
               </TabsList>
-              
-              {/* Filtro por Tipo */}
+
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Filtrar por tipo:</span>
                 <Select value={tipoFilter} onValueChange={setTipoFilter}>
@@ -450,6 +456,7 @@ export default function Cal() {
                 </Select>
               </div>
             </div>
+
             <TabsContent value="movimentacoes">
               <CalMovimentacaoTable data={sortedMovimentacoes} />
             </TabsContent>

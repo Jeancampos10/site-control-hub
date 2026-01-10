@@ -13,12 +13,23 @@ interface CalEstoqueTableProps {
   data: EstoqueCalRow[];
 }
 
-// Parse Brazilian number format: 1.234,56 -> 1234.56
+// Parse Brazilian number formats safely.
+// Examples:
+// - "25.200" -> 25.2
+// - "49.590,00" -> 49590
+// - "-3.000,00" -> -3000
 const parseNumber = (value: string | undefined): number => {
-  if (!value || value.trim() === '') return 0;
-  const cleaned = value.replace(/\./g, '').replace(',', '.');
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
+  if (!value || value.trim() === "") return 0;
+  const cleaned = value
+    .replace(/[^0-9,.-]/g, "")
+    .trim();
+
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+
+  const num = parseFloat(normalized);
+  return Number.isFinite(num) ? num : 0;
 };
 
 export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
@@ -72,22 +83,22 @@ export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
               {sortedData.map((row, index) => {
                 const entrada = parseNumber(row.Entrada);
                 const saida = parseNumber(row.Saida);
-                
+
                 return (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{row.Descricao || '-'}</TableCell>
                     <TableCell>{row.Data || '-'}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatNumber(row.Estoque_Anterior)}
+                      {formatNumber(row.EstoqueAnterior)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-red-600 font-semibold">
+                    <TableCell className="text-right font-mono text-destructive font-semibold">
                       {saida > 0 ? `-${formatNumber(row.Saida)}` : '-'}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-green-600 font-semibold">
+                    <TableCell className="text-right font-mono text-success font-semibold">
                       {entrada > 0 ? `+${formatNumber(row.Entrada)}` : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold">
-                      {formatNumber(row.Estoque_Atual)}
+                      {formatNumber(row.EstoqueAtual)}
                     </TableCell>
                   </TableRow>
                 );
