@@ -17,6 +17,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parsePtBrNumber } from "@/lib/utils";
 
 export default function Pipas() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -30,12 +31,12 @@ export default function Pipas() {
   // Calculate KPIs from filtered data
   const pipasAtivas = new Set(pipasData?.map(row => row.Prefixo).filter(Boolean)).size;
   const totalViagens = pipasData?.reduce((acc, row) => {
-    const viagens = parseInt(row.N_Viagens) || 0;
+    const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + viagens;
   }, 0) || 0;
   const volumeAgua = pipasData?.reduce((acc, row) => {
-    const capacidade = parseInt(row.Capacidade?.replace(/\D/g, '')) || 0;
-    const viagens = parseInt(row.N_Viagens) || 0;
+    const capacidade = parsePtBrNumber(row.Capacidade?.replace(/\D/g, ''));
+    const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + (capacidade * viagens);
   }, 0) || 0;
 

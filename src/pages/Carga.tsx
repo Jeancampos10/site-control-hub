@@ -15,6 +15,7 @@ import { TruckProductionTable } from "@/components/carga/TruckProductionTable";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared/BulkEditDialog";
 import { BulkEditHistoryDialog } from "@/components/shared/BulkEditHistoryDialog";
+import { parsePtBrNumber } from "@/lib/utils";
 
 export default function Carga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -74,12 +75,12 @@ export default function Carga() {
 
   // Calculate KPIs from filtered data
   const totalViagens = cargaData?.reduce((acc, row) => {
-    const viagens = parseInt(row.N_Viagens) || 0;
+    const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + viagens;
   }, 0) || 0;
   
   const volumeTotal = cargaData?.reduce((acc, row) => {
-    const vol = parseFloat(row.Volume_Total) || 0;
+    const vol = parsePtBrNumber(row.Volume_Total);
     return acc + vol;
   }, 0) || 0;
   

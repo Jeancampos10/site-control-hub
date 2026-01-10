@@ -20,6 +20,7 @@ import { BulkEditDialog, FilterOption, EditableField } from "@/components/shared
 import { BulkEditHistoryDialog } from "@/components/shared/BulkEditHistoryDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parsePtBrNumber } from "@/lib/utils";
 
 export default function Descarga() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -78,11 +79,11 @@ export default function Descarga() {
   // Calculate KPIs from filtered data
   const totalRegistros = descargaData?.length || 0;
   const totalViagens = descargaData?.reduce((acc, row) => {
-    const viagens = parseInt(row.N_Viagens) || 0;
+    const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + viagens;
   }, 0) || 0;
   const volumeTotal = descargaData?.reduce((acc, row) => {
-    const vol = parseFloat(row.Volume_Total) || 0;
+    const vol = parsePtBrNumber(row.Volume_Total);
     return acc + vol;
   }, 0) || 0;
   const locaisAtivos = new Set(descargaData?.map(row => row.Local_da_Obra).filter(Boolean)).size;
