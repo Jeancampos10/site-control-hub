@@ -17,9 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Cal() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [tipoFilter, setTipoFilter] = useState<string>("todos");
   
   const { data: movimentacoes, isLoading: loadingMov, error: errorMov } = useGoogleSheets<MovCalRow>('mov_cal');
   const { data: estoque, isLoading: loadingEstoque, error: errorEstoque } = useGoogleSheets<EstoqueCalRow>('estoque_cal');
@@ -28,7 +30,23 @@ export default function Cal() {
   const hasError = errorMov || errorEstoque;
 
   // Filtrar movimentações por data
-  const filteredMovimentacoes = filterByDate(movimentacoes, selectedDate);
+  const filteredByDate = filterByDate(movimentacoes, selectedDate);
+
+  // Filtrar por tipo
+  const filteredMovimentacoes = useMemo(() => {
+    if (!filteredByDate) return [];
+    if (tipoFilter === "todos") return filteredByDate;
+    
+    return filteredByDate.filter(mov => {
+      const tipo = mov.Tipo?.toLowerCase().trim();
+      if (tipoFilter === "entrada") {
+        return tipo === 'entrada' || tipo === 'compra';
+      } else if (tipoFilter === "saida") {
+        return tipo === 'saída' || tipo === 'saida' || tipo === 'consumo';
+      }
+      return true;
+    });
+  }, [filteredByDate, tipoFilter]);
 
   // Ordenar movimentações por tipo
   const sortedMovimentacoes = useMemo(() => {
@@ -59,8 +77,8 @@ export default function Cal() {
     let valorTotal = 0;
 
     movimentacoes.forEach(mov => {
-      const quantidade = parseFloat(mov.Qtd?.replace(',', '.') || '0');
-      const valor = parseFloat(mov.Valor?.replace(',', '.') || '0');
+      const quantidade = parseFloat(mov.Qtd?.replace(/\./g, '').replace(',', '.') || '0');
+      const valor = parseFloat(mov.Valor?.replace(/\./g, '').replace(',', '.') || '0');
       const tipo = mov.Tipo?.toLowerCase().trim();
       
       valorTotal += valor;
@@ -85,7 +103,7 @@ export default function Cal() {
 
   // Calcular KPIs do período filtrado
   const calcularKPIsFiltrados = useMemo(() => {
-    if (!filteredMovimentacoes || filteredMovimentacoes.length === 0) {
+    if (!filteredByDate || filteredByDate.length === 0) {
       return {
         totalEntradas: 0,
         totalSaidas: 0,
@@ -103,9 +121,9 @@ export default function Cal() {
     let countSaidas = 0;
     let valorTotal = 0;
 
-    filteredMovimentacoes.forEach(mov => {
-      const quantidade = parseFloat(mov.Qtd?.replace(',', '.') || '0');
-      const valor = parseFloat(mov.Valor?.replace(',', '.') || '0');
+    filteredByDate.forEach(mov => {
+      const quantidade = parseFloat(mov.Qtd?.replace(/\./g, '').replace(',', '.') || '0');
+      const valor = parseFloat(mov.Valor?.replace(/\./g, '').replace(',', '.') || '0');
       const tipo = mov.Tipo?.toLowerCase().trim();
       
       valorTotal += valor;
@@ -125,10 +143,10 @@ export default function Cal() {
       countEntradas,
       countSaidas,
       saldoMovimentacao: totalEntradas - totalSaidas,
-      quantidadeOperacoes: filteredMovimentacoes.length,
+      quantidadeOperacoes: filteredByDate.length,
       valorTotal,
     };
-  }, [filteredMovimentacoes]);
+  }, [filteredByDate]);
 
   // Calcular estoque atual (último registro da tabela Estoque_Cal)
   const calcularEstoque = useMemo(() => {
@@ -141,12 +159,28 @@ export default function Cal() {
       };
     }
 
-    // Pegar o último registro de estoque
-    const ultimoEstoque = estoque[estoque.length - 1];
-    // Estoque Atual vem da coluna F (Estoque_Atual)
-    const estoqueAtual = parseFloat(ultimoEstoque?.Estoque_Atual?.replace(',', '.') || '0');
-    // Estoque Anterior vem da coluna C (Estoque_Anterior)
-    const estoqueAnterior = parseFloat(ultimoEstoque?.Estoque_Anterior?.replace(',', '.') || '0');
+    // Pegar o último registro de estoque (que tenha dados válidos)
+    let ultimoEstoque = estoque[estoque.length - 1];
+    
+    // Se o último não tiver dados, procurar o último válido
+    for (let i = estoque.length - 1; i >= 0; i--) {
+      if (estoque[i].Estoque_Atual && estoque[i].Estoque_Atual.trim() !== '') {
+        ultimoEstoque = estoque[i];
+        break;
+      }
+    }
+
+    // Parse numbers - handle Brazilian format (1.234,56)
+    const parseNumber = (value: string | undefined): number => {
+      if (!value) return 0;
+      // Remove dots (thousand separators) and replace comma with dot
+      const cleaned = value.replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    };
+
+    const estoqueAtual = parseNumber(ultimoEstoque?.Estoque_Atual);
+    const estoqueAnterior = parseNumber(ultimoEstoque?.Estoque_Anterior);
 
     return {
       estoqueAtual,
@@ -273,10 +307,27 @@ export default function Cal() {
 
           {/* Tabs com Tabelas */}
           <Tabs defaultValue="movimentacoes" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
-              <TabsTrigger value="estoque">Histórico de Estoque</TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <TabsList>
+                <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
+                <TabsTrigger value="estoque">Histórico de Estoque</TabsTrigger>
+              </TabsList>
+              
+              {/* Filtro por Tipo */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Filtrar por tipo:</span>
+                <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="entrada">Entrada</SelectItem>
+                    <SelectItem value="saida">Saída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <TabsContent value="movimentacoes">
               <CalMovimentacaoTable data={sortedMovimentacoes} />
             </TabsContent>

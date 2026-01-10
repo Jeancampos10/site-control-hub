@@ -13,6 +13,14 @@ interface CalEstoqueTableProps {
   data: EstoqueCalRow[];
 }
 
+// Parse Brazilian number format: 1.234,56 -> 1234.56
+const parseNumber = (value: string | undefined): number => {
+  if (!value || value.trim() === '') return 0;
+  const cleaned = value.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
 export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
   if (!data || data.length === 0) {
     return (
@@ -33,9 +41,10 @@ export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
   // Ordenar do mais recente para o mais antigo
   const sortedData = [...data].reverse();
 
-  const formatNumber = (value: string) => {
-    const num = parseFloat(value?.replace(',', '.') || '0');
-    return num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  const formatNumber = (value: string | undefined) => {
+    const num = parseNumber(value);
+    if (num === 0 && (!value || value.trim() === '')) return '-';
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -61,22 +70,20 @@ export function CalEstoqueTable({ data }: CalEstoqueTableProps) {
             </TableHeader>
             <TableBody>
               {sortedData.map((row, index) => {
-                const estoqueAnterior = parseFloat(row.Estoque_Anterior?.replace(',', '.') || '0');
-                const entrada = parseFloat(row.Entrada?.replace(',', '.') || '0');
-                const saida = parseFloat(row.Saida?.replace(',', '.') || '0');
-                const estoqueAtual = parseFloat(row.Estoque_Atual?.replace(',', '.') || '0');
+                const entrada = parseNumber(row.Entrada);
+                const saida = parseNumber(row.Saida);
                 
                 return (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{row.Descricao || '-'}</TableCell>
-                    <TableCell>{row.Data}</TableCell>
+                    <TableCell>{row.Data || '-'}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatNumber(row.Estoque_Anterior)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-destructive">
+                    <TableCell className="text-right font-mono text-red-600 font-semibold">
                       {saida > 0 ? `-${formatNumber(row.Saida)}` : '-'}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-success">
+                    <TableCell className="text-right font-mono text-green-600 font-semibold">
                       {entrada > 0 ? `+${formatNumber(row.Entrada)}` : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono font-bold">
