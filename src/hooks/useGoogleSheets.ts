@@ -9,7 +9,9 @@ type SheetName =
   | 'cam_reboque' 
   | 'caminhao_pipa' 
   | 'apontamento_pedreira' 
-  | 'apontamento_pipa';
+  | 'apontamento_pipa'
+  | 'mov_cal'
+  | 'estoque_cal';
 
 export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName) {
   return useQuery({
@@ -184,4 +186,24 @@ export interface ApontamentoPipaRow {
   Hora_Chegada: string;
   Hora_Saida: string;
   N_Viagens: string;
+}
+
+// CAL Tables
+export interface MovCalRow {
+  Data: string;
+  Hora: string;
+  Tipo: string;
+  Quantidade: string;
+  Origem_Destino: string;
+  Responsavel: string;
+  Observacao: string;
+}
+
+export interface EstoqueCalRow {
+  Data: string;
+  Estoque_Anterior: string;
+  Entradas: string;
+  Saidas: string;
+  Estoque_Atual: string;
+  Observacao: string;
 }
