@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Mountain, Plus, Download, Building2, DollarSign, Calendar, CalendarDays, TrendingUp } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Mountain, Plus, Download, Building2, DollarSign, Calendar, CalendarDays, TrendingUp, Maximize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -22,7 +22,15 @@ import autoTable from "jspdf-autotable";
 import { parsePtBrNumber } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import html2canvas from "html2canvas";
 
+// Constants for freight calculation
 const FRETE_POR_TONELADA = 0.45;
 const DMT = 35;
 
@@ -201,79 +209,88 @@ export default function Pedreira() {
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
   const formattedMonth = format(selectedDate, "MMMM/yyyy", { locale: ptBR });
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
+  const exportToPDF = async () => {
+    if (!pageContentRef.current) return;
+    
     const dateStr = format(selectedDate, "dd/MM/yyyy");
-
-    // Header
-    doc.setFontSize(18);
-    doc.text('Relatório Diário - Pedreira', 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Data: ${dateStr}`, 14, 30);
-    doc.text(`Total de Carregamentos: ${totalRegistros}`, 14, 36);
-    doc.text(`Peso Total: ${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`, 14, 42);
-    doc.text(`Valor Frete: R$ ${totalFreteDia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 48);
-
-    // Material Summary
-    doc.setFontSize(14);
-    doc.text('Resumo por Material', 14, 60);
     
-    autoTable(doc, {
-      head: [['Material', 'Viagens', 'Toneladas', 'Frete (R$)']],
-      body: materialSummaryDia.map(row => [
-        row.material,
-        row.viagens.toString(),
-        row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' t',
-        'R$ ' + row.frete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      ]),
-      startY: 65,
-      theme: 'striped',
-    });
+    try {
+      // Capture the page as an image
+      const canvas = await html2canvas(pageContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const doc = new jsPDF('p', 'mm', 'a4');
+      
+      // Add header
+      doc.setFontSize(16);
+      doc.text('Relatório - Apontamento Pedreira', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 14, 22);
+      
+      let heightLeft = imgHeight;
+      let position = 30;
+      
+      // Add the image, splitting across pages if needed
+      doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - position);
+      
+      while (heightLeft > 0) {
+        doc.addPage();
+        position = -heightLeft + 10;
+        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      // Fallback to table-based PDF
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text('Relatório Diário - Pedreira', 14, 22);
+      doc.setFontSize(11);
+      doc.text(`Data: ${dateStr}`, 14, 30);
+      doc.text(`Total de Carregamentos: ${totalRegistros}`, 14, 36);
+      doc.text(`Peso Total: ${pesoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t`, 14, 42);
+      doc.text(`Valor Frete: R$ ${totalFreteDia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 48);
 
-    // Company Summary
-    const finalY1 = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 80;
-    doc.setFontSize(14);
-    doc.text('Resumo por Empresa', 14, finalY1 + 15);
-    
-    autoTable(doc, {
-      head: [['Empresa', 'Caminhões', 'Viagens']],
-      body: companySummary.map(row => [
-        row.empresa,
-        row.caminhoes.toString(),
-        row.viagens.toString(),
-      ]),
-      startY: finalY1 + 20,
-      theme: 'striped',
-    });
+      autoTable(doc, {
+        head: [['Material', 'Viagens', 'Toneladas', 'Frete (R$)']],
+        body: materialSummaryDia.map(row => [
+          row.material,
+          row.viagens.toString(),
+          row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' t',
+          'R$ ' + row.frete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        ]),
+        startY: 55,
+        theme: 'striped',
+      });
 
-    // Detailed records
-    const finalY2 = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 120;
-    
-    if (finalY2 > 220) {
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text('Registros Detalhados', 14, 22);
-    } else {
-      doc.setFontSize(14);
-      doc.text('Registros Detalhados', 14, finalY2 + 15);
+      const finalY1 = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 80;
+      
+      autoTable(doc, {
+        head: [['Empresa', 'Caminhões', 'Viagens']],
+        body: companySummary.map(row => [
+          row.empresa,
+          row.caminhoes.toString(),
+          row.viagens.toString(),
+        ]),
+        startY: finalY1 + 10,
+        theme: 'striped',
+      });
+
+      doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
     }
-
-    autoTable(doc, {
-      head: [['Hora', 'Ordem', 'Veículo', 'Material', 'Peso Líq.', 'Ton']],
-      body: (pedreiraData || []).map(row => [
-        row.Hora,
-        row.Ordem_Carregamento,
-        row.Prefixo_Eq,
-        row.Material,
-        row.Peso_Liquido,
-        row.Tonelada,
-      ]),
-      startY: finalY2 > 220 ? 27 : finalY2 + 20,
-      theme: 'striped',
-      styles: { fontSize: 8 },
-    });
-
-    doc.save(`relatorio-pedreira-${dateStr.replace(/\//g, '-')}.pdf`);
   };
 
   // Period Summary Card Component with distinct styling
@@ -285,9 +302,10 @@ export default function Pedreira() {
     colorScheme: 'blue' | 'amber' | 'emerald';
     icon: React.ReactNode;
     showCaminhoes?: boolean;
+    onExpand?: () => void;
   }
 
-  const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon, showCaminhoes = false }: PeriodSummaryProps) => {
+  const PeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon, showCaminhoes = false, onExpand }: PeriodSummaryProps) => {
     const totalViagens = materialData.reduce((sum, r) => sum + r.viagens, 0);
     const totalToneladas = materialData.reduce((sum, r) => sum + r.toneladas, 0);
     const totalFrete = totalToneladas * FRETE_POR_TONELADA * DMT;
@@ -316,7 +334,10 @@ export default function Pedreira() {
     const colors = colorClasses[colorScheme];
 
     return (
-      <Card className={`${colors.border} overflow-hidden`}>
+      <Card 
+        className={`${colors.border} overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]`}
+        onClick={onExpand}
+      >
         <CardHeader className={`${colors.header} pb-3`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -326,16 +347,19 @@ export default function Pedreira() {
                 <CardDescription className="text-xs">{subtitle}</CardDescription>
               </div>
             </div>
-            <span className={`${colors.badge} px-3 py-1 rounded-full text-sm font-bold`}>
-              {totalViagens} viagens
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`${colors.badge} px-3 py-1 rounded-full text-sm font-bold`}>
+                {totalViagens} viagens
+              </span>
+              <Maximize2 className="h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           {/* Totals */}
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <p className="text-2xl font-bold">{totalToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t</p>
+              <p className="text-2xl font-bold">{totalToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</p>
               <p className="text-xs text-muted-foreground">Total Toneladas</p>
             </div>
             <div className="text-center p-3 bg-success/10 rounded-lg">
@@ -365,7 +389,7 @@ export default function Pedreira() {
                       <TableRow key={row.material} className="text-xs">
                         <TableCell className="py-1 px-2 font-medium">{row.material}</TableCell>
                         <TableCell className="py-1 px-2 text-right">{row.viagens}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t</TableCell>
                         <TableCell className="py-1 px-2 text-right text-success">R$ {row.frete.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</TableCell>
                       </TableRow>
                     ))
@@ -399,7 +423,7 @@ export default function Pedreira() {
                         <TableCell className="py-1 px-2 font-medium">{row.empresa}</TableCell>
                         {showCaminhoes && <TableCell className="py-1 px-2 text-right">{row.caminhoes}</TableCell>}
                         <TableCell className="py-1 px-2 text-right">{row.viagens}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t</TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -413,6 +437,133 @@ export default function Pedreira() {
       </Card>
     );
   };
+
+  // Expanded card dialog state
+  const [expandedCard, setExpandedCard] = useState<'total' | 'mes' | 'dia' | null>(null);
+
+  // Expanded Period Summary Card Component
+  const ExpandedPeriodSummaryCard = ({ materialData, empresaData, title, subtitle, colorScheme, icon, showCaminhoes = false }: PeriodSummaryProps) => {
+    const totalViagens = materialData.reduce((sum, r) => sum + r.viagens, 0);
+    const totalToneladas = materialData.reduce((sum, r) => sum + r.toneladas, 0);
+    const totalFrete = totalToneladas * FRETE_POR_TONELADA * DMT;
+
+    const colorClasses = {
+      blue: {
+        title: 'text-blue-700 dark:text-blue-400',
+        badge: 'bg-blue-500 text-white',
+      },
+      amber: {
+        title: 'text-amber-700 dark:text-amber-400',
+        badge: 'bg-amber-500 text-white',
+      },
+      emerald: {
+        title: 'text-emerald-700 dark:text-emerald-400',
+        badge: 'bg-emerald-500 text-white',
+      },
+    };
+
+    const colors = colorClasses[colorScheme];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {icon}
+            <div>
+              <h2 className={`text-2xl font-bold ${colors.title}`}>{title}</h2>
+              <p className="text-muted-foreground">{subtitle}</p>
+            </div>
+          </div>
+          <span className={`${colors.badge} px-4 py-2 rounded-full text-lg font-bold`}>
+            {totalViagens} viagens
+          </span>
+        </div>
+
+        {/* Totals */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-6 bg-muted/50 rounded-lg">
+            <p className="text-4xl font-bold">{totalToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</p>
+            <p className="text-base text-muted-foreground mt-2">Total Toneladas</p>
+          </div>
+          <div className="text-center p-6 bg-success/10 rounded-lg">
+            <p className="text-4xl font-bold text-success">R$ {totalFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-base text-muted-foreground mt-2">Total Frete</p>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Material Summary */}
+          <div>
+            <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <Box className="h-5 w-5" /> Por Material
+            </h4>
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="py-2 px-3">Material</TableHead>
+                    <TableHead className="py-2 px-3 text-right">Viagens</TableHead>
+                    <TableHead className="py-2 px-3 text-right">Toneladas</TableHead>
+                    <TableHead className="py-2 px-3 text-right">Frete</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {materialData.length > 0 ? (
+                    materialData.map((row) => (
+                      <TableRow key={row.material}>
+                        <TableCell className="py-2 px-3 font-medium">{row.material}</TableCell>
+                        <TableCell className="py-2 px-3 text-right">{row.viagens}</TableCell>
+                        <TableCell className="py-2 px-3 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t</TableCell>
+                        <TableCell className="py-2 px-3 text-right text-success">R$ {row.frete.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow><TableCell colSpan={4} className="text-center py-4">Sem dados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Empresa Summary */}
+          <div>
+            <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <Building2 className="h-5 w-5" /> Por Empresa
+            </h4>
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="py-2 px-3">Empresa</TableHead>
+                    {showCaminhoes && <TableHead className="py-2 px-3 text-right">Cam.</TableHead>}
+                    <TableHead className="py-2 px-3 text-right">Viagens</TableHead>
+                    <TableHead className="py-2 px-3 text-right">Toneladas</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {empresaData.length > 0 ? (
+                    empresaData.map((row) => (
+                      <TableRow key={row.empresa}>
+                        <TableCell className="py-2 px-3 font-medium">{row.empresa}</TableCell>
+                        {showCaminhoes && <TableCell className="py-2 px-3 text-right">{row.caminhoes}</TableCell>}
+                        <TableCell className="py-2 px-3 text-right">{row.viagens}</TableCell>
+                        <TableCell className="py-2 px-3 text-right">{row.toneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow><TableCell colSpan={showCaminhoes ? 4 : 3} className="text-center py-4">Sem dados</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Ref for PDF export
+  const pageContentRef = useRef<HTMLDivElement>(null);
 
   // Calculate date range for period total
   const periodDateRange = useMemo(() => {
@@ -469,7 +620,7 @@ export default function Pedreira() {
           onRetry={() => refetch()} 
         />
       ) : (
-        <div className="space-y-6">
+        <div ref={pageContentRef} className="space-y-6">
           {/* Period Summaries Section - Distinct from KPIs */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -485,6 +636,7 @@ export default function Pedreira() {
                 colorScheme="blue"
                 icon={<Calendar className="h-5 w-5 text-blue-500" />}
                 showCaminhoes={false}
+                onExpand={() => setExpandedCard('total')}
               />
               <PeriodSummaryCard 
                 materialData={materialSummaryMes}
@@ -494,6 +646,7 @@ export default function Pedreira() {
                 colorScheme="amber"
                 icon={<CalendarDays className="h-5 w-5 text-amber-500" />}
                 showCaminhoes={false}
+                onExpand={() => setExpandedCard('mes')}
               />
               <PeriodSummaryCard 
                 materialData={materialSummaryDia}
@@ -503,8 +656,51 @@ export default function Pedreira() {
                 colorScheme="emerald"
                 icon={<Calendar className="h-5 w-5 text-emerald-500" />}
                 showCaminhoes={true}
+                onExpand={() => setExpandedCard('dia')}
               />
             </div>
+
+          {/* Expanded Card Dialog */}
+          <Dialog open={expandedCard !== null} onOpenChange={() => setExpandedCard(null)}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="sr-only">Detalhes do Período</DialogTitle>
+              </DialogHeader>
+              {expandedCard === 'total' && (
+                <ExpandedPeriodSummaryCard
+                  materialData={materialSummaryPeriodo}
+                  empresaData={empresaSummaryPeriodo}
+                  title="Período Total"
+                  subtitle={periodDateRange ? `${periodDateRange.start} à ${periodDateRange.end}` : "Todo o período disponível"}
+                  colorScheme="blue"
+                  icon={<Calendar className="h-6 w-6 text-blue-500" />}
+                  showCaminhoes={false}
+                />
+              )}
+              {expandedCard === 'mes' && (
+                <ExpandedPeriodSummaryCard
+                  materialData={materialSummaryMes}
+                  empresaData={empresaSummaryMes}
+                  title={formattedMonth}
+                  subtitle={`${monthDateRange.start} à ${monthDateRange.end}`}
+                  colorScheme="amber"
+                  icon={<CalendarDays className="h-6 w-6 text-amber-500" />}
+                  showCaminhoes={false}
+                />
+              )}
+              {expandedCard === 'dia' && (
+                <ExpandedPeriodSummaryCard
+                  materialData={materialSummaryDia}
+                  empresaData={empresaSummaryDia}
+                  title={formattedDate}
+                  subtitle="Dia selecionado"
+                  colorScheme="emerald"
+                  icon={<Calendar className="h-6 w-6 text-emerald-500" />}
+                  showCaminhoes={true}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
           </div>
 
           {/* Visual Separator with Date Filter */}
@@ -548,9 +744,9 @@ export default function Pedreira() {
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-muted to-muted/80 p-6 text-foreground shadow-lg animate-fade-in border">
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
-                  <p className="text-base font-semibold opacity-90">Veículos</p>
-                  <p className="text-4xl font-bold tracking-tight">{veiculosAtivos} / {totalMobilizado}</p>
-                  <p className="text-sm opacity-80">Utilizados / Mobilizados</p>
+                  <p className="text-base font-semibold opacity-90">Veículos Ativos</p>
+                  <p className="text-4xl font-bold tracking-tight">{veiculosAtivos}</p>
+                  <p className="text-sm opacity-80">Em carregamento hoje</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-foreground/10">
                   <Truck className="h-6 w-6" />
