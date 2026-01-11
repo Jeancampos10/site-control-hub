@@ -24,6 +24,11 @@ import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
+// Controle e Manutenção
+import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
+import Abastecimentos from "./pages/controle/Abastecimentos";
+import Horimetros from "./pages/controle/Horimetros";
+import Manutencao from "./pages/controle/Manutencao";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +82,11 @@ const App = () => (
             <Route path="/colaboradores" element={<ProtectedRoute><Colaboradores /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
+            {/* Controle e Manutenção */}
+            <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
+            <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
+            <Route path="/controle/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
+            <Route path="/controle/manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

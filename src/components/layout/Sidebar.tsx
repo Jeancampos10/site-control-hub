@@ -17,6 +17,10 @@ import {
   Menu,
   X,
   FlaskConical,
+  Fuel,
+  Clock,
+  Wrench,
+  Settings,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -62,6 +66,16 @@ const navigationGroups: NavGroup[] = [
       { label: "Colaboradores", icon: Users, href: "/colaboradores" },
       { label: "Relatórios", icon: FileText, href: "/relatorios" },
       { label: "Alertas", icon: Bell, href: "/alertas" },
+    ],
+  },
+  {
+    title: "Controle e Manutenção",
+    icon: Settings,
+    items: [
+      { label: "Visão Geral", icon: LayoutDashboard, href: "/controle" },
+      { label: "Abastecimentos", icon: Fuel, href: "/controle/abastecimentos" },
+      { label: "Horímetros", icon: Clock, href: "/controle/horimetros" },
+      { label: "Manutenção", icon: Wrench, href: "/controle/manutencao" },
     ],
   },
 ];
