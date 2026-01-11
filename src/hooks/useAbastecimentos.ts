@@ -70,6 +70,11 @@ export interface CreateAbastecimentoInput {
 
 export interface UpdateAbastecimentoInput {
   id: string;
+  originalData?: {
+    data: string;
+    veiculo: string;
+    hora?: string;
+  };
   data?: string;
   hora?: string;
   tipo?: string;
@@ -130,6 +135,33 @@ export interface ImportAbastecimentoInput {
   oleo: string | null;
   filtro: string | null;
   sincronizado_sheets: boolean;
+}
+
+// Sync with Google Sheets via edge function
+async function syncWithSheets(action: 'append' | 'update' | 'delete', data: Record<string, unknown>, originalData?: Record<string, unknown>) {
+  try {
+    const { data: result, error } = await supabase.functions.invoke('sync-abastecimentos', {
+      body: { action, data, originalData }
+    });
+
+    if (error) {
+      console.error('Sync error:', error);
+      return { synced: false, error };
+    }
+
+    // Update the record to mark as synced
+    if (result?.synced && data.id) {
+      await supabase
+        .from('abastecimentos')
+        .update({ sincronizado_sheets: true })
+        .eq('id', data.id as string);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Sync error:', error);
+    return { synced: false, error };
+  }
 }
 
 // Fetch all abastecimentos
@@ -193,45 +225,47 @@ export function useAbastecimentosByDateRange(startDate: string | null, endDate: 
   });
 }
 
-// Create new abastecimento
+// Create new abastecimento with auto-sync
 export function useCreateAbastecimento() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateAbastecimentoInput) => {
+      const insertData = {
+        data: input.data,
+        hora: input.hora || null,
+        tipo: input.tipo || null,
+        veiculo: input.veiculo,
+        potencia: input.potencia || null,
+        descricao: input.descricao || null,
+        motorista: input.motorista || null,
+        empresa: input.empresa || null,
+        obra: input.obra || null,
+        horimetro_anterior: input.horimetro_anterior || 0,
+        horimetro_atual: input.horimetro_atual || 0,
+        km_anterior: input.km_anterior || 0,
+        km_atual: input.km_atual || 0,
+        quantidade_combustivel: input.quantidade_combustivel,
+        tipo_combustivel: input.tipo_combustivel || 'Diesel S10',
+        local_abastecimento: input.local_abastecimento || null,
+        arla: input.arla || false,
+        quantidade_arla: input.quantidade_arla || 0,
+        fornecedor: input.fornecedor || null,
+        nota_fiscal: input.nota_fiscal || null,
+        valor_unitario: input.valor_unitario || 0,
+        valor_total: input.valor_total || 0,
+        localizacao: input.localizacao || null,
+        observacao: input.observacao || null,
+        fotos: input.fotos || null,
+        lubrificacao: input.lubrificacao || false,
+        oleo: input.oleo || null,
+        filtro: input.filtro || null,
+        sincronizado_sheets: false,
+      };
+
       const { data, error } = await supabase
         .from("abastecimentos")
-        .insert({
-          data: input.data,
-          hora: input.hora || null,
-          tipo: input.tipo || null,
-          veiculo: input.veiculo,
-          potencia: input.potencia || null,
-          descricao: input.descricao || null,
-          motorista: input.motorista || null,
-          empresa: input.empresa || null,
-          obra: input.obra || null,
-          horimetro_anterior: input.horimetro_anterior || 0,
-          horimetro_atual: input.horimetro_atual || 0,
-          km_anterior: input.km_anterior || 0,
-          km_atual: input.km_atual || 0,
-          quantidade_combustivel: input.quantidade_combustivel,
-          tipo_combustivel: input.tipo_combustivel || 'Diesel S10',
-          local_abastecimento: input.local_abastecimento || null,
-          arla: input.arla || false,
-          quantidade_arla: input.quantidade_arla || 0,
-          fornecedor: input.fornecedor || null,
-          nota_fiscal: input.nota_fiscal || null,
-          valor_unitario: input.valor_unitario || 0,
-          valor_total: input.valor_total || 0,
-          localizacao: input.localizacao || null,
-          observacao: input.observacao || null,
-          fotos: input.fotos || null,
-          lubrificacao: input.lubrificacao || false,
-          oleo: input.oleo || null,
-          filtro: input.filtro || null,
-          sincronizado_sheets: false,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -241,6 +275,16 @@ export function useCreateAbastecimento() {
         }
         throw error;
       }
+
+      // Sync with Google Sheets in background
+      syncWithSheets('append', { ...insertData, id: data.id }).then(result => {
+        if (result?.synced) {
+          console.log('Sincronizado com Google Sheets');
+        } else {
+          console.warn('Sincronização pendente:', result?.warning || result?.error);
+        }
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -253,12 +297,19 @@ export function useCreateAbastecimento() {
   });
 }
 
-// Update abastecimento
+// Update abastecimento with auto-sync
 export function useUpdateAbastecimento() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: UpdateAbastecimentoInput) => {
+      // First get the original record for sync purposes
+      const { data: originalRecord } = await supabase
+        .from("abastecimentos")
+        .select("*")
+        .eq("id", input.id)
+        .single();
+
       const updates: Record<string, unknown> = {};
       
       if (input.data !== undefined) updates.data = input.data;
@@ -304,6 +355,22 @@ export function useUpdateAbastecimento() {
         }
         throw error;
       }
+
+      // Sync with Google Sheets in background
+      if (originalRecord) {
+        syncWithSheets('update', { ...data, id: input.id }, {
+          data: originalRecord.data,
+          veiculo: originalRecord.veiculo,
+          hora: originalRecord.hora
+        }).then(result => {
+          if (result?.synced) {
+            console.log('Sincronizado com Google Sheets');
+          } else {
+            console.warn('Sincronização pendente:', result?.warning || result?.error);
+          }
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -316,18 +383,44 @@ export function useUpdateAbastecimento() {
   });
 }
 
-// Delete abastecimento
+// Delete abastecimento with auto-sync
 export function useDeleteAbastecimento() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id, syncData }: { id: string; syncData?: AbastecimentoDB }) => {
+      // Get record data before deletion for sync
+      let recordToSync = syncData;
+      if (!recordToSync) {
+        const { data } = await supabase
+          .from("abastecimentos")
+          .select("*")
+          .eq("id", id)
+          .single();
+        recordToSync = data as AbastecimentoDB;
+      }
+
       const { error } = await supabase
         .from("abastecimentos")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
+
+      // Sync deletion with Google Sheets
+      if (recordToSync) {
+        syncWithSheets('delete', {
+          data: recordToSync.data,
+          veiculo: recordToSync.veiculo,
+          hora: recordToSync.hora
+        }).then(result => {
+          if (result?.synced) {
+            console.log('Exclusão sincronizada com Google Sheets');
+          } else {
+            console.warn('Sincronização de exclusão pendente:', result?.warning || result?.error);
+          }
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["abastecimentos"] });
@@ -339,7 +432,7 @@ export function useDeleteAbastecimento() {
   });
 }
 
-// Batch import abastecimentos
+// Batch import abastecimentos (no sync - data comes from Sheets)
 export function useImportAbastecimentos() {
   const queryClient = useQueryClient();
 
@@ -393,6 +486,52 @@ export function useImportAbastecimentos() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erro ao importar registros");
+    },
+  });
+}
+
+// Re-sync pending records
+export function useSyncPendingAbastecimentos() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      // Get all records not synced
+      const { data: pendingRecords, error } = await supabase
+        .from("abastecimentos")
+        .select("*")
+        .eq("sincronizado_sheets", false);
+
+      if (error) throw error;
+      if (!pendingRecords || pendingRecords.length === 0) {
+        return { synced: 0, failed: 0 };
+      }
+
+      let synced = 0;
+      let failed = 0;
+
+      for (const record of pendingRecords) {
+        const result = await syncWithSheets('append', record);
+        if (result?.synced) {
+          synced++;
+        } else {
+          failed++;
+        }
+      }
+
+      return { synced, failed, total: pendingRecords.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["abastecimentos"] });
+      if (result.synced > 0) {
+        toast.success(`${result.synced} registros sincronizados!`);
+      }
+      if (result.failed > 0) {
+        toast.warning(`${result.failed} registros não puderam ser sincronizados`);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao sincronizar registros");
     },
   });
 }
