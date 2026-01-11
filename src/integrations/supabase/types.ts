@@ -62,6 +62,54 @@ export type Database = {
         }
         Relationships: []
       }
+      horimetros: {
+        Row: {
+          created_at: string
+          data: string
+          descricao_veiculo: string | null
+          horas_trabalhadas: number | null
+          horimetro_anterior: number
+          horimetro_atual: number
+          id: string
+          obra: string | null
+          observacao: string | null
+          operador: string | null
+          sincronizado_sheets: boolean
+          updated_at: string
+          veiculo: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao_veiculo?: string | null
+          horas_trabalhadas?: number | null
+          horimetro_anterior?: number
+          horimetro_atual?: number
+          id?: string
+          obra?: string | null
+          observacao?: string | null
+          operador?: string | null
+          sincronizado_sheets?: boolean
+          updated_at?: string
+          veiculo: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao_veiculo?: string | null
+          horas_trabalhadas?: number | null
+          horimetro_anterior?: number
+          horimetro_atual?: number
+          id?: string
+          obra?: string | null
+          observacao?: string | null
+          operador?: string | null
+          sincronizado_sheets?: boolean
+          updated_at?: string
+          veiculo?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
