@@ -17,10 +17,6 @@ import {
   Menu,
   X,
   FlaskConical,
-  Fuel,
-  Package,
-  Clock,
-  Wrench,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -66,18 +62,6 @@ const navigationGroups: NavGroup[] = [
       { label: "Colaboradores", icon: Users, href: "/colaboradores" },
       { label: "Relatórios", icon: FileText, href: "/relatorios" },
       { label: "Alertas", icon: Bell, href: "/alertas" },
-    ],
-  },
-  {
-    title: "Combustível e Manutenção",
-    icon: Fuel,
-    items: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/combustivel" },
-      { label: "Abastecimento", icon: Fuel, href: "/combustivel/abastecimento" },
-      { label: "Estoques", icon: Package, href: "/combustivel/estoques" },
-      { label: "Frota", icon: Truck, href: "/combustivel/frota" },
-      { label: "Horímetros", icon: Clock, href: "/combustivel/horimetros" },
-      { label: "Manutenção", icon: Wrench, href: "/combustivel/manutencao" },
     ],
   },
 ];
