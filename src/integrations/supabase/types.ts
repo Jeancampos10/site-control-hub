@@ -95,6 +95,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ordens_servico: {
+        Row: {
+          created_at: string
+          custo_estimado: number | null
+          custo_real: number | null
+          data_abertura: string
+          data_fechamento: string | null
+          descricao_veiculo: string | null
+          diagnostico: string | null
+          encarregado: string | null
+          horimetro_km: number | null
+          id: string
+          local_servico: string | null
+          mecanico_responsavel: string | null
+          motorista_operador: string | null
+          numero_os: number
+          observacoes: string | null
+          pecas_utilizadas: string | null
+          prioridade: string
+          problema_relatado: string
+          solucao_aplicada: string | null
+          status: string
+          tempo_estimado_horas: number | null
+          tempo_real_horas: number | null
+          tipo: string
+          updated_at: string
+          veiculo: string
+        }
+        Insert: {
+          created_at?: string
+          custo_estimado?: number | null
+          custo_real?: number | null
+          data_abertura?: string
+          data_fechamento?: string | null
+          descricao_veiculo?: string | null
+          diagnostico?: string | null
+          encarregado?: string | null
+          horimetro_km?: number | null
+          id?: string
+          local_servico?: string | null
+          mecanico_responsavel?: string | null
+          motorista_operador?: string | null
+          numero_os?: number
+          observacoes?: string | null
+          pecas_utilizadas?: string | null
+          prioridade?: string
+          problema_relatado: string
+          solucao_aplicada?: string | null
+          status?: string
+          tempo_estimado_horas?: number | null
+          tempo_real_horas?: number | null
+          tipo?: string
+          updated_at?: string
+          veiculo: string
+        }
+        Update: {
+          created_at?: string
+          custo_estimado?: number | null
+          custo_real?: number | null
+          data_abertura?: string
+          data_fechamento?: string | null
+          descricao_veiculo?: string | null
+          diagnostico?: string | null
+          encarregado?: string | null
+          horimetro_km?: number | null
+          id?: string
+          local_servico?: string | null
+          mecanico_responsavel?: string | null
+          motorista_operador?: string | null
+          numero_os?: number
+          observacoes?: string | null
+          pecas_utilizadas?: string | null
+          prioridade?: string
+          problema_relatado?: string
+          solucao_aplicada?: string | null
+          status?: string
+          tempo_estimado_horas?: number | null
+          tempo_real_horas?: number | null
+          tipo?: string
+          updated_at?: string
+          veiculo?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
