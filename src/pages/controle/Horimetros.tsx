@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateFilter } from "@/components/shared/DateFilter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -8,7 +8,8 @@ import {
   Truck,
   TrendingUp,
   AlertTriangle,
-  CheckCircle,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import {
   Table,
@@ -20,38 +21,36 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-
-interface HorimetroRegistro {
-  id: string;
-  veiculo: string;
-  descricao: string;
-  horimetroAnterior: number;
-  horimetroAtual: number;
-  horasTrabalhadas: number;
-  operador: string;
-  obra: string;
-  status: "normal" | "alerta" | "critico";
-}
+import { Button } from "@/components/ui/button";
+import { useHorimetros, useHorimetrosSummary, Horimetro } from "@/hooks/useHorimetros";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Horimetros() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const { data: horimetros, isLoading, error, refetch, isFetching } = useHorimetros();
 
-  // Dados mockados
-  const registros: HorimetroRegistro[] = [
-    { id: "1", veiculo: "ESC-001", descricao: "Escavadeira Volvo EC210", horimetroAnterior: 4520, horimetroAtual: 4528, horasTrabalhadas: 8, operador: "Carlos Lima", obra: "Pedreira Norte", status: "normal" },
-    { id: "2", veiculo: "ESC-002", descricao: "Escavadeira CAT 320", horimetroAnterior: 3890, horimetroAtual: 3897, horasTrabalhadas: 7, operador: "João Silva", obra: "Pedreira Sul", status: "normal" },
-    { id: "3", veiculo: "CAR-001", descricao: "Carregadeira CAT 966", horimetroAnterior: 5210, horimetroAtual: 5219, horasTrabalhadas: 9, operador: "Pedro Santos", obra: "Britagem", status: "alerta" },
-    { id: "4", veiculo: "RET-001", descricao: "Retroescavadeira JCB", horimetroAnterior: 2340, horimetroAtual: 2346, horasTrabalhadas: 6, operador: "Roberto Alves", obra: "Manutenção Vias", status: "normal" },
-    { id: "5", veiculo: "MOT-001", descricao: "Motoniveladora CAT 120", horimetroAnterior: 6780, horimetroAtual: 6788, horasTrabalhadas: 8, operador: "Fernando Souza", obra: "Terraplanagem", status: "critico" },
-    { id: "6", veiculo: "ROL-001", descricao: "Rolo Compactador BOMAG", horimetroAnterior: 1890, horimetroAtual: 1898, horasTrabalhadas: 8, operador: "Marcos Dias", obra: "Terraplanagem", status: "normal" },
-    { id: "7", veiculo: "TRA-001", descricao: "Trator de Esteira D6", horimetroAnterior: 4120, horimetroAtual: 4127, horasTrabalhadas: 7, operador: "Paulo Mendes", obra: "Desmate", status: "normal" },
-    { id: "8", veiculo: "GER-001", descricao: "Gerador 150kVA", horimetroAnterior: 8920, horimetroAtual: 8932, horasTrabalhadas: 12, operador: "Lucas Pereira", obra: "Britagem", status: "alerta" },
-  ];
+  // Format selected date for comparison
+  const selectedDateStr = selectedDate 
+    ? format(selectedDate, 'dd/MM/yyyy') 
+    : null;
 
-  const totalHoras = registros.reduce((acc, r) => acc + r.horasTrabalhadas, 0);
-  const mediaHoras = totalHoras / registros.length;
-  const equipamentosAtivos = registros.length;
-  const alertas = registros.filter(r => r.status !== "normal").length;
+  // Get summary data
+  const { 
+    filteredData, 
+    totalHoras, 
+    equipamentosAtivos, 
+    mediaHoras, 
+    byEmpresa 
+  } = useHorimetrosSummary(horimetros || [], selectedDateStr);
+
+  // Determine status based on hours worked
+  const getStatus = (horas: number): "normal" | "alerta" | "critico" => {
+    if (horas >= 12) return "critico";
+    if (horas >= 10) return "alerta";
+    return "normal";
+  };
+
+  const alertas = filteredData.filter(h => getStatus(h.horas_trabalhadas) !== "normal").length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -66,11 +65,25 @@ export default function Horimetros() {
     }
   };
 
-  const getProgressColor = (horas: number) => {
-    if (horas >= 10) return "bg-red-500";
-    if (horas >= 8) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-red-500 mb-4">Erro ao carregar dados: {error.message}</p>
+        <Button onClick={() => refetch()} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,10 +92,26 @@ export default function Horimetros() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Horímetros</h1>
           <p className="text-muted-foreground">
-            Controle de horas trabalhadas - {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            Controle de horas trabalhadas
+            {selectedDate && ` - ${format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
           </p>
         </div>
-        <DateFilter date={selectedDate} onDateChange={(d) => d && setSelectedDate(d)} />
+        <div className="flex gap-2">
+          <DateFilter 
+            date={selectedDate} 
+            onDateChange={setSelectedDate}
+            placeholder="Filtrar por data"
+            showClear={true}
+          />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -92,8 +121,10 @@ export default function Horimetros() {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Total de Horas</p>
-                <p className="text-3xl font-bold">{totalHoras}h</p>
-                <p className="text-xs text-muted-foreground">horas trabalhadas hoje</p>
+                <p className="text-3xl font-bold">{totalHoras.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}h</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedDate ? 'no dia selecionado' : 'total na base'}
+                </p>
               </div>
               <div className="rounded-lg bg-blue-500/10 p-3">
                 <Clock className="h-6 w-6 text-blue-500" />
@@ -106,9 +137,9 @@ export default function Horimetros() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Equipamentos Ativos</p>
+                <p className="text-sm font-medium text-muted-foreground">Registros</p>
                 <p className="text-3xl font-bold">{equipamentosAtivos}</p>
-                <p className="text-xs text-muted-foreground">em operação</p>
+                <p className="text-xs text-muted-foreground">equipamentos/veículos</p>
               </div>
               <div className="rounded-lg bg-green-500/10 p-3">
                 <Truck className="h-6 w-6 text-green-500" />
@@ -121,9 +152,9 @@ export default function Horimetros() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Média por Equipamento</p>
+                <p className="text-sm font-medium text-muted-foreground">Média por Registro</p>
                 <p className="text-3xl font-bold">{mediaHoras.toFixed(1)}h</p>
-                <p className="text-xs text-muted-foreground">horas/equipamento</p>
+                <p className="text-xs text-muted-foreground">horas/registro</p>
               </div>
               <div className="rounded-lg bg-purple-500/10 p-3">
                 <TrendingUp className="h-6 w-6 text-purple-500" />
@@ -136,9 +167,9 @@ export default function Horimetros() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Alertas de Revisão</p>
+                <p className="text-sm font-medium text-muted-foreground">Alertas (≥10h)</p>
                 <p className="text-3xl font-bold">{alertas}</p>
-                <p className="text-xs text-muted-foreground">equipamentos</p>
+                <p className="text-xs text-muted-foreground">registros</p>
               </div>
               <div className="rounded-lg bg-orange-500/10 p-3">
                 <AlertTriangle className="h-6 w-6 text-orange-500" />
@@ -150,21 +181,26 @@ export default function Horimetros() {
 
       {/* Tabela de Horímetros */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Registros de Horímetros do Dia
+            Registros de Horímetros
+            {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </CardTitle>
+          <span className="text-sm text-muted-foreground">
+            {filteredData.length} registros
+          </span>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Data</TableHead>
                   <TableHead>Veículo</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Operador</TableHead>
-                  <TableHead>Obra</TableHead>
+                  <TableHead>Empresa</TableHead>
                   <TableHead className="text-right">Hor. Anterior</TableHead>
                   <TableHead className="text-right">Hor. Atual</TableHead>
                   <TableHead className="text-right">Horas Trab.</TableHead>
@@ -172,59 +208,96 @@ export default function Horimetros() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {registros.map((registro) => (
-                  <TableRow key={registro.id}>
-                    <TableCell>
-                      <Badge variant="outline">{registro.veiculo}</Badge>
+                {filteredData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      {selectedDate 
+                        ? 'Nenhum registro encontrado para esta data'
+                        : 'Nenhum registro encontrado'
+                      }
                     </TableCell>
-                    <TableCell className="font-medium">{registro.descricao}</TableCell>
-                    <TableCell>{registro.operador}</TableCell>
-                    <TableCell>{registro.obra}</TableCell>
-                    <TableCell className="text-right">{registro.horimetroAnterior.toLocaleString()}h</TableCell>
-                    <TableCell className="text-right">{registro.horimetroAtual.toLocaleString()}h</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-16">
-                          <Progress 
-                            value={(registro.horasTrabalhadas / 12) * 100} 
-                            className="h-2"
-                          />
-                        </div>
-                        <span className="font-semibold">{registro.horasTrabalhadas}h</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(registro.status)}</TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredData.slice(0, 100).map((registro) => (
+                    <TableRow key={registro.id}>
+                      <TableCell className="font-medium">{registro.data}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{registro.veiculo}</Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate" title={registro.descricao}>
+                        {registro.descricao}
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate" title={registro.operador}>
+                        {registro.operador}
+                      </TableCell>
+                      <TableCell>{registro.empresa}</TableCell>
+                      <TableCell className="text-right">
+                        {registro.horimetro_anterior !== null 
+                          ? registro.horimetro_anterior.toLocaleString('pt-BR')
+                          : '-'
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {registro.horimetro_atual !== null 
+                          ? registro.horimetro_atual.toLocaleString('pt-BR')
+                          : '-'
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16">
+                            <Progress 
+                              value={Math.min((registro.horas_trabalhadas / 12) * 100, 100)} 
+                              className="h-2"
+                            />
+                          </div>
+                          <span className="font-semibold w-10 text-right">
+                            {registro.horas_trabalhadas.toFixed(1)}h
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(getStatus(registro.horas_trabalhadas))}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
+            {filteredData.length > 100 && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Mostrando 100 de {filteredData.length} registros
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Cards de Resumo por Obra */}
+      {/* Cards de Resumo por Empresa */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { obra: "Pedreira Norte", horas: 15, equipamentos: 2 },
-          { obra: "Pedreira Sul", horas: 7, equipamentos: 1 },
-          { obra: "Britagem", horas: 21, equipamentos: 2 },
-          { obra: "Terraplanagem", horas: 16, equipamentos: 2 },
-        ].map((resumo) => (
-          <Card key={resumo.obra}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{resumo.obra}</p>
-                  <p className="text-sm text-muted-foreground">{resumo.equipamentos} equipamentos</p>
+        {Object.entries(byEmpresa)
+          .sort((a, b) => b[1].horas - a[1].horas)
+          .slice(0, 4)
+          .map(([empresa, dados]) => (
+            <Card key={empresa}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium truncate max-w-[120px]" title={empresa}>
+                      {empresa}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {dados.equipamentos} registro{dados.equipamentos !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary">
+                      {dados.horas.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}h
+                    </p>
+                    <p className="text-xs text-muted-foreground">total</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">{resumo.horas}h</p>
-                  <p className="text-xs text-muted-foreground">total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
       </div>
     </div>
   );
