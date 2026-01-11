@@ -1,40 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GOOGLE_SHEETS_API_KEY = Deno.env.get('GOOGLE_SHEETS_API_KEY');
+
+// Production spreadsheet
 const SPREADSHEET_ID = '1B9-SbnayFySlsITdRqn_2WJNnA9ZHhD0PWYka83581c';
+// Abastech spreadsheet (combustível/frota)
+const ABASTECH_SPREADSHEET_ID = Deno.env.get('ABASTECH_SPREADSHEET_ID') || SPREADSHEET_ID;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface SheetRange {
-  [key: string]: string;
+interface SheetConfig {
+  range: string;
+  spreadsheetId: string;
 }
 
-// Use sheet names without special characters - encode them properly
-const SHEET_RANGES: SheetRange = {
-  carga: 'Carga!A:U',
-  descarga: 'Descarga!A:O',
-  equipamentos: 'Equipamentos!A:F',
-  caminhao: 'Caminhao!A:G',
-  cam_reboque: 'Cam_Reboque!A:I',
-  caminhao_pipa: 'Caminhao_Pipa!A:G',
-  apontamento_pedreira: 'Apontamento_Pedreira!A:Q',
-  apontamento_pipa: 'Apontamento_Pipa!A:J',
-  mov_cal: 'Mov_Cal!B:L',
-  estoque_cal: 'Estoque_Cal!A:F',
+interface SheetRanges {
+  [key: string]: SheetConfig;
+}
+
+// Production sheets
+const SHEET_RANGES: SheetRanges = {
+  // Production sheets (original spreadsheet)
+  carga: { range: 'Carga!A:U', spreadsheetId: SPREADSHEET_ID },
+  descarga: { range: 'Descarga!A:O', spreadsheetId: SPREADSHEET_ID },
+  equipamentos: { range: 'Equipamentos!A:F', spreadsheetId: SPREADSHEET_ID },
+  caminhao: { range: 'Caminhao!A:G', spreadsheetId: SPREADSHEET_ID },
+  cam_reboque: { range: 'Cam_Reboque!A:I', spreadsheetId: SPREADSHEET_ID },
+  caminhao_pipa: { range: 'Caminhao_Pipa!A:G', spreadsheetId: SPREADSHEET_ID },
+  apontamento_pedreira: { range: 'Apontamento_Pedreira!A:Q', spreadsheetId: SPREADSHEET_ID },
+  apontamento_pipa: { range: 'Apontamento_Pipa!A:J', spreadsheetId: SPREADSHEET_ID },
+  mov_cal: { range: 'Mov_Cal!B:L', spreadsheetId: SPREADSHEET_ID },
+  estoque_cal: { range: 'Estoque_Cal!A:F', spreadsheetId: SPREADSHEET_ID },
+  
+  // Abastech sheets (combustível/frota)
+  AbastecimentoCanteiro01: { range: 'AbastecimentoCanteiro01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Geral: { range: 'Geral!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueCanteiro01: { range: 'EstoqueCanteiro01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueCanteiro02: { range: 'EstoqueCanteiro02!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueComboio01: { range: 'EstoqueComboio01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueComboio02: { range: 'EstoqueComboio02!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueComboio03: { range: 'EstoqueComboio03!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  EstoqueObraSaneamento: { range: 'EstoqueObraSaneamento!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Estoque_Arla: { range: 'Estoque_Arla!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Veiculos: { range: 'Veiculos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Horimetros: { range: 'Horimetros!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Ordem_Servico: { range: 'Ordem_Servico!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
 };
 
 async function fetchSheetData(sheetName: string): Promise<any[]> {
-  const range = SHEET_RANGES[sheetName];
-  if (!range) {
+  const sheetConfig = SHEET_RANGES[sheetName];
+  if (!sheetConfig) {
     throw new Error(`Sheet "${sheetName}" not found. Available: ${Object.keys(SHEET_RANGES).join(', ')}`);
   }
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_SHEETS_API_KEY}`;
+  const { range, spreadsheetId } = sheetConfig;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${GOOGLE_SHEETS_API_KEY}`;
   
-  console.log(`Fetching data from: ${sheetName} (range: ${range})`);
+  console.log(`Fetching data from: ${sheetName} (range: ${range}, spreadsheet: ${spreadsheetId})`);
   
   const response = await fetch(url);
   
@@ -45,7 +70,7 @@ async function fetchSheetData(sheetName: string): Promise<any[]> {
     // If the sheet name with accent fails, try alternative names
     if (response.status === 400 && sheetName === 'caminhao') {
       console.log('Trying alternative sheet name: Caminhão');
-      const altUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent('Caminhão!A:G')}?key=${GOOGLE_SHEETS_API_KEY}`;
+      const altUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent('Caminhão!A:G')}?key=${GOOGLE_SHEETS_API_KEY}`;
       const altResponse = await fetch(altUrl);
       if (altResponse.ok) {
         const data = await altResponse.json();
@@ -105,8 +130,8 @@ async function updateSheetData(
   // 2. Build batch update request
   // 3. Send to Google Sheets API
   
-  const range = SHEET_RANGES[sheetName];
-  if (!range) {
+  const sheetConfig = SHEET_RANGES[sheetName];
+  if (!sheetConfig) {
     throw new Error(`Sheet "${sheetName}" not found`);
   }
 
