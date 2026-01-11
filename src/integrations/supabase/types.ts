@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      abastecimentos: {
+        Row: {
+          arla: boolean | null
+          created_at: string | null
+          data: string
+          descricao: string | null
+          empresa: string | null
+          filtro: string | null
+          fornecedor: string | null
+          fotos: string | null
+          hora: string | null
+          horimetro_anterior: number | null
+          horimetro_atual: number | null
+          id: string
+          km_anterior: number | null
+          km_atual: number | null
+          local_abastecimento: string | null
+          localizacao: string | null
+          lubrificacao: boolean | null
+          motorista: string | null
+          nota_fiscal: string | null
+          obra: string | null
+          observacao: string | null
+          oleo: string | null
+          potencia: string | null
+          quantidade_arla: number | null
+          quantidade_combustivel: number
+          sincronizado_sheets: boolean | null
+          tipo: string | null
+          tipo_combustivel: string | null
+          updated_at: string | null
+          valor_total: number | null
+          valor_unitario: number | null
+          veiculo: string
+        }
+        Insert: {
+          arla?: boolean | null
+          created_at?: string | null
+          data: string
+          descricao?: string | null
+          empresa?: string | null
+          filtro?: string | null
+          fornecedor?: string | null
+          fotos?: string | null
+          hora?: string | null
+          horimetro_anterior?: number | null
+          horimetro_atual?: number | null
+          id?: string
+          km_anterior?: number | null
+          km_atual?: number | null
+          local_abastecimento?: string | null
+          localizacao?: string | null
+          lubrificacao?: boolean | null
+          motorista?: string | null
+          nota_fiscal?: string | null
+          obra?: string | null
+          observacao?: string | null
+          oleo?: string | null
+          potencia?: string | null
+          quantidade_arla?: number | null
+          quantidade_combustivel?: number
+          sincronizado_sheets?: boolean | null
+          tipo?: string | null
+          tipo_combustivel?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+          veiculo: string
+        }
+        Update: {
+          arla?: boolean | null
+          created_at?: string | null
+          data?: string
+          descricao?: string | null
+          empresa?: string | null
+          filtro?: string | null
+          fornecedor?: string | null
+          fotos?: string | null
+          hora?: string | null
+          horimetro_anterior?: number | null
+          horimetro_atual?: number | null
+          id?: string
+          km_anterior?: number | null
+          km_atual?: number | null
+          local_abastecimento?: string | null
+          localizacao?: string | null
+          lubrificacao?: boolean | null
+          motorista?: string | null
+          nota_fiscal?: string | null
+          obra?: string | null
+          observacao?: string | null
+          oleo?: string | null
+          potencia?: string | null
+          quantidade_arla?: number | null
+          quantidade_combustivel?: number
+          sincronizado_sheets?: boolean | null
+          tipo?: string | null
+          tipo_combustivel?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+          veiculo?: string
+        }
+        Relationships: []
+      }
       bulk_edit_logs: {
         Row: {
           affected_rows_count: number
