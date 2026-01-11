@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 
-type SheetName = 
+// Produção sheets
+type ProdutionSheetName = 
   | 'carga' 
   | 'descarga' 
   | 'equipamentos' 
@@ -12,6 +13,23 @@ type SheetName =
   | 'apontamento_pipa'
   | 'mov_cal'
   | 'estoque_cal';
+
+// Abastech (Combustível) sheets
+type AbastechSheetName = 
+  | 'AbastecimentoCanteiro01'
+  | 'Geral'
+  | 'EstoqueCanteiro01'
+  | 'EstoqueCanteiro02'
+  | 'EstoqueComboio01'
+  | 'EstoqueComboio02'
+  | 'EstoqueComboio03'
+  | 'EstoqueObraSaneamento'
+  | 'Estoque_Arla'
+  | 'Veiculos'
+  | 'Horimetros'
+  | 'Ordem_Servico';
+
+export type SheetName = ProdutionSheetName | AbastechSheetName;
 
 export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName) {
   return useQuery({
