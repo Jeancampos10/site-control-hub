@@ -35,9 +35,13 @@ const SHEET_RANGES: SheetRanges = {
   mov_cal: { range: 'Mov_Cal!B:L', spreadsheetId: SPREADSHEET_ID },
   estoque_cal: { range: 'Estoque_Cal!A:F', spreadsheetId: SPREADSHEET_ID },
   
-  // Abastech sheets (combustível/frota)
-  AbastecimentoCanteiro01: { range: 'AbastecimentoCanteiro01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  Geral: { range: 'Geral!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  // Abastech sheets (combustível/frota) - Extended ranges for all columns
+  AbastecimentoCanteiro01: { range: 'AbastecimentoCanteiro01!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  AbastecimentoCanteiro02: { range: 'AbastecimentoCanteiro02!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  AbastecimentoComboio01: { range: 'AbastecimentoComboio01!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  AbastecimentoComboio02: { range: 'AbastecimentoComboio02!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  AbastecimentoComboio03: { range: 'AbastecimentoComboio03!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Geral: { range: 'Geral!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   EstoqueCanteiro01: { range: 'EstoqueCanteiro01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   EstoqueCanteiro02: { range: 'EstoqueCanteiro02!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   EstoqueComboio01: { range: 'EstoqueComboio01!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
