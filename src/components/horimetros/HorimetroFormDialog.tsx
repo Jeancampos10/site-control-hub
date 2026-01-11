@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCreateHorimetro } from "@/hooks/useHorimetros";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
-import { transformVeiculosData, VeiculoRecord } from "@/lib/sheetsDataTransform";
+import { transformVeiculosData, VeiculoRecord } from "@/lib/abastech/sheetsDataTransform";
 import { supabase } from "@/integrations/supabase/client";
 
 const horimetroSchema = z.object({

@@ -27,7 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { useHorimetros, useImportHorimetros } from "@/hooks/useHorimetros";
-import { transformHorimetrosData, HorimetroRecord } from "@/lib/sheetsDataTransform";
+import { transformHorimetrosData, HorimetroRecord } from "@/lib/abastech/sheetsDataTransform";
 
 interface ImportSheetsDialogProps {
   onSuccess?: () => void;
