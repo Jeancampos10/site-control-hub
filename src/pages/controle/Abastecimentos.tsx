@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { useState, useMemo } from "react";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -12,6 +12,9 @@ import {
   ArrowDownRight,
   RefreshCw,
   Loader2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -21,10 +24,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAbastecimentos, Abastecimento } from "@/hooks/useAbastecimentos";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { AbastecimentoEditDialog } from "@/components/abastecimentos/AbastecimentoEditDialog";
+import { AbastecimentoDeleteDialog } from "@/components/abastecimentos/AbastecimentoDeleteDialog";
 
 interface SourceConfig {
   key: string;
@@ -43,6 +54,10 @@ const SOURCES: SourceConfig[] = [
 
 function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDate: Date | null }) {
   const { data: abastecimentos, isLoading, error, refetch, isFetching } = useAbastecimentos(source.key);
+  
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAbastecimento, setSelectedAbastecimento] = useState<Abastecimento | null>(null);
 
   // Filter by selected date
   const filteredData = useMemo(() => {
@@ -51,11 +66,9 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
 
     const targetDate = format(selectedDate, 'dd/MM/yyyy');
     return abastecimentos.filter(ab => {
-      // Normalize date format for comparison
       const abDate = ab.data;
       if (!abDate) return false;
       
-      // Try to match DD/MM/YYYY format
       const match = abDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (match) {
         const day = match[1].padStart(2, '0');
@@ -70,8 +83,7 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
   const totalAbastecido = filteredData.reduce((acc, ab) => acc + (ab.quantidade || 0), 0);
   const totalRegistros = filteredData.length;
 
-  // Estimate current level (this would need real data from estoque sheet)
-  const nivelEstimado = source.capacidade * 0.65; // Placeholder
+  const nivelEstimado = source.capacidade * 0.65;
   const percentualNivel = (nivelEstimado / source.capacidade) * 100;
 
   const getStatusColor = (percentual: number) => {
@@ -84,6 +96,16 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
     if (percentual > 50) return "bg-green-500";
     if (percentual > 25) return "bg-yellow-500";
     return "bg-red-500";
+  };
+
+  const handleEdit = (abastecimento: Abastecimento) => {
+    setSelectedAbastecimento(abastecimento);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (abastecimento: Abastecimento) => {
+    setSelectedAbastecimento(abastecimento);
+    setDeleteDialogOpen(true);
   };
 
   if (isLoading) {
@@ -232,12 +254,13 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
                   <TableHead className="text-right">Litros</TableHead>
                   <TableHead className="text-right">Hor. Atual</TableHead>
                   <TableHead>Lubrificação</TableHead>
+                  <TableHead className="w-[50px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {selectedDate 
                         ? 'Nenhum abastecimento encontrado para esta data'
                         : 'Nenhum abastecimento encontrado'
@@ -278,6 +301,29 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Ações</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover">
+                            <DropdownMenuItem onClick={() => handleEdit(abastecimento)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(abastecimento)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -291,6 +337,20 @@ function SourceTab({ source, selectedDate }: { source: SourceConfig; selectedDat
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <AbastecimentoEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        abastecimento={selectedAbastecimento}
+        source={source.key}
+      />
+      <AbastecimentoDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        abastecimento={selectedAbastecimento}
+        source={source.key}
+      />
     </div>
   );
 }
