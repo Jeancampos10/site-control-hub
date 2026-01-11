@@ -24,13 +24,6 @@ import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
-// Combustível e Manutenção
-import CombustivelDashboard from "./pages/combustivel/CombustivelDashboard";
-import Abastecimento from "./pages/combustivel/Abastecimento";
-import Estoques from "./pages/combustivel/Estoques";
-import FrotaCombustivel from "./pages/combustivel/FrotaCombustivel";
-import Horimetros from "./pages/combustivel/Horimetros";
-import Manutencao from "./pages/combustivel/Manutencao";
 
 const queryClient = new QueryClient();
 
@@ -84,13 +77,6 @@ const App = () => (
             <Route path="/colaboradores" element={<ProtectedRoute><Colaboradores /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
-            {/* Combustível e Manutenção */}
-            <Route path="/combustivel" element={<ProtectedRoute><CombustivelDashboard /></ProtectedRoute>} />
-            <Route path="/combustivel/abastecimento" element={<ProtectedRoute><Abastecimento /></ProtectedRoute>} />
-            <Route path="/combustivel/estoques" element={<ProtectedRoute><Estoques /></ProtectedRoute>} />
-            <Route path="/combustivel/frota" element={<ProtectedRoute><FrotaCombustivel /></ProtectedRoute>} />
-            <Route path="/combustivel/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
-            <Route path="/combustivel/manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
