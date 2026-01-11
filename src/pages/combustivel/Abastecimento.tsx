@@ -11,10 +11,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Abastecimento() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: abastecimentoData, isLoading, refetch } = useGoogleSheets('AbastecimentoCanteiro01');
+  const { data: abastecimentoData, isLoading, refetch } = useGoogleSheets<Record<string, string>>('AbastecimentoCanteiro01');
 
   const abastecimentos = useMemo<AbastecimentoRecord[]>(() => {
-    if (!abastecimentoData) return [];
+    if (!abastecimentoData || !Array.isArray(abastecimentoData)) return [];
     return transformAbastecimentoData(abastecimentoData);
   }, [abastecimentoData]);
 
