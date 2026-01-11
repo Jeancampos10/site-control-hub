@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface Horimetro {
   id: string;
@@ -13,6 +15,20 @@ export interface Horimetro {
   km_anterior: number | null;
   km_atual: number | null;
   horas_trabalhadas: number;
+}
+
+export interface HorimetroFormData {
+  id?: string;
+  data: string;
+  categoria: string;
+  veiculo: string;
+  descricao: string;
+  operador: string;
+  empresa: string;
+  horimetro_anterior: number | null;
+  horimetro_atual: number | null;
+  km_anterior: number | null;
+  km_atual: number | null;
 }
 
 // Transform raw sheet data to our Horimetro interface
@@ -36,7 +52,7 @@ function transformSheetData(row: Record<string, string>): Horimetro {
 
   return {
     id: row['ID'] || '',
-    data: (row[' Data'] || row['Data'] || '').trim(), // Note: space before Data in some records
+    data: (row[' Data'] || row['Data'] || '').trim(),
     categoria: row['Categoria'] || '',
     veiculo: row['Veiculo'] || '',
     descricao: row['Descricao'] || '',
@@ -90,7 +106,77 @@ export function useHorimetros() {
 
       return horimetros as Horimetro[];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Hook to update a horimetro
+export function useUpdateHorimetro() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: HorimetroFormData) => {
+      const response = await supabase.functions.invoke('sync-horimetros', {
+        body: { 
+          action: 'update', 
+          data: {
+            id: data.id,
+            data: data.data,
+            categoria: data.categoria,
+            veiculo: data.veiculo,
+            descricao: data.descricao,
+            operador: data.operador,
+            empresa: data.empresa,
+            horimetro_anterior: data.horimetro_anterior,
+            horimetro_atual: data.horimetro_atual,
+            km_anterior: data.km_anterior,
+            km_atual: data.km_atual,
+          },
+          rowId: data.id,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['horimetros'] });
+      toast.success('Horímetro atualizado com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Update error:', error);
+      toast.error(`Erro ao atualizar: ${error.message}`);
+    },
+  });
+}
+
+// Hook to delete a horimetro
+export function useDeleteHorimetro() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rowId: string) => {
+      const response = await supabase.functions.invoke('sync-horimetros', {
+        body: { action: 'delete', rowId },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['horimetros'] });
+      toast.success('Horímetro excluído com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast.error(`Erro ao excluir: ${error.message}`);
+    },
   });
 }
 
@@ -99,7 +185,6 @@ export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: stri
   const filteredData = selectedDate 
     ? horimetros.filter(h => {
         const hDate = h.data.trim();
-        // Normalize dates for comparison
         const normalizeDate = (d: string) => {
           const match = d.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
           if (match) {
@@ -115,7 +200,6 @@ export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: stri
   const equipamentosAtivos = filteredData.length;
   const mediaHoras = equipamentosAtivos > 0 ? totalHoras / equipamentosAtivos : 0;
   
-  // Group by obra/empresa
   const byEmpresa: Record<string, { horas: number; equipamentos: number }> = {};
   filteredData.forEach(h => {
     const key = h.empresa || 'Sem Empresa';
@@ -126,7 +210,6 @@ export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: stri
     byEmpresa[key].equipamentos += 1;
   });
 
-  // Get unique dates for reference
   const uniqueDates = [...new Set(horimetros.map(h => h.data))];
 
   return {

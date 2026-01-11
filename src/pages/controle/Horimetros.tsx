@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateFilter } from "@/components/shared/DateFilter";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   Table,
@@ -22,19 +25,30 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useHorimetros, useHorimetrosSummary, Horimetro } from "@/hooks/useHorimetros";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { HorimetroEditDialog } from "@/components/horimetros/HorimetroEditDialog";
+import { HorimetroDeleteDialog } from "@/components/horimetros/HorimetroDeleteDialog";
 
 export default function Horimetros() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [editingHorimetro, setEditingHorimetro] = useState<Horimetro | null>(null);
+  const [deletingHorimetro, setDeletingHorimetro] = useState<Horimetro | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
   const { data: horimetros, isLoading, error, refetch, isFetching } = useHorimetros();
 
-  // Format selected date for comparison
   const selectedDateStr = selectedDate 
     ? format(selectedDate, 'dd/MM/yyyy') 
     : null;
 
-  // Get summary data
   const { 
     filteredData, 
     totalHoras, 
@@ -43,7 +57,6 @@ export default function Horimetros() {
     byEmpresa 
   } = useHorimetrosSummary(horimetros || [], selectedDateStr);
 
-  // Determine status based on hours worked
   const getStatus = (horas: number): "normal" | "alerta" | "critico" => {
     if (horas >= 12) return "critico";
     if (horas >= 10) return "alerta";
@@ -63,6 +76,16 @@ export default function Horimetros() {
       default:
         return <Badge variant="outline">-</Badge>;
     }
+  };
+
+  const handleEdit = (horimetro: Horimetro) => {
+    setEditingHorimetro(horimetro);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (horimetro: Horimetro) => {
+    setDeletingHorimetro(horimetro);
+    setDeleteDialogOpen(true);
   };
 
   if (isLoading) {
@@ -205,12 +228,13 @@ export default function Horimetros() {
                   <TableHead className="text-right">Hor. Atual</TableHead>
                   <TableHead className="text-right">Horas Trab.</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {selectedDate 
                         ? 'Nenhum registro encontrado para esta data'
                         : 'Nenhum registro encontrado'
@@ -257,6 +281,28 @@ export default function Horimetros() {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(getStatus(registro.horas_trabalhadas))}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover">
+                            <DropdownMenuItem onClick={() => handleEdit(registro)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(registro)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -299,6 +345,19 @@ export default function Horimetros() {
             </Card>
           ))}
       </div>
+
+      {/* Dialogs */}
+      <HorimetroEditDialog
+        horimetro={editingHorimetro}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+
+      <HorimetroDeleteDialog
+        horimetro={deletingHorimetro}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </div>
   );
 }
