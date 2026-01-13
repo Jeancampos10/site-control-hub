@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Droplets, Download, MoreHorizontal, Pencil, Trash2, RefreshCw, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,9 +34,12 @@ import { ApontamentoDeleteDialog } from "@/components/pipas/ApontamentoDeleteDia
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Pipas() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [importAttempted, setImportAttempted] = useState(false);
   
   // Fetch from database
   const { data: dbData, isLoading: isLoadingDb, error: errorDb, refetch } = useApontamentosPipa();
@@ -70,6 +73,32 @@ export default function Pipas() {
 
   const isLoading = isLoadingDb || isLoadingPipas;
   const error = errorDb;
+
+  // Importa da planilha automaticamente na primeira vez (caso o banco esteja vazio)
+  useEffect(() => {
+    if (importAttempted) return;
+    if (isLoadingDb) return;
+    if (!dbData) return;
+    if (dbData.length > 0) return;
+
+    setImportAttempted(true);
+
+    supabase.functions
+      .invoke('sync-apontamento-pipa', { body: { action: 'import' } })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Import error:', error);
+          return;
+        }
+
+        if (data?.imported > 0) {
+          toast.success(`${data.imported} registros importados da planilha.`);
+        }
+      })
+      .finally(() => {
+        refetch();
+      });
+  }, [importAttempted, isLoadingDb, dbData, refetch]);
 
   // Handler to save new apontamento
   const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
