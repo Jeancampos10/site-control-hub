@@ -266,7 +266,7 @@ serve(async (req) => {
 
     console.log('Sending to Apps Script:', JSON.stringify(payload));
 
-    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
