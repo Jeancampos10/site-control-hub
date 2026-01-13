@@ -28,6 +28,25 @@ export interface ApontamentoPipaFormData {
   n_viagens: number;
 }
 
+// Sync with Google Sheets
+async function syncWithSheets(action: 'append' | 'update' | 'delete', data: any, recordId?: string) {
+  try {
+    const response = await supabase.functions.invoke('sync-apontamento-pipa', {
+      body: { action, data, recordId }
+    });
+    
+    if (response.error) {
+      console.error('Sync error:', response.error);
+      return { synced: false };
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Sync failed:', error);
+    return { synced: false };
+  }
+}
+
 export function useApontamentosPipa() {
   return useQuery({
     queryKey: ['apontamentos-pipa'],
@@ -50,6 +69,7 @@ export function useCreateApontamentoPipa() {
 
   return useMutation({
     mutationFn: async (formData: ApontamentoPipaFormData) => {
+      // First save to database
       const { data, error } = await supabase
         .from('apontamentos_pipa')
         .insert({
@@ -60,11 +80,30 @@ export function useCreateApontamentoPipa() {
           motorista: formData.motorista || null,
           capacidade: formData.capacidade || null,
           n_viagens: formData.n_viagens,
+          sincronizado_sheets: false,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Then sync with Google Sheets in background
+      syncWithSheets('append', {
+        data: formData.data,
+        prefixo: formData.prefixo,
+        descricao: formData.descricao || '',
+        empresa: formData.empresa || '',
+        motorista: formData.motorista || '',
+        capacidade: formData.capacidade || '',
+        n_viagens: formData.n_viagens,
+      }, data.id).then(result => {
+        if (result?.synced) {
+          console.log('Synced with Google Sheets');
+        } else {
+          console.warn('Failed to sync with Google Sheets');
+        }
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -83,10 +122,12 @@ export function useUpdateApontamentoPipa() {
 
   return useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: Partial<ApontamentoPipaFormData> }) => {
+      // Update in database
       const { data, error } = await supabase
         .from('apontamentos_pipa')
         .update({
           ...formData,
+          sincronizado_sheets: false,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -94,6 +135,20 @@ export function useUpdateApontamentoPipa() {
         .single();
 
       if (error) throw error;
+
+      // Sync with Google Sheets in background
+      // Note: For updates, we would need the row index from the sheet
+      // For now, we'll just mark it and handle manually or via a batch sync
+      syncWithSheets('append', {
+        data: data.data,
+        prefixo: data.prefixo,
+        descricao: data.descricao || '',
+        empresa: data.empresa || '',
+        motorista: data.motorista || '',
+        capacidade: data.capacidade || '',
+        n_viagens: data.n_viagens,
+      }, data.id);
+
       return data;
     },
     onSuccess: () => {
@@ -118,6 +173,9 @@ export function useDeleteApontamentoPipa() {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Note: Delete from sheets would require row index
+      // For full sync, consider a periodic batch job
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apontamentos-pipa'] });
@@ -126,6 +184,52 @@ export function useDeleteApontamentoPipa() {
     onError: (error) => {
       console.error('Error deleting apontamento:', error);
       toast.error("Erro ao excluir apontamento");
+    },
+  });
+}
+
+// Hook to sync all pending records
+export function useSyncPendingApontamentos() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data: pending, error } = await supabase
+        .from('apontamentos_pipa')
+        .select('*')
+        .eq('sincronizado_sheets', false);
+
+      if (error) throw error;
+      if (!pending || pending.length === 0) return { synced: 0 };
+
+      let syncedCount = 0;
+      for (const record of pending) {
+        const result = await syncWithSheets('append', {
+          data: record.data,
+          prefixo: record.prefixo,
+          descricao: record.descricao || '',
+          empresa: record.empresa || '',
+          motorista: record.motorista || '',
+          capacidade: record.capacidade || '',
+          n_viagens: record.n_viagens,
+        }, record.id);
+
+        if (result?.synced) syncedCount++;
+      }
+
+      return { synced: syncedCount, total: pending.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['apontamentos-pipa'] });
+      if (result.synced > 0) {
+        toast.success(`${result.synced} de ${result.total} registros sincronizados!`);
+      } else {
+        toast.info("Nenhum registro pendente para sincronizar");
+      }
+    },
+    onError: (error) => {
+      console.error('Error syncing:', error);
+      toast.error("Erro ao sincronizar registros");
     },
   });
 }

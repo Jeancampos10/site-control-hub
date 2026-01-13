@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,17 +9,27 @@ const corsHeaders = {
 const GOOGLE_APPS_SCRIPT_URL = Deno.env.get('GOOGLE_APPS_SCRIPT_URL');
 const GOOGLE_APPS_SCRIPT_SECRET = Deno.env.get('GOOGLE_APPS_SCRIPT_SECRET');
 const SPREADSHEET_ID = '1B9-SbnayFySlsITdRqn_2WJNnA9ZHhD0PWYka83581c';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 interface ApontamentoPipaData {
-  Data: string;
-  Prefixo: string;
-  Descricao?: string;
-  Empresa?: string;
-  Motorista?: string;
-  Capacidade?: string;
-  Hora_Chegada?: string;
-  Hora_Saida?: string;
-  N_Viagens: string;
+  id?: string;
+  data: string;
+  prefixo: string;
+  descricao?: string;
+  empresa?: string;
+  motorista?: string;
+  capacidade?: string;
+  hora_chegada?: string;
+  hora_saida?: string;
+  n_viagens: number | string;
+}
+
+// Format date from YYYY-MM-DD to DD/MM/YYYY
+function formatDateForSheet(isoDate: string): string {
+  if (!isoDate) return '';
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 serve(async (req) => {
@@ -28,35 +39,47 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, data, rowIndex } = body;
+    const { action, data, rowIndex, recordId } = body;
 
     console.log(`Sync apontamento pipa - Action: ${action}`, data);
 
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     if (!GOOGLE_APPS_SCRIPT_URL) {
-      console.warn('GOOGLE_APPS_SCRIPT_URL not configured');
+      console.warn('GOOGLE_APPS_SCRIPT_URL not configured - saving to database only');
+      
+      // Just mark as not synced if Apps Script is not configured
+      if (recordId) {
+        await supabase
+          .from('apontamentos_pipa')
+          .update({ sincronizado_sheets: false })
+          .eq('id', recordId);
+      }
+      
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          error: 'Google Apps Script URL não configurado',
-          message: 'Configure GOOGLE_APPS_SCRIPT_URL nas variáveis de ambiente'
+          success: true, 
+          synced: false,
+          message: 'Salvo no banco de dados. Sincronização com planilha não configurada.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Map data to sheet columns for Apontamento_Pipa
     // Columns: A(auto), B(Data), C(Prefixo), D(Descrição), E(Empresa), F(Motorista), G(Capacidade), H(Hora_Chegada), I(Hora_Saida), J(N_Viagens)
     const mapToSheetRow = (d: ApontamentoPipaData) => [
-      '', // A - auto
-      d.Data || '',
-      d.Prefixo || '',
-      d.Descricao || '',
-      d.Empresa || '',
-      d.Motorista || '',
-      d.Capacidade || '',
-      d.Hora_Chegada || '',
-      d.Hora_Saida || '',
-      d.N_Viagens || '',
+      '', // A - auto/index
+      formatDateForSheet(d.data), // B - Data (DD/MM/YYYY)
+      d.prefixo || '',
+      d.descricao || '',
+      d.empresa || '',
+      d.motorista || '',
+      d.capacidade || '',
+      d.hora_chegada || '',
+      d.hora_saida || '',
+      String(d.n_viagens || ''),
     ];
 
     let payload: any = {
@@ -101,7 +124,7 @@ serve(async (req) => {
         );
     }
 
-    console.log('Sending to Apps Script:', payload);
+    console.log('Sending to Apps Script:', JSON.stringify(payload));
 
     const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
       method: 'POST',
@@ -119,21 +142,37 @@ serve(async (req) => {
       result = { message: responseText };
     }
 
+    // Update sync status in database
+    if (recordId && response.ok) {
+      await supabase
+        .from('apontamentos_pipa')
+        .update({ sincronizado_sheets: true })
+        .eq('id', recordId);
+    }
+
     if (!response.ok) {
+      // Mark as not synced on failure
+      if (recordId) {
+        await supabase
+          .from('apontamentos_pipa')
+          .update({ sincronizado_sheets: false })
+          .eq('id', recordId);
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, error: result.error || 'Erro no Apps Script' }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, synced: false, error: result.error || 'Erro no Apps Script' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, ...result }),
+      JSON.stringify({ success: true, synced: true, ...result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in sync-apontamento-pipa:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }),
+      JSON.stringify({ success: false, synced: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
