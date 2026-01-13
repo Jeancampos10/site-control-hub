@@ -6,13 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import Carga from "./pages/Carga";
 import Descarga from "./pages/Descarga";
-import Equipamentos from "./pages/frota/Equipamentos";
-import Caminhoes from "./pages/frota/Caminhoes";
-import Reboque from "./pages/frota/Reboque";
-import FrotaPipa from "./pages/frota/Pipa";
 import FrotaGeral from "./pages/frota/FrotaGeral";
 import Cal from "./pages/Cal";
 import Pedreira from "./pages/Pedreira";
@@ -24,11 +19,6 @@ import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
-// Controle e Manutenção
-import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
-import Abastecimentos from "./pages/controle/Abastecimentos";
-import Horimetros from "./pages/controle/Horimetros";
-import Manutencao from "./pages/controle/Manutencao";
 
 const queryClient = new QueryClient();
 
@@ -71,10 +61,6 @@ const App = () => (
             <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
             <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
             <Route path="/frota" element={<ProtectedRoute><FrotaGeral /></ProtectedRoute>} />
-            <Route path="/frota/equipamentos" element={<ProtectedRoute><Equipamentos /></ProtectedRoute>} />
-            <Route path="/frota/caminhoes" element={<ProtectedRoute><Caminhoes /></ProtectedRoute>} />
-            <Route path="/frota/reboque" element={<ProtectedRoute><Reboque /></ProtectedRoute>} />
-            <Route path="/frota/pipa" element={<ProtectedRoute><FrotaPipa /></ProtectedRoute>} />
             <Route path="/cal" element={<ProtectedRoute><Cal /></ProtectedRoute>} />
             <Route path="/pedreira" element={<ProtectedRoute><Pedreira /></ProtectedRoute>} />
             <Route path="/pipas" element={<ProtectedRoute><Pipas /></ProtectedRoute>} />
@@ -82,11 +68,6 @@ const App = () => (
             <Route path="/colaboradores" element={<ProtectedRoute><Colaboradores /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
-            {/* Controle e Manutenção */}
-            <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
-            <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
-            <Route path="/controle/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
-            <Route path="/controle/manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

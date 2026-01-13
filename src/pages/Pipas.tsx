@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Droplets, Plus, Download } from "lucide-react";
+import { Droplets, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -10,37 +10,75 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { KPICard } from "@/components/dashboard/KPICard";
-import { Truck, Activity, Clock } from "lucide-react";
-import { useGoogleSheets, ApontamentoPipaRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { Truck, Activity } from "lucide-react";
+import { useGoogleSheets, ApontamentoPipaRow, CaminhaoPipaRow, filterByDate } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
+import { NovoApontamentoDialog } from "@/components/pipas/NovoApontamentoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Pipas() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { data: allData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
+  const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
 
   // Filter data by selected date
-  const pipasData = useMemo(() => {
+  const filteredData = useMemo(() => {
     return filterByDate(allData, selectedDate);
   }, [allData, selectedDate]);
 
   // Calculate KPIs from filtered data
-  const pipasAtivas = new Set(pipasData?.map(row => row.Prefixo).filter(Boolean)).size;
-  const totalViagens = pipasData?.reduce((acc, row) => {
+  const pipasAtivas = new Set(filteredData?.map(row => row.Prefixo).filter(Boolean)).size;
+  const totalViagens = filteredData?.reduce((acc, row) => {
     const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + viagens;
   }, 0) || 0;
-  const volumeAgua = pipasData?.reduce((acc, row) => {
+  const volumeAgua = filteredData?.reduce((acc, row) => {
     const capacidade = parsePtBrNumber(row.Capacidade?.replace(/\D/g, ''));
     const viagens = parsePtBrNumber(row.N_Viagens);
     return acc + (capacidade * viagens);
   }, 0) || 0;
 
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
+
+  // Handler to save new apontamento
+  const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
+    // Find the pipa details from cadastro
+    const pipaInfo = pipasData?.find(p => p.Prefixo === dados.Prefixo);
+    
+    const payload = {
+      action: "append",
+      sheetName: "apontamento_pipa",
+      data: {
+        Data: dados.Data,
+        Prefixo: dados.Prefixo,
+        Descricao: pipaInfo?.Descricao || "",
+        Empresa: pipaInfo?.Empresa || "",
+        Motorista: pipaInfo?.Motorista || "",
+        Capacidade: pipaInfo?.Capacidade || "",
+        Hora_Chegada: "",
+        Hora_Saida: "",
+        N_Viagens: dados.N_Viagens,
+      }
+    };
+
+    const response = await supabase.functions.invoke('google-sheets', {
+      body: payload
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+
+    // Refetch data
+    await refetch();
+    toast.success("Apontamento registrado com sucesso!");
+  };
 
   return (
     <div className="space-y-6">
@@ -61,10 +99,10 @@ export default function Pipas() {
             <Download className="h-4 w-4" />
             Exportar
           </Button>
-          <Button size="sm" className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
-            <Plus className="h-4 w-4" />
-            Novo Apontamento
-          </Button>
+          <NovoApontamentoDialog 
+            pipas={pipasData || []} 
+            onSave={handleSaveApontamento}
+          />
         </div>
       </div>
 
@@ -100,7 +138,7 @@ export default function Pipas() {
       </div>
 
       {/* Data Table */}
-      {isLoading ? (
+      {isLoading || isLoadingPipas ? (
         <TableLoader />
       ) : error ? (
         <ErrorState 
@@ -111,7 +149,7 @@ export default function Pipas() {
         <div className="chart-container overflow-hidden">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-semibold">Carregamentos do Dia</h3>
-            <p className="text-sm text-muted-foreground">{pipasData?.length || 0} registros</p>
+            <p className="text-sm text-muted-foreground">{filteredData?.length || 0} registros</p>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -127,8 +165,8 @@ export default function Pipas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pipasData && pipasData.length > 0 ? (
-                  pipasData.map((row, idx) => (
+                {filteredData && filteredData.length > 0 ? (
+                  filteredData.map((row, idx) => (
                     <TableRow key={idx} className="data-table-row">
                       <TableCell className="font-medium">{row.Data}</TableCell>
                       <TableCell>
@@ -155,9 +193,9 @@ export default function Pipas() {
               </TableBody>
             </Table>
           </div>
-          {pipasData && pipasData.length > 50 && (
+          {filteredData && filteredData.length > 50 && (
             <div className="border-t border-border/50 px-4 py-3 text-center text-sm text-muted-foreground">
-              Exibindo 50 de {pipasData.length} registros
+              Exibindo 50 de {filteredData.length} registros
             </div>
           )}
         </div>

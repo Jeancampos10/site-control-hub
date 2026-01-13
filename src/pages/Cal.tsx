@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
 import { filterByDate, MovCalRow, EstoqueCalRow, useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { DateFilter } from "@/components/shared/DateFilter";
-import { KPICard } from "@/components/dashboard/KPICard";
 import { CalMovimentacaoTable } from "@/components/cal/CalMovimentacaoTable";
 import { CalEstoqueTable } from "@/components/cal/CalEstoqueTable";
 import { CalResumoChart } from "@/components/cal/CalResumoChart";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Clock,
   FileDown,
   MessageCircle,
   Package,
   Printer,
   Warehouse,
+  TrendingUp,
+  Calendar,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,9 +60,6 @@ export default function Cal() {
   const hasError = errorMov || errorEstoque;
 
   // =============== Base do DIA (para KPIs) ===============
-  // Regra:
-  // - Se o usuário filtrou uma data: KPIs mostram essa data
-  // - Se não filtrou: KPIs mostram o ÚLTIMO dia disponível na tabela de estoque (fallback: último dia em movimentações)
   const baseDia = useMemo(() => {
     if (selectedDate) {
       return { date: selectedDate, label: selectedDate.toLocaleDateString("pt-BR") };
@@ -94,6 +91,36 @@ export default function Cal() {
     return { date: latest.dt, label: latest.label };
   }, [selectedDate, estoque, movimentacoes]);
 
+  // =============== Resumo do Período (TOTAL) ===============
+  const resumoPeriodo = useMemo(() => {
+    if (!movimentacoes || movimentacoes.length === 0) {
+      return { totalEntradas: 0, totalSaidas: 0, countEntradas: 0, countSaidas: 0, diasComDados: 0 };
+    }
+
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+    let countEntradas = 0;
+    let countSaidas = 0;
+    const diasSet = new Set<string>();
+
+    movimentacoes.forEach((mov) => {
+      const quantidade = parsePtBrNumber(mov.Qtd);
+      const tipo = mov.Tipo?.toLowerCase().trim();
+      const dataStr = normalizeDateStr(mov.Data);
+      if (dataStr) diasSet.add(dataStr);
+
+      if (tipo === "entrada" || tipo === "compra") {
+        totalEntradas += quantidade;
+        countEntradas++;
+      } else if (tipo === "saída" || tipo === "saida" || tipo === "consumo") {
+        totalSaidas += quantidade;
+        countSaidas++;
+      }
+    });
+
+    return { totalEntradas, totalSaidas, countEntradas, countSaidas, diasComDados: diasSet.size };
+  }, [movimentacoes]);
+
   // =============== Tabelas (filtradas apenas quando usuário seleciona data) ===============
   const filteredByDate = filterByDate(movimentacoes, selectedDate);
 
@@ -121,12 +148,6 @@ export default function Cal() {
       return tipoA.localeCompare(tipoB);
     });
   }, [filteredMovimentacoes]);
-
-  // Registros recentes (últimos 5 do dataset inteiro)
-  const registrosRecentes = useMemo(() => {
-    if (!movimentacoes || movimentacoes.length === 0) return [];
-    return [...movimentacoes].slice(-5).reverse();
-  }, [movimentacoes]);
 
   // =============== KPIs do DIA ===============
   const movimentacoesDoDia = useMemo(() => {
@@ -168,7 +189,6 @@ export default function Cal() {
       return { estoqueAnterior: 0, estoqueAtual: 0, ultimaAtualizacao: "-", descricao: "-", baseDiaLabel: baseDia.label };
     }
 
-    // Preferir o registro do dia; se não existir, cair no último registro disponível.
     const row = (estoqueDoDia && estoqueDoDia.length > 0)
       ? estoqueDoDia[estoqueDoDia.length - 1]
       : estoque[estoque.length - 1];
@@ -238,26 +258,6 @@ export default function Cal() {
         theme: "striped",
         headStyles: { fillColor: [34, 92, 176] },
       });
-
-      if (registrosRecentes.length > 0) {
-        const finalY = (doc as any).lastAutoTable?.finalY || 90;
-        doc.text("Últimos Registros", 14, finalY + 15);
-
-        const registrosData = registrosRecentes.map((r) => [
-          r.Data || "-",
-          r.Tipo || "-",
-          r.Fornecedor || "-",
-          `${parsePtBrNumber(r.Qtd).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        ]);
-
-        autoTable(doc, {
-          startY: finalY + 20,
-          head: [["Data", "Tipo", "Fornecedor", "Qtd (ton)"]],
-          body: registrosData,
-          theme: "striped",
-          headStyles: { fillColor: [34, 92, 176] },
-        });
-      }
 
       doc.save(`relatorio-cal-${baseDia.label.replace(/\//g, "-")}.pdf`);
       toast.success("PDF exportado com sucesso!");
@@ -333,40 +333,102 @@ export default function Cal() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPICard
-              title="Estoque Anterior"
-              value={`${estoqueInfo.estoqueAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`Dia ${estoqueInfo.baseDiaLabel}`}
-              icon={Package}
-              variant="default"
-            />
-            <KPICard
-              title="Entradas"
-              value={`${kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`${kpis.countEntradas} entrada${kpis.countEntradas !== 1 ? "s" : ""} (dia ${baseDia.label})`}
-              icon={ArrowDownToLine}
-              variant="success"
-            />
-            <KPICard
-              title="Saídas"
-              value={`${kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton`}
-              subtitle={`${kpis.countSaidas} saída${kpis.countSaidas !== 1 ? "s" : ""} (dia ${baseDia.label})`}
-              icon={ArrowUpFromLine}
-              variant="accent"
-            />
-            {/* Estoque Atual com destaque especial */}
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium opacity-90">Estoque Atual</p>
-                  <p className="text-2xl font-bold tracking-tight">
-                    {estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
-                  </p>
-                  <p className="text-xs opacity-80">Dia {estoqueInfo.ultimaAtualizacao}</p>
+          {/* RESUMO TOTAL DO PERÍODO - ACIMA DOS KPIs DIÁRIOS */}
+          <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Resumo Total do Período
+              </CardTitle>
+              <CardDescription>
+                Consolidado de todas as movimentações ({resumoPeriodo.diasComDados} dias com registros)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="flex flex-col gap-1 p-4 rounded-lg bg-background border">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Entradas</span>
+                  <span className="text-2xl font-bold text-success">
+                    {resumoPeriodo.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                  </span>
+                  <span className="text-xs text-muted-foreground">{resumoPeriodo.countEntradas} registros</span>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
-                  <Warehouse className="h-5 w-5" />
+                <div className="flex flex-col gap-1 p-4 rounded-lg bg-background border">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Saídas</span>
+                  <span className="text-2xl font-bold text-destructive">
+                    {resumoPeriodo.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                  </span>
+                  <span className="text-xs text-muted-foreground">{resumoPeriodo.countSaidas} registros</span>
+                </div>
+                <div className="flex flex-col gap-1 p-4 rounded-lg bg-background border">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Saldo do Período</span>
+                  <span className={`text-2xl font-bold ${(resumoPeriodo.totalEntradas - resumoPeriodo.totalSaidas) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {(resumoPeriodo.totalEntradas - resumoPeriodo.totalSaidas).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                  </span>
+                  <span className="text-xs text-muted-foreground">Entradas - Saídas</span>
+                </div>
+                <div className="flex flex-col gap-1 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                  <span className="text-xs font-medium text-primary uppercase tracking-wide">Estoque Atual</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                  </span>
+                  <span className="text-xs text-muted-foreground">Atualizado: {estoqueInfo.ultimaAtualizacao}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KPIs do Dia Selecionado */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              Controle Diário - {baseDia.label}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Estoque Anterior</p>
+                    <p className="text-xl font-bold">
+                      {estoqueInfo.estoqueAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                    </p>
+                  </div>
+                  <Package className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+              </div>
+              <div className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Entradas do Dia</p>
+                    <p className="text-xl font-bold text-success">
+                      {kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                    </p>
+                    <p className="text-xs text-muted-foreground">{kpis.countEntradas} registro(s)</p>
+                  </div>
+                  <ArrowDownToLine className="h-8 w-8 text-success/50" />
+                </div>
+              </div>
+              <div className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Saídas do Dia</p>
+                    <p className="text-xl font-bold text-destructive">
+                      {kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                    </p>
+                    <p className="text-xs text-muted-foreground">{kpis.countSaidas} registro(s)</p>
+                  </div>
+                  <ArrowUpFromLine className="h-8 w-8 text-destructive/50" />
+                </div>
+              </div>
+              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-primary">Estoque Atual</p>
+                    <p className="text-xl font-bold text-primary">
+                      {estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
+                    </p>
+                  </div>
+                  <Warehouse className="h-8 w-8 text-primary/50" />
                 </div>
               </div>
             </div>
