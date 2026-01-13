@@ -53,7 +53,6 @@ export default function Pipas() {
     
     const payload = {
       action: "append",
-      sheetName: "apontamento_pipa",
       data: {
         Data: dados.Data,
         Prefixo: dados.Prefixo,
@@ -67,7 +66,7 @@ export default function Pipas() {
       }
     };
 
-    const response = await supabase.functions.invoke('google-sheets', {
+    const response = await supabase.functions.invoke('sync-apontamento-pipa', {
       body: payload
     });
 
@@ -75,9 +74,12 @@ export default function Pipas() {
       throw new Error(response.error.message);
     }
 
+    if (!response.data?.success) {
+      throw new Error(response.data?.error || 'Erro ao salvar');
+    }
+
     // Refetch data
     await refetch();
-    toast.success("Apontamento registrado com sucesso!");
   };
 
   return (
