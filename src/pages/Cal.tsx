@@ -3,7 +3,7 @@ import { filterByDate, MovCalRow, EstoqueCalRow, useGoogleSheets } from "@/hooks
 import { DateFilter } from "@/components/shared/DateFilter";
 import { CalMovimentacaoTable } from "@/components/cal/CalMovimentacaoTable";
 import { CalEstoqueTable } from "@/components/cal/CalEstoqueTable";
-import { CalResumoChart } from "@/components/cal/CalResumoChart";
+
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -525,7 +525,7 @@ export default function Cal() {
             </div>
           </div>
 
-          <CalResumoChart data={movimentacoes || []} />
+          
 
           <Tabs defaultValue="movimentacoes" className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

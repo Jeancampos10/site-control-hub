@@ -31,19 +31,24 @@ export interface ApontamentoPipaFormData {
 // Sync with Google Sheets
 async function syncWithSheets(action: 'append' | 'update' | 'delete', data: any, recordId?: string) {
   try {
+    console.log('Syncing with sheets:', { action, data, recordId });
+    
     const response = await supabase.functions.invoke('sync-apontamento-pipa', {
       body: { action, data, recordId }
     });
     
+    console.log('Sync response:', response);
+    
     if (response.error) {
       console.error('Sync error:', response.error);
-      return { synced: false };
+      return { synced: false, error: response.error };
     }
     
+    // Invalidate query to refresh sync status
     return response.data;
   } catch (error) {
     console.error('Sync failed:', error);
-    return { synced: false };
+    return { synced: false, error };
   }
 }
 
