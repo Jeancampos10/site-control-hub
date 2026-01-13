@@ -117,6 +117,149 @@ serve(async (req) => {
     let payload: any;
 
     switch (action) {
+      case 'test': {
+        // Teste de conexão com a planilha
+        const tests: { name: string; status: 'ok' | 'error'; message: string }[] = [];
+
+        // 1. Verificar variáveis de ambiente
+        tests.push({
+          name: 'ABASTECH_SPREADSHEET_ID',
+          status: SPREADSHEET_ID ? 'ok' : 'error',
+          message: SPREADSHEET_ID ? `Configurado: ${SPREADSHEET_ID.slice(0, 8)}...` : 'Não configurado',
+        });
+
+        tests.push({
+          name: 'GOOGLE_SHEETS_API_KEY',
+          status: GOOGLE_SHEETS_API_KEY ? 'ok' : 'error',
+          message: GOOGLE_SHEETS_API_KEY ? 'Configurado' : 'Não configurado',
+        });
+
+        tests.push({
+          name: 'GOOGLE_APPS_SCRIPT_URL',
+          status: GOOGLE_APPS_SCRIPT_URL ? 'ok' : 'error',
+          message: GOOGLE_APPS_SCRIPT_URL ? 'Configurado' : 'Não configurado',
+        });
+
+        tests.push({
+          name: 'GOOGLE_APPS_SCRIPT_SECRET',
+          status: GOOGLE_APPS_SCRIPT_SECRET ? 'ok' : 'error',
+          message: GOOGLE_APPS_SCRIPT_SECRET ? 'Configurado' : 'Não configurado',
+        });
+
+        // 2. Testar leitura da planilha via Google Sheets API
+        if (GOOGLE_SHEETS_API_KEY && SPREADSHEET_ID) {
+          try {
+            const range = encodeURIComponent('Apontamento_Pipa!A1:J1');
+            const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_SHEETS_API_KEY}`;
+            const sheetRes = await fetch(sheetsUrl);
+            const sheetJson = await sheetRes.json();
+
+            if (sheetRes.ok && sheetJson.values) {
+              tests.push({
+                name: 'Leitura Google Sheets API',
+                status: 'ok',
+                message: `Headers encontrados: ${sheetJson.values[0]?.slice(0, 3).join(', ')}...`,
+              });
+            } else {
+              tests.push({
+                name: 'Leitura Google Sheets API',
+                status: 'error',
+                message: sheetJson.error?.message || 'Erro ao ler planilha',
+              });
+            }
+          } catch (err) {
+            tests.push({
+              name: 'Leitura Google Sheets API',
+              status: 'error',
+              message: err instanceof Error ? err.message : 'Erro desconhecido',
+            });
+          }
+        }
+
+        // 3. Testar conexão com Apps Script (GET para verificar status)
+        if (GOOGLE_APPS_SCRIPT_URL) {
+          try {
+            const scriptRes = await fetch(GOOGLE_APPS_SCRIPT_URL, { method: 'GET' });
+            const scriptJson = await scriptRes.json();
+
+            tests.push({
+              name: 'Conexão Apps Script',
+              status: scriptRes.ok ? 'ok' : 'error',
+              message: scriptJson.message || scriptJson.status || 'Respondeu',
+            });
+          } catch (err) {
+            tests.push({
+              name: 'Conexão Apps Script',
+              status: 'error',
+              message: err instanceof Error ? err.message : 'Erro desconhecido',
+            });
+          }
+        }
+
+        // 4. Testar autenticação Apps Script (POST com authToken)
+        if (GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_SECRET && SPREADSHEET_ID) {
+          try {
+            const testPayload = {
+              authToken: GOOGLE_APPS_SCRIPT_SECRET,
+              spreadsheetId: SPREADSHEET_ID,
+              sheetName: 'Apontamento_Pipa',
+              action: 'test', // Ação de teste (se o script não reconhecer, retorna erro genérico)
+            };
+
+            const authRes = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(testPayload),
+            });
+            const authJson = await authRes.json();
+
+            if (authJson.error === 'Não autorizado') {
+              tests.push({
+                name: 'Autenticação Apps Script',
+                status: 'error',
+                message: 'Token inválido - verifique GOOGLE_APPS_SCRIPT_SECRET',
+              });
+            } else {
+              tests.push({
+                name: 'Autenticação Apps Script',
+                status: 'ok',
+                message: 'Autenticado com sucesso',
+              });
+            }
+          } catch (err) {
+            tests.push({
+              name: 'Autenticação Apps Script',
+              status: 'error',
+              message: err instanceof Error ? err.message : 'Erro desconhecido',
+            });
+          }
+        }
+
+        // 5. Contar registros no banco
+        const { count, error: countError } = await supabase
+          .from('apontamentos_pipa')
+          .select('id', { count: 'exact', head: true });
+
+        tests.push({
+          name: 'Registros no banco',
+          status: countError ? 'error' : 'ok',
+          message: countError ? countError.message : `${count ?? 0} registros`,
+        });
+
+        const allOk = tests.every((t) => t.status === 'ok');
+
+        return new Response(
+          JSON.stringify({
+            success: allOk,
+            tests,
+            summary: allOk
+              ? 'Todas as conexões estão funcionando!'
+              : 'Algumas conexões falharam. Verifique os detalhes.',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'import': {
         if (!GOOGLE_SHEETS_API_KEY) {
           return new Response(
