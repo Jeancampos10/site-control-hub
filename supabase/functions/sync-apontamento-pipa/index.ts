@@ -142,15 +142,12 @@ serve(async (req) => {
       result = { message: responseText };
     }
 
-    // Update sync status in database
-    if (recordId && response.ok) {
-      await supabase
-        .from('apontamentos_pipa')
-        .update({ sincronizado_sheets: true })
-        .eq('id', recordId);
-    }
-
-    if (!response.ok) {
+    // Check if the Apps Script returned an error in the response body
+    const hasError = result.error || result.success === false || !response.ok;
+    
+    if (hasError) {
+      console.error('Apps Script error:', result.error || 'Unknown error');
+      
       // Mark as not synced on failure
       if (recordId) {
         await supabase
@@ -160,9 +157,22 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ success: false, synced: false, error: result.error || 'Erro no Apps Script' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          synced: false, 
+          error: result.error || 'Erro no Apps Script',
+          details: 'Verifique a configuração do Google Apps Script e se o secret está correto'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Update sync status in database on success
+    if (recordId) {
+      await supabase
+        .from('apontamentos_pipa')
+        .update({ sincronizado_sheets: true })
+        .eq('id', recordId);
     }
 
     return new Response(
