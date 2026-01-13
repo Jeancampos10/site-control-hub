@@ -21,9 +21,11 @@ import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Pipas() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const queryClient = useQueryClient();
   const { data: allData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
   const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
 
@@ -46,40 +48,41 @@ export default function Pipas() {
 
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
+  // Mutation to save new apontamento to database
+  const saveApontamentoMutation = useMutation({
+    mutationFn: async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
+      const pipaInfo = pipasData?.find(p => p.Prefixo === dados.Prefixo);
+      
+      // Parse date from DD/MM/YYYY to YYYY-MM-DD
+      const [day, month, year] = dados.Data.split('/');
+      const isoDate = `${year}-${month}-${day}`;
+      
+      const { data, error } = await supabase
+        .from('apontamentos_pipa')
+        .insert({
+          data: isoDate,
+          prefixo: dados.Prefixo,
+          descricao: pipaInfo?.Descricao || null,
+          empresa: pipaInfo?.Empresa || null,
+          motorista: pipaInfo?.Motorista || null,
+          capacidade: pipaInfo?.Capacidade || null,
+          n_viagens: parseInt(dados.N_Viagens) || 1,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['google-sheets', 'apontamento_pipa'] });
+      refetch();
+    },
+  });
+
   // Handler to save new apontamento
   const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
-    // Find the pipa details from cadastro
-    const pipaInfo = pipasData?.find(p => p.Prefixo === dados.Prefixo);
-    
-    const payload = {
-      action: "append",
-      data: {
-        Data: dados.Data,
-        Prefixo: dados.Prefixo,
-        Descricao: pipaInfo?.Descricao || "",
-        Empresa: pipaInfo?.Empresa || "",
-        Motorista: pipaInfo?.Motorista || "",
-        Capacidade: pipaInfo?.Capacidade || "",
-        Hora_Chegada: "",
-        Hora_Saida: "",
-        N_Viagens: dados.N_Viagens,
-      }
-    };
-
-    const response = await supabase.functions.invoke('sync-apontamento-pipa', {
-      body: payload
-    });
-
-    if (response.error) {
-      throw new Error(response.error.message);
-    }
-
-    if (!response.data?.success) {
-      throw new Error(response.data?.error || 'Erro ao salvar');
-    }
-
-    // Refetch data
-    await refetch();
+    await saveApontamentoMutation.mutateAsync(dados);
   };
 
   return (

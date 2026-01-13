@@ -119,6 +119,54 @@ export type Database = {
         }
         Relationships: []
       }
+      apontamentos_pipa: {
+        Row: {
+          capacidade: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          empresa: string | null
+          hora_chegada: string | null
+          hora_saida: string | null
+          id: string
+          motorista: string | null
+          n_viagens: number
+          prefixo: string
+          sincronizado_sheets: boolean
+          updated_at: string
+        }
+        Insert: {
+          capacidade?: string | null
+          created_at?: string
+          data: string
+          descricao?: string | null
+          empresa?: string | null
+          hora_chegada?: string | null
+          hora_saida?: string | null
+          id?: string
+          motorista?: string | null
+          n_viagens?: number
+          prefixo: string
+          sincronizado_sheets?: boolean
+          updated_at?: string
+        }
+        Update: {
+          capacidade?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa?: string | null
+          hora_chegada?: string | null
+          hora_saida?: string | null
+          id?: string
+          motorista?: string | null
+          n_viagens?: number
+          prefixo?: string
+          sincronizado_sheets?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bulk_edit_logs: {
         Row: {
           affected_rows_count: number
