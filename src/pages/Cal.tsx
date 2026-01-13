@@ -235,29 +235,127 @@ export default function Cal() {
 
       const doc = new jsPDF();
       const dataGeracao = new Date().toLocaleDateString("pt-BR");
+      const horaGeracao = new Date().toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
 
-      doc.setFontSize(18);
-      doc.text("Relatório de CAL", 14, 22);
+      // Header com logo/título
+      doc.setFillColor(34, 92, 176);
+      doc.rect(0, 0, 210, 35, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("RELATÓRIO DE CONTROLE DE CAL", 14, 18);
+      
       doc.setFontSize(10);
-      doc.text(`Gerado em: ${dataGeracao}`, 14, 30);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Gerado em: ${dataGeracao} às ${horaGeracao}`, 14, 28);
 
-      doc.setFontSize(12);
-      doc.text(`Resumo do dia: ${baseDia.label}`, 14, 45);
+      // Reset text color
+      doc.setTextColor(0, 0, 0);
 
-      const kpiData = [
+      // Seção: Resumo do Período
+      let yPos = 45;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("RESUMO TOTAL DO PERÍODO", 14, yPos);
+      
+      yPos += 5;
+      const periodoData = [
+        ["Total de Entradas", `${resumoPeriodo.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`, `${resumoPeriodo.countEntradas} registros`],
+        ["Total de Saídas", `${resumoPeriodo.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`, `${resumoPeriodo.countSaidas} registros`],
+        ["Saldo do Período", `${(resumoPeriodo.totalEntradas - resumoPeriodo.totalSaidas).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`, "Entradas - Saídas"],
+        ["Dias com Registros", `${resumoPeriodo.diasComDados}`, ""],
+      ];
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Indicador", "Valor", "Observação"]],
+        body: periodoData,
+        theme: "striped",
+        headStyles: { fillColor: [34, 92, 176], fontStyle: 'bold' },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          1: { halign: 'right' },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Seção: Controle Diário
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`CONTROLE DIÁRIO - ${baseDia.label}`, 14, yPos);
+
+      yPos += 5;
+      const diaData = [
         ["Estoque Anterior", `${estoqueInfo.estoqueAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`],
-        ["Total Entradas", `${kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)`],
-        ["Total Saídas", `${kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)`],
+        ["Entradas do Dia", `${kpis.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countEntradas} registros)`],
+        ["Saídas do Dia", `${kpis.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton (${kpis.countSaidas} registros)`],
         ["Estoque Atual", `${estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ton`],
       ];
 
       autoTable(doc, {
-        startY: 50,
+        startY: yPos,
         head: [["Indicador", "Valor"]],
-        body: kpiData,
+        body: diaData,
         theme: "striped",
-        headStyles: { fillColor: [34, 92, 176] },
+        headStyles: { fillColor: [76, 175, 80], fontStyle: 'bold' },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          1: { halign: 'right' },
+        },
+        margin: { left: 14, right: 14 },
       });
+
+      // Seção: Movimentações do Dia (se houver)
+      if (movimentacoesDoDia && movimentacoesDoDia.length > 0) {
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text(`MOVIMENTAÇÕES DO DIA - ${baseDia.label}`, 14, yPos);
+
+        yPos += 5;
+        const movData = movimentacoesDoDia.slice(0, 20).map((mov) => [
+          mov.Hora || "-",
+          mov.Tipo || "-",
+          mov.Fornecedor || "-",
+          `${parsePtBrNumber(mov.Qtd).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ${mov.Und || "ton"}`,
+          mov.NF || "-",
+        ]);
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [["Hora", "Tipo", "Fornecedor", "Quantidade", "NF"]],
+          body: movData,
+          theme: "striped",
+          headStyles: { fillColor: [96, 125, 139], fontStyle: 'bold' },
+          styles: { fontSize: 9 },
+          margin: { left: 14, right: 14 },
+        });
+
+        if (movimentacoesDoDia.length > 20) {
+          yPos = (doc as any).lastAutoTable.finalY + 5;
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(128, 128, 128);
+          doc.text(`... e mais ${movimentacoesDoDia.length - 20} registros`, 14, yPos);
+          doc.setTextColor(0, 0, 0);
+        }
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Página ${i} de ${pageCount} | ApropriaApp - Controle de CAL`,
+          105,
+          290,
+          { align: 'center' }
+        );
+      }
 
       doc.save(`relatorio-cal-${baseDia.label.replace(/\//g, "-")}.pdf`);
       toast.success("PDF exportado com sucesso!");
@@ -345,7 +443,7 @@ export default function Cal() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="flex flex-col gap-1 p-4 rounded-lg bg-background border">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Entradas</span>
                   <span className="text-2xl font-bold text-success">
@@ -366,13 +464,6 @@ export default function Cal() {
                     {(resumoPeriodo.totalEntradas - resumoPeriodo.totalSaidas).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
                   </span>
                   <span className="text-xs text-muted-foreground">Entradas - Saídas</span>
-                </div>
-                <div className="flex flex-col gap-1 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <span className="text-xs font-medium text-primary uppercase tracking-wide">Estoque Atual</span>
-                  <span className="text-2xl font-bold text-primary">
-                    {estoqueInfo.estoqueAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ton
-                  </span>
-                  <span className="text-xs text-muted-foreground">Atualizado: {estoqueInfo.ultimaAtualizacao}</span>
                 </div>
               </div>
             </CardContent>
