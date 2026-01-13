@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Droplets, Download, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Droplets, Download, MoreHorizontal, Pencil, Trash2, RefreshCw, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,10 +15,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity } from "lucide-react";
 import { useGoogleSheets, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
-import { useApontamentosPipa, useCreateApontamentoPipa, ApontamentoPipa } from "@/hooks/useApontamentosPipa";
+import { useApontamentosPipa, useCreateApontamentoPipa, useSyncPendingApontamentos } from "@/hooks/useApontamentosPipa";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
@@ -37,6 +43,7 @@ export default function Pipas() {
   const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
   
   const createMutation = useCreateApontamentoPipa();
+  const syncMutation = useSyncPendingApontamentos();
 
   // Filter data by selected date
   const filteredData = useMemo(() => {
@@ -44,6 +51,12 @@ export default function Pipas() {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
     return dbData.filter(row => row.data === selectedDateStr);
   }, [dbData, selectedDate]);
+
+  // Count pending sync
+  const pendingSyncCount = useMemo(() => {
+    if (!dbData) return 0;
+    return dbData.filter(row => !row.sincronizado_sheets).length;
+  }, [dbData]);
 
   // Calculate KPIs from filtered data
   const pipasAtivas = new Set(filteredData?.map(row => row.prefixo).filter(Boolean)).size;
@@ -90,8 +103,31 @@ export default function Pipas() {
             Controle de caminhões pipa • {formattedDate}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
+          
+          {pendingSyncCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 border-warning text-warning hover:bg-warning/10"
+                    onClick={() => syncMutation.mutate()}
+                    disabled={syncMutation.isPending}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                    Sincronizar ({pendingSyncCount})
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{pendingSyncCount} registro(s) pendente(s) de sincronização com a planilha</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
@@ -152,6 +188,7 @@ export default function Pipas() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="data-table-header w-[40px]">Sync</TableHead>
                   <TableHead className="data-table-header">Data</TableHead>
                   <TableHead className="data-table-header">Prefixo</TableHead>
                   <TableHead className="data-table-header">Descrição</TableHead>
@@ -166,6 +203,22 @@ export default function Pipas() {
                 {filteredData && filteredData.length > 0 ? (
                   filteredData.map((row) => (
                     <TableRow key={row.id} className="data-table-row">
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              {row.sincronizado_sheets ? (
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-warning" />
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{row.sincronizado_sheets ? 'Sincronizado com a planilha' : 'Pendente de sincronização'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
                       <TableCell className="font-medium">
                         {format(new Date(row.data), "dd/MM/yyyy")}
                       </TableCell>
@@ -221,7 +274,7 @@ export default function Pipas() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                       Nenhum registro encontrado para esta data
                     </TableCell>
                   </TableRow>
