@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Droplets, Download, MoreHorizontal, Pencil, Trash2, RefreshCw, CheckCircle2, Clock } from "lucide-react";
+import { Droplets, Download, MoreHorizontal, Pencil, Trash2, RefreshCw, CheckCircle2, Clock, Settings2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -31,6 +31,7 @@ import { DateFilter } from "@/components/shared/DateFilter";
 import { NovoApontamentoDialog } from "@/components/pipas/NovoApontamentoDialog";
 import { ApontamentoEditDialog } from "@/components/pipas/ApontamentoEditDialog";
 import { ApontamentoDeleteDialog } from "@/components/pipas/ApontamentoDeleteDialog";
+import { TesteConexaoDialog } from "@/components/pipas/TesteConexaoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
@@ -157,6 +158,7 @@ export default function Pipas() {
             </TooltipProvider>
           )}
           
+          <TesteConexaoDialog />
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar
