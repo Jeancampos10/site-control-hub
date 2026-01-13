@@ -28,26 +28,26 @@ export interface ApontamentoPipaFormData {
   n_viagens: number;
 }
 
-// Sync with Google Sheets
-async function syncWithSheets(action: 'append' | 'update' | 'delete', data: any, recordId?: string) {
+// Sync com a planilha (via backend function)
+async function syncWithSheets(
+  action: 'append' | 'update' | 'delete' | 'import',
+  data: any,
+  recordId?: string
+) {
   try {
-    console.log('Syncing with sheets:', { action, data, recordId });
-    
-    const response = await supabase.functions.invoke('sync-apontamento-pipa', {
-      body: { action, data, recordId }
+    const { data: result, error } = await supabase.functions.invoke('sync-apontamento-pipa', {
+      body: { action, data, recordId },
     });
-    
-    console.log('Sync response:', response);
-    
-    if (response.error) {
-      console.error('Sync error:', response.error);
-      return { synced: false, error: response.error };
+
+    if (error) return { synced: false, error };
+
+    // A função pode retornar 200 com {success:false,...}
+    if (result?.success === false || result?.synced === false) {
+      return { ...result, synced: false };
     }
-    
-    // Invalidate query to refresh sync status
-    return response.data;
+
+    return result;
   } catch (error) {
-    console.error('Sync failed:', error);
     return { synced: false, error };
   }
 }
@@ -141,18 +141,20 @@ export function useUpdateApontamentoPipa() {
 
       if (error) throw error;
 
-      // Sync with Google Sheets in background
-      // Note: For updates, we would need the row index from the sheet
-      // For now, we'll just mark it and handle manually or via a batch sync
-      syncWithSheets('append', {
-        data: data.data,
-        prefixo: data.prefixo,
-        descricao: data.descricao || '',
-        empresa: data.empresa || '',
-        motorista: data.motorista || '',
-        capacidade: data.capacidade || '',
-        n_viagens: data.n_viagens,
-      }, data.id);
+      // Sync com a planilha em background
+      syncWithSheets(
+        'update',
+        {
+          data: data.data,
+          prefixo: data.prefixo,
+          descricao: data.descricao || '',
+          empresa: data.empresa || '',
+          motorista: data.motorista || '',
+          capacidade: data.capacidade || '',
+          n_viagens: data.n_viagens,
+        },
+        data.id
+      );
 
       return data;
     },
@@ -172,15 +174,15 @@ export function useDeleteApontamentoPipa() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Tenta remover da planilha primeiro (best-effort)
+      await syncWithSheets('delete', {}, id);
+
       const { error } = await supabase
         .from('apontamentos_pipa')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-      
-      // Note: Delete from sheets would require row index
-      // For full sync, consider a periodic batch job
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apontamentos-pipa'] });
@@ -208,19 +210,26 @@ export function useSyncPendingApontamentos() {
       if (!pending || pending.length === 0) return { synced: 0 };
 
       let syncedCount = 0;
-      for (const record of pending) {
-        const result = await syncWithSheets('append', {
-          data: record.data,
-          prefixo: record.prefixo,
-          descricao: record.descricao || '',
-          empresa: record.empresa || '',
-          motorista: record.motorista || '',
-          capacidade: record.capacidade || '',
-          n_viagens: record.n_viagens,
-        }, record.id);
+       for (const record of pending) {
+         const payload = {
+           data: record.data,
+           prefixo: record.prefixo,
+           descricao: record.descricao || '',
+           empresa: record.empresa || '',
+           motorista: record.motorista || '',
+           capacidade: record.capacidade || '',
+           n_viagens: record.n_viagens,
+         };
 
-        if (result?.synced) syncedCount++;
-      }
+         // Upsert na planilha: tenta update por ID; se não achar, faz append
+         let result: any = await syncWithSheets('update', payload, record.id);
+         const errText = String(result?.error || '').toLowerCase();
+         if (!result?.synced && errText.includes('não encontrado')) {
+           result = await syncWithSheets('append', payload, record.id);
+         }
+
+         if (result?.synced) syncedCount++;
+       }
 
       return { synced: syncedCount, total: pending.length };
     },
