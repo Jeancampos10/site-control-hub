@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Droplets, Download } from "lucide-react";
+import { Droplets, Download, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -9,80 +9,72 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity } from "lucide-react";
-import { useGoogleSheets, ApontamentoPipaRow, CaminhaoPipaRow, filterByDate } from "@/hooks/useGoogleSheets";
+import { useGoogleSheets, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
+import { useApontamentosPipa, useCreateApontamentoPipa, ApontamentoPipa } from "@/hooks/useApontamentosPipa";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { NovoApontamentoDialog } from "@/components/pipas/NovoApontamentoDialog";
+import { ApontamentoEditDialog } from "@/components/pipas/ApontamentoEditDialog";
+import { ApontamentoDeleteDialog } from "@/components/pipas/ApontamentoDeleteDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Pipas() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const queryClient = useQueryClient();
-  const { data: allData, isLoading, error, refetch } = useGoogleSheets<ApontamentoPipaRow>('apontamento_pipa');
+  
+  // Fetch from database
+  const { data: dbData, isLoading: isLoadingDb, error: errorDb, refetch } = useApontamentosPipa();
   const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
+  
+  const createMutation = useCreateApontamentoPipa();
 
   // Filter data by selected date
   const filteredData = useMemo(() => {
-    return filterByDate(allData, selectedDate);
-  }, [allData, selectedDate]);
+    if (!dbData) return [];
+    const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+    return dbData.filter(row => row.data === selectedDateStr);
+  }, [dbData, selectedDate]);
 
   // Calculate KPIs from filtered data
-  const pipasAtivas = new Set(filteredData?.map(row => row.Prefixo).filter(Boolean)).size;
-  const totalViagens = filteredData?.reduce((acc, row) => {
-    const viagens = parsePtBrNumber(row.N_Viagens);
-    return acc + viagens;
-  }, 0) || 0;
+  const pipasAtivas = new Set(filteredData?.map(row => row.prefixo).filter(Boolean)).size;
+  const totalViagens = filteredData?.reduce((acc, row) => acc + (row.n_viagens || 0), 0) || 0;
   const volumeAgua = filteredData?.reduce((acc, row) => {
-    const capacidade = parsePtBrNumber(row.Capacidade?.replace(/\D/g, ''));
-    const viagens = parsePtBrNumber(row.N_Viagens);
-    return acc + (capacidade * viagens);
+    const capacidade = parsePtBrNumber(row.capacidade?.replace(/\D/g, '') || '0');
+    return acc + (capacidade * (row.n_viagens || 0));
   }, 0) || 0;
 
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
-  // Mutation to save new apontamento to database
-  const saveApontamentoMutation = useMutation({
-    mutationFn: async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
-      const pipaInfo = pipasData?.find(p => p.Prefixo === dados.Prefixo);
-      
-      // Parse date from DD/MM/YYYY to YYYY-MM-DD
-      const [day, month, year] = dados.Data.split('/');
-      const isoDate = `${year}-${month}-${day}`;
-      
-      const { data, error } = await supabase
-        .from('apontamentos_pipa')
-        .insert({
-          data: isoDate,
-          prefixo: dados.Prefixo,
-          descricao: pipaInfo?.Descricao || null,
-          empresa: pipaInfo?.Empresa || null,
-          motorista: pipaInfo?.Motorista || null,
-          capacidade: pipaInfo?.Capacidade || null,
-          n_viagens: parseInt(dados.N_Viagens) || 1,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['google-sheets', 'apontamento_pipa'] });
-      refetch();
-    },
-  });
+  const isLoading = isLoadingDb || isLoadingPipas;
+  const error = errorDb;
 
   // Handler to save new apontamento
   const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
-    await saveApontamentoMutation.mutateAsync(dados);
+    const pipaInfo = pipasData?.find(p => p.Prefixo === dados.Prefixo);
+    
+    // Parse date from DD/MM/YYYY to YYYY-MM-DD
+    const [day, month, year] = dados.Data.split('/');
+    const isoDate = `${year}-${month}-${day}`;
+    
+    await createMutation.mutateAsync({
+      data: isoDate,
+      prefixo: dados.Prefixo,
+      descricao: pipaInfo?.Descricao,
+      empresa: pipaInfo?.Empresa,
+      motorista: pipaInfo?.Motorista,
+      capacidade: pipaInfo?.Capacidade,
+      n_viagens: parseInt(dados.N_Viagens) || 1,
+    });
   };
 
   return (
@@ -143,11 +135,11 @@ export default function Pipas() {
       </div>
 
       {/* Data Table */}
-      {isLoading || isLoadingPipas ? (
+      {isLoading ? (
         <TableLoader />
       ) : error ? (
         <ErrorState 
-          message="Não foi possível buscar os dados da planilha."
+          message="Não foi possível buscar os dados."
           onRetry={() => refetch()} 
         />
       ) : (
@@ -167,30 +159,69 @@ export default function Pipas() {
                   <TableHead className="data-table-header">Motorista</TableHead>
                   <TableHead className="data-table-header">Capacidade</TableHead>
                   <TableHead className="data-table-header text-right">Viagens</TableHead>
+                  <TableHead className="data-table-header w-[70px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredData && filteredData.length > 0 ? (
-                  filteredData.map((row, idx) => (
-                    <TableRow key={idx} className="data-table-row">
-                      <TableCell className="font-medium">{row.Data}</TableCell>
+                  filteredData.map((row) => (
+                    <TableRow key={row.id} className="data-table-row">
+                      <TableCell className="font-medium">
+                        {format(new Date(row.data), "dd/MM/yyyy")}
+                      </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-info/20 text-info font-bold text-lg">
-                          {row.Prefixo}
+                          {row.prefixo}
                         </span>
                       </TableCell>
-                      <TableCell>{row.Descricao}</TableCell>
-                      <TableCell>{row.Empresa}</TableCell>
-                      <TableCell>{row.Motorista}</TableCell>
+                      <TableCell>{row.descricao || "-"}</TableCell>
+                      <TableCell>{row.empresa || "-"}</TableCell>
+                      <TableCell>{row.motorista || "-"}</TableCell>
                       <TableCell>
-                        <span className="status-badge bg-info/10 text-info">{row.Capacidade}</span>
+                        {row.capacidade ? (
+                          <span className="status-badge bg-info/10 text-info">{row.capacidade}</span>
+                        ) : "-"}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-lg">{row.N_Viagens}</TableCell>
+                      <TableCell className="text-right font-semibold text-lg">{row.n_viagens}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover">
+                            <DropdownMenuItem asChild>
+                              <ApontamentoEditDialog 
+                                apontamento={row} 
+                                pipas={pipasData || []}
+                                trigger={
+                                  <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer">
+                                    <Pencil className="h-4 w-4" />
+                                    Editar
+                                  </button>
+                                }
+                              />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <ApontamentoDeleteDialog 
+                                apontamento={row}
+                                trigger={
+                                  <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-destructive cursor-pointer">
+                                    <Trash2 className="h-4 w-4" />
+                                    Excluir
+                                  </button>
+                                }
+                              />
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Nenhum registro encontrado para esta data
                     </TableCell>
                   </TableRow>
