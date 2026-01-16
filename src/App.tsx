@@ -37,6 +37,11 @@ import RelatorioCal from "./pages/apontador/RelatorioCal";
 // Mobile
 import PainelMobile from "./pages/mobile/PainelMobile";
 import CargaMobile from "./pages/mobile/CargaMobile";
+import LancamentoMobile from "./pages/mobile/LancamentoMobile";
+import PedreiraMobile from "./pages/mobile/PedreiraMobile";
+import PipasMobile from "./pages/mobile/PipasMobile";
+import CalMobile from "./pages/mobile/CalMobile";
+import RelatoriosMobile from "./pages/mobile/RelatoriosMobile";
 
 // Cadastros
 import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
@@ -112,6 +117,14 @@ const App = () => (
             {/* Mobile Routes - Sem AppLayout para experiência app-like */}
             <Route path="/m" element={<ProtectedMobileRoute><PainelMobile /></ProtectedMobileRoute>} />
             <Route path="/m/carga" element={<ProtectedMobileRoute><CargaMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/lancamento" element={<ProtectedMobileRoute><LancamentoMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/pedreira" element={<ProtectedMobileRoute><PedreiraMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/pipas" element={<ProtectedMobileRoute><PipasMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/cal" element={<ProtectedMobileRoute><CalMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/apropriacao/relatorios" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/pedreira/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/pipas/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/cal/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
             
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             
