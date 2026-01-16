@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { useCargaAppend } from "@/hooks/useGoogleSheetsAppend";
+import { MaterialCards } from "@/components/mobile/MaterialCards";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -80,7 +81,9 @@ export default function CargaMobile() {
 
   const handleSubmit = async () => {
     if (!formData.local || !formData.escavadeira || !formData.caminhao || !formData.tipoMaterial) {
-      toast.error("Preencha todos os campos obrigatórios");
+      toast.error("Preencha todos os campos obrigatórios", {
+        description: "Verifique os campos marcados com *"
+      });
       return;
     }
 
@@ -107,16 +110,29 @@ export default function CargaMobile() {
         localLancamento: formData.localLancamento,
       });
       
+      // Notificação de sucesso com vibração
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]);
+      }
+      
       toast.success(
         formData.adicionarLancamento 
-          ? "Carga e Lançamento registrados!" 
-          : "Carga registrada!",
-        { icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" /> }
+          ? "✅ Carga e Lançamento registrados!" 
+          : "✅ Carga registrada com sucesso!",
+        { 
+          description: `${formData.caminhao} - ${formData.tipoMaterial}`,
+          duration: 4000,
+        }
       );
       navigate('/m');
     } catch (error) {
       console.error('Error saving:', error);
-      toast.error("Erro ao registrar carga");
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
+      }
+      toast.error("❌ Erro ao registrar carga", {
+        description: "Verifique sua conexão e tente novamente"
+      });
     }
   };
 
@@ -273,37 +289,18 @@ export default function CargaMobile() {
           </CardContent>
         </Card>
 
-        {/* Material */}
+        {/* Material - Cards coloridos */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Package className="h-4 w-4 text-orange-600" />
               <Label className="font-semibold">Tipo de Material *</Label>
             </div>
-            <Select
+            <MaterialCards
               value={formData.tipoMaterial}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, tipoMaterial: value }))}
-            >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Selecione o material" />
-              </SelectTrigger>
-              <SelectContent>
-                {materiais && materiais.length > 0 ? (
-                  materiais.map((mat, index) => (
-                    <SelectItem key={index} value={mat.Nome || mat.Material || `mat-${index}`}>
-                      {mat.Nome || mat.Material} {mat.Unidade && `(${mat.Unidade})`}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <>
-                    <SelectItem value="argila">Argila</SelectItem>
-                    <SelectItem value="brita">Brita</SelectItem>
-                    <SelectItem value="areia">Areia</SelectItem>
-                    <SelectItem value="rachao">Pedra Rachão</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+              onChange={(value) => setFormData(prev => ({ ...prev, tipoMaterial: value }))}
+              customMaterials={materiais}
+            />
           </CardContent>
         </Card>
 

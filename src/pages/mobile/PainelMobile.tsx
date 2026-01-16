@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Upload, 
   Download,
@@ -18,6 +18,9 @@ import {
   Home,
   Settings,
   Lock,
+  Share2,
+  Copy,
+  Download as DownloadIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +31,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WhatsAppButton } from "@/components/mobile/WhatsAppButton";
 
 interface SubMenuItem {
   label: string;
@@ -103,6 +107,35 @@ export default function PainelMobile() {
   const { permissionLevel } = usePermissions();
   const [syncing, setSyncing] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // PWA Install prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        toast.success("App instalado com sucesso!");
+      }
+      setDeferredPrompt(null);
+      setShowInstallPrompt(false);
+    }
+  };
 
   // Fetch data to show counts
   const { data: cargaData } = useGoogleSheets('carga');
@@ -138,12 +171,40 @@ export default function PainelMobile() {
     setSyncing(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success("Sincronização concluída!");
+      toast.success("✅ Sincronização concluída!", {
+        description: "Todos os dados foram atualizados"
+      });
     } catch {
       toast.error("Erro na sincronização");
     } finally {
       setSyncing(false);
     }
+  };
+
+  const handleShareLink = async () => {
+    const appUrl = "https://controlesaero.lovable.app/m";
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'ApropriAPP - Controle de Apontamentos',
+          text: 'Acesse o sistema de apontamentos:',
+          url: appUrl,
+        });
+      } catch (error) {
+        // User cancelled or error
+        copyToClipboard(appUrl);
+      }
+    } else {
+      copyToClipboard(appUrl);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Link copiado!", {
+      description: "Compartilhe com sua equipe"
+    });
   };
 
   const toggleMenu = (id: string) => {
@@ -172,19 +233,53 @@ export default function PainelMobile() {
               </p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-primary-foreground"
-            onClick={() => navigate('/')}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-primary-foreground"
+              onClick={handleShareLink}
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-primary-foreground"
+              onClick={() => navigate('/')}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Content */}
       <div className="p-4 space-y-4 pb-28">
+        {/* Install PWA Banner */}
+        {showInstallPrompt && (
+          <Card className="border-0 shadow-md bg-gradient-to-r from-primary to-primary/80">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <DownloadIcon className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-white text-sm">Instalar ApropriAPP</p>
+                  <p className="text-xs text-white/70">Acesse rapidamente na tela inicial</p>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={handleInstallApp}
+                >
+                  Instalar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* User Card */}
         <Card className="border-0 shadow-md">
           <CardContent className="p-4">
@@ -337,6 +432,9 @@ export default function PainelMobile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* WhatsApp Button */}
+      <WhatsAppButton />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg safe-area-pb">
