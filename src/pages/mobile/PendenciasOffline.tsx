@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useOfflineSync, PendingItem } from "@/hooks/useOfflineSync";
+import { useOfflineSync, PendingItem, PendingSheetKey } from "@/hooks/useOfflineSync";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -32,85 +32,40 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export default function PendenciasOffline() {
-  const navigate = useNavigate();
-  const { 
-    pendingItems, 
-    syncItem, 
-    syncAll, 
-    removeItem, 
-    clearAll, 
-    isOnline,
-    isSyncing 
-  } = useOfflineSync();
-  
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-
-  const handleSyncItem = async (item: PendingItem) => {
-    setSyncingId(item.id);
-    try {
-      await syncItem(item.id);
-      toast.success("Item sincronizado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao sincronizar item");
-    } finally {
-      setSyncingId(null);
-    }
+const getTypeLabel = (key: PendingSheetKey) => {
+  const labels: Record<PendingSheetKey, string> = {
+    carga: 'Carga',
+    descarga: 'Lançamento',
+    apontamento_pedreira: 'Pedreira',
+    apontamento_pipa: 'Pipas',
+    mov_cal: 'Cal',
   };
+  return labels[key];
+};
 
-  const handleSyncAll = async () => {
-    try {
-      await syncAll();
-      toast.success("Todos os itens sincronizados!");
-    } catch (error) {
-      toast.error("Erro ao sincronizar alguns itens");
-    }
+const getTypeColor = (key: PendingSheetKey) => {
+  const colors: Record<PendingSheetKey, string> = {
+    carga: 'bg-amber-100 text-amber-700',
+    descarga: 'bg-emerald-100 text-emerald-700',
+    apontamento_pedreira: 'bg-orange-100 text-orange-700',
+    apontamento_pipa: 'bg-blue-100 text-blue-700',
+    mov_cal: 'bg-purple-100 text-purple-700',
   };
+  return colors[key];
+};
 
-  const handleRemoveItem = (id: string) => {
-    removeItem(id);
-    toast.success("Item removido");
-  };
-
-  const handleClearAll = () => {
-    clearAll();
-    toast.success("Todas as pendências foram removidas");
-  };
-
-  const getTypeLabel = (type: PendingItem['type']) => {
-    const labels: Record<PendingItem['type'], string> = {
-      carga: 'Carga',
-      descarga: 'Lançamento',
-      apontamento_pedreira: 'Pedreira',
-      apontamento_pipa: 'Pipas',
-      mov_cal: 'Cal',
-    };
-    return labels[type] || type;
-  };
-
-  const getTypeColor = (type: PendingItem['type']) => {
-    const colors: Record<PendingItem['type'], string> = {
-      carga: 'bg-amber-100 text-amber-700',
-      descarga: 'bg-emerald-100 text-emerald-700',
-      apontamento_pedreira: 'bg-orange-100 text-orange-700',
-      apontamento_pipa: 'bg-blue-100 text-blue-700',
-      mov_cal: 'bg-purple-100 text-purple-700',
-    };
-    return colors[type];
-  };
-
-  const getStatusBadge = (status: PendingItem['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">Pendente</Badge>;
-      case 'syncing':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-700">Sincronizando</Badge>;
-      case 'error':
-        return <Badge variant="destructive">Erro</Badge>;
-      case 'synced':
-        return <Badge variant="secondary" className="bg-green-100 text-green-700">Sincronizado</Badge>;
-    }
-  };
+const getStatusBadge = (status: PendingItem['status']) => {
+  switch (status) {
+    case 'pending':
+      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">Pendente</Badge>;
+    case 'syncing':
+      return <Badge variant="secondary" className="bg-blue-100 text-blue-700">Sincronizando</Badge>;
+    case 'error':
+      return <Badge variant="destructive">Erro</Badge>;
+    case 'synced':
+      return <Badge variant="secondary" className="bg-green-100 text-green-700">Sincronizado</Badge>;
+  }
+};
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -244,12 +199,12 @@ export default function PendenciasOffline() {
                 <CardContent className="p-0">
                   <div className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className={cn("px-2 py-1 rounded-md text-xs font-medium", getTypeColor(item.type))}>
-                        {getTypeLabel(item.type)}
+                      <div className={cn("px-2 py-1 rounded-md text-xs font-medium", getTypeColor(item.sheetKey))}>
+                        {getTypeLabel(item.sheetKey)}
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm">
-                          {String(item.data.Caminhao || item.data.Prefixo || item.data.Material || 'Registro')}
+                          {item.rowData?.[0] ? `ID: ${item.rowData[0]}` : item.sheetName}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
