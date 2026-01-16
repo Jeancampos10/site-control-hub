@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Phone } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ const loginSchema = z.object({
 const signupSchema = z.object({
   nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
   sobrenome: z.string().min(2, "Sobrenome deve ter no mínimo 2 caracteres"),
+  whatsapp: z.string().min(10, "WhatsApp inválido").optional().or(z.literal('')),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
   confirmPassword: z.string(),
@@ -35,6 +36,7 @@ export default function Auth() {
   const [formData, setFormData] = useState({
     nome: "",
     sobrenome: "",
+    whatsapp: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -103,7 +105,8 @@ export default function Auth() {
           formData.email,
           formData.password,
           formData.nome,
-          formData.sobrenome
+          formData.sobrenome,
+          formData.whatsapp
         );
         
         if (error) {
@@ -205,6 +208,26 @@ export default function Auth() {
                     <p className="text-xs text-destructive">{errors.sobrenome}</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="whatsapp"
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={formData.whatsapp}
+                    onChange={(e) => handleInputChange("whatsapp", e.target.value)}
+                    className={`pl-10 ${errors.whatsapp ? "border-destructive" : ""}`}
+                  />
+                </div>
+                {errors.whatsapp && (
+                  <p className="text-xs text-destructive">{errors.whatsapp}</p>
+                )}
               </div>
             )}
 

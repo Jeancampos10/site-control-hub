@@ -70,6 +70,7 @@ const cadastrosMenu: NavItem = {
         { label: "Equipamentos Gerais", icon: Settings, href: "/cadastros/equipamentos-gerais" },
       ],
     },
+    { label: "Gestão de Usuários", icon: Users, href: "/gestao-usuarios" },
   ],
 };
 

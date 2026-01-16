@@ -21,6 +21,7 @@ import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
+import GestaoUsuarios from "./pages/GestaoUsuarios";
 
 // Painel do Apontador (mantido para compatibilidade)
 import PainelApontador from "./pages/apontador/PainelApontador";
@@ -136,6 +137,7 @@ const App = () => (
             <Route path="/pipas" element={<ProtectedRoute><Pipas /></ProtectedRoute>} />
             <Route path="/apontadores" element={<ProtectedRoute><Apontadores /></ProtectedRoute>} />
             <Route path="/colaboradores" element={<ProtectedRoute><Colaboradores /></ProtectedRoute>} />
+            <Route path="/gestao-usuarios" element={<ProtectedRoute><GestaoUsuarios /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
