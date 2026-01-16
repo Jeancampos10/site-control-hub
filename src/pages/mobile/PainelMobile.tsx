@@ -452,13 +452,13 @@ export default function PainelMobile() {
               <span className="text-2xl font-light">+</span>
             </div>
           </Link>
-          <Link to="/alertas" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
+          <Link to="/m/historico" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
+            <History className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Histórico</span>
+          </Link>
+          <Link to="/m/pendencias" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
             <Clock className="h-5 w-5" />
             <span className="text-[10px] font-medium">Pendentes</span>
-          </Link>
-          <Link to="/" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
-            <Settings className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Sistema</span>
           </Link>
         </div>
       </nav>
