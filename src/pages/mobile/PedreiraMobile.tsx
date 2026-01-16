@@ -12,6 +12,7 @@ import {
   Clock,
   Scale,
   Mountain,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { usePedreiraAppend } from "@/hooks/useGoogleSheetsAppend";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -36,7 +38,7 @@ interface FormData {
 export default function PedreiraMobile() {
   const navigate = useNavigate();
   const { canEditDate } = usePermissions();
-  const [loading, setLoading] = useState(false);
+  const { appendPedreira, isPending } = usePedreiraAppend();
   
   const { data: caminhoes } = useGoogleSheets('cam_reboque');
   const { data: materiais } = useGoogleSheets('materiais');
@@ -65,15 +67,28 @@ export default function PedreiraMobile() {
       return;
     }
 
-    setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Carregamento registrado com sucesso!");
+      await appendPedreira({
+        data: format(new Date(formData.data + 'T00:00:00'), 'dd/MM/yyyy'),
+        caminhao: formData.caminhao,
+        empresa: caminhaoSelecionado?.Empresa || '',
+        motorista: caminhaoSelecionado?.Motorista || '',
+        placa: caminhaoSelecionado?.Placa || '',
+        horaCarregamento: formData.horaCarregamento,
+        numeroPedido: formData.numeroPedido,
+        pesoBruto: formData.pesoFinal,
+        pesoTara: pesoTara,
+        pesoLiquido: pesoLiquidoCalculado,
+        material: formData.tipoMaterial,
+      });
+      
+      toast.success("Carregamento registrado!", {
+        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      });
       navigate('/m');
-    } catch {
+    } catch (error) {
+      console.error('Error saving:', error);
       toast.error("Erro ao registrar carregamento");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -262,9 +277,9 @@ export default function PedreiraMobile() {
         <Button 
           className="w-full h-14 text-lg font-bold bg-orange-600 hover:bg-orange-700"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={isPending}
         >
-          {loading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               SALVANDO...

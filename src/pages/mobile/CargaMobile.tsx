@@ -13,6 +13,7 @@ import {
   Calendar,
   Hash,
   Download,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { useCargaAppend } from "@/hooks/useGoogleSheetsAppend";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -40,7 +42,7 @@ interface FormData {
 export default function CargaMobile() {
   const navigate = useNavigate();
   const { canEditDate, canSeeTrips } = usePermissions();
-  const [loading, setLoading] = useState(false);
+  const { appendCarga, isPending } = useCargaAppend();
   
   const { data: escavadeiras } = useGoogleSheets('equipamentos');
   const { data: caminhoes } = useGoogleSheets('caminhao');
@@ -87,21 +89,34 @@ export default function CargaMobile() {
       return;
     }
 
-    setLoading(true);
     try {
-      // Simular salvamento - aqui será integrado com Google Sheets
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await appendCarga({
+        data: format(new Date(formData.data + 'T00:00:00'), 'dd/MM/yyyy'),
+        local: formData.local,
+        estaca: formData.estaca,
+        escavadeira: formData.escavadeira,
+        empresaEsc: escavadeiraSelecionada?.Empresa_Eq || '',
+        operador: escavadeiraSelecionada?.Operador || '',
+        caminhao: formData.caminhao,
+        empresaCam: caminhaoSelecionado?.Empresa_Cb || '',
+        motorista: caminhaoSelecionado?.Motorista || '',
+        volume: caminhaoSelecionado?.Volume || '',
+        material: formData.tipoMaterial,
+        numViagens: canSeeTrips ? formData.numViagens : 1,
+        adicionarLancamento: formData.adicionarLancamento,
+        localLancamento: formData.localLancamento,
+      });
       
-      if (formData.adicionarLancamento) {
-        toast.success("Carga e Lançamento registrados com sucesso!");
-      } else {
-        toast.success("Carga registrada com sucesso!");
-      }
+      toast.success(
+        formData.adicionarLancamento 
+          ? "Carga e Lançamento registrados!" 
+          : "Carga registrada!",
+        { icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" /> }
+      );
       navigate('/m');
-    } catch {
+    } catch (error) {
+      console.error('Error saving:', error);
       toast.error("Erro ao registrar carga");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -372,9 +387,9 @@ export default function CargaMobile() {
         <Button 
           className="w-full h-14 text-lg font-bold"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={isPending}
         >
-          {loading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               SALVANDO...

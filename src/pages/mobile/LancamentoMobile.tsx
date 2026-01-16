@@ -11,6 +11,7 @@ import {
   Calendar,
   Hash,
   Download,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { useLancamentoAppend } from "@/hooks/useGoogleSheetsAppend";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -34,7 +36,7 @@ interface FormData {
 export default function LancamentoMobile() {
   const navigate = useNavigate();
   const { canEditDate, canSeeTrips } = usePermissions();
-  const [loading, setLoading] = useState(false);
+  const { appendLancamento, isPending } = useLancamentoAppend();
   
   const { data: caminhoes } = useGoogleSheets('caminhao');
   const { data: locais } = useGoogleSheets('locais');
@@ -63,15 +65,26 @@ export default function LancamentoMobile() {
       return;
     }
 
-    setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Lançamento registrado com sucesso!");
+      await appendLancamento({
+        data: format(new Date(formData.data + 'T00:00:00'), 'dd/MM/yyyy'),
+        local: formData.local,
+        estaca: formData.estaca,
+        caminhao: formData.caminhao,
+        empresa: caminhaoSelecionado?.Empresa_Cb || '',
+        motorista: caminhaoSelecionado?.Motorista || '',
+        volume: caminhaoSelecionado?.Volume || '',
+        material: formData.tipoMaterial,
+        numViagens: canSeeTrips ? formData.numViagens : 1,
+      });
+      
+      toast.success("Lançamento registrado!", {
+        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      });
       navigate('/m');
-    } catch {
+    } catch (error) {
+      console.error('Error saving:', error);
       toast.error("Erro ao registrar lançamento");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -261,9 +274,9 @@ export default function LancamentoMobile() {
         <Button 
           className="w-full h-14 text-lg font-bold bg-emerald-600 hover:bg-emerald-700"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={isPending}
         >
-          {loading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               SALVANDO...

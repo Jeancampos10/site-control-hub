@@ -13,6 +13,7 @@ import {
   FileText,
   DollarSign,
   Building2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { useCalAppend } from "@/hooks/useGoogleSheetsAppend";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -36,7 +38,7 @@ interface FormData {
 export default function CalMobile() {
   const navigate = useNavigate();
   const { canEditDate } = usePermissions();
-  const [loading, setLoading] = useState(false);
+  const { appendCal, isPending } = useCalAppend();
   
   const { data: fornecedores } = useGoogleSheets('fornecedores_cal');
 
@@ -62,15 +64,23 @@ export default function CalMobile() {
       return;
     }
 
-    setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success(`${formData.tipo} registrada com sucesso!`);
+      await appendCal({
+        data: format(new Date(formData.data + 'T00:00:00'), 'dd/MM/yyyy'),
+        tipo: formData.tipo as 'Entrada' | 'Saida',
+        quantidade: formData.quantidade,
+        notaFiscal: formData.notaFiscal,
+        valor: formData.valor,
+        fornecedor: formData.fornecedor,
+      });
+      
+      toast.success(`${formData.tipo} registrada!`, {
+        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      });
       navigate('/m');
-    } catch {
+    } catch (error) {
+      console.error('Error saving:', error);
       toast.error("Erro ao registrar movimento");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -297,9 +307,9 @@ export default function CalMobile() {
             formData.tipo === 'Saida' ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
           )}
           onClick={handleSubmit}
-          disabled={loading || !formData.tipo}
+          disabled={isPending || !formData.tipo}
         >
-          {loading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               SALVANDO...
