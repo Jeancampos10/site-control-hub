@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+
+// Pages
 import Index from "./pages/Index";
 import Carga from "./pages/Carga";
 import Descarga from "./pages/Descarga";
@@ -19,6 +21,28 @@ import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
+
+// Painel do Apontador
+import PainelApontador from "./pages/apontador/PainelApontador";
+import ApontadorCarga from "./pages/apontador/ApontadorCarga";
+import ApontadorLancamento from "./pages/apontador/ApontadorLancamento";
+import ApontadorPedreira from "./pages/apontador/ApontadorPedreira";
+import ApontadorPipas from "./pages/apontador/ApontadorPipas";
+import ApontadorCal from "./pages/apontador/ApontadorCal";
+import RelatorioApropriacao from "./pages/apontador/RelatorioApropriacao";
+import RelatorioPedreira from "./pages/apontador/RelatorioPedreira";
+import RelatorioPipas from "./pages/apontador/RelatorioPipas";
+import RelatorioCal from "./pages/apontador/RelatorioCal";
+
+// Cadastros
+import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
+import CadastroLocais from "./pages/cadastros/CadastroLocais";
+import CadastroMateriais from "./pages/cadastros/CadastroMateriais";
+import CadastroFornecedores from "./pages/cadastros/CadastroFornecedores";
+import CadastroEscavadeiras from "./pages/cadastros/CadastroEscavadeiras";
+import CadastroBasculantes from "./pages/cadastros/CadastroBasculantes";
+import CadastroReboques from "./pages/cadastros/CadastroReboques";
+import CadastroEquipamentosGerais from "./pages/cadastros/CadastroEquipamentosGerais";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +82,30 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            
+            {/* Painel do Apontador */}
+            <Route path="/apontador" element={<ProtectedRoute><PainelApontador /></ProtectedRoute>} />
+            <Route path="/apontador/carga" element={<ProtectedRoute><ApontadorCarga /></ProtectedRoute>} />
+            <Route path="/apontador/lancamento" element={<ProtectedRoute><ApontadorLancamento /></ProtectedRoute>} />
+            <Route path="/apontador/apropriacao/relatorios" element={<ProtectedRoute><RelatorioApropriacao /></ProtectedRoute>} />
+            <Route path="/apontador/pedreira" element={<ProtectedRoute><ApontadorPedreira /></ProtectedRoute>} />
+            <Route path="/apontador/pedreira/relatorio" element={<ProtectedRoute><RelatorioPedreira /></ProtectedRoute>} />
+            <Route path="/apontador/pipas" element={<ProtectedRoute><ApontadorPipas /></ProtectedRoute>} />
+            <Route path="/apontador/pipas/relatorio" element={<ProtectedRoute><RelatorioPipas /></ProtectedRoute>} />
+            <Route path="/apontador/cal" element={<ProtectedRoute><ApontadorCal /></ProtectedRoute>} />
+            <Route path="/apontador/cal/relatorio" element={<ProtectedRoute><RelatorioCal /></ProtectedRoute>} />
+            
+            {/* Cadastros */}
+            <Route path="/cadastros/apontadores" element={<ProtectedRoute><CadastroApontadores /></ProtectedRoute>} />
+            <Route path="/cadastros/locais" element={<ProtectedRoute><CadastroLocais /></ProtectedRoute>} />
+            <Route path="/cadastros/materiais" element={<ProtectedRoute><CadastroMateriais /></ProtectedRoute>} />
+            <Route path="/cadastros/fornecedores" element={<ProtectedRoute><CadastroFornecedores /></ProtectedRoute>} />
+            <Route path="/cadastros/escavadeiras" element={<ProtectedRoute><CadastroEscavadeiras /></ProtectedRoute>} />
+            <Route path="/cadastros/basculantes" element={<ProtectedRoute><CadastroBasculantes /></ProtectedRoute>} />
+            <Route path="/cadastros/reboques" element={<ProtectedRoute><CadastroReboques /></ProtectedRoute>} />
+            <Route path="/cadastros/equipamentos-gerais" element={<ProtectedRoute><CadastroEquipamentosGerais /></ProtectedRoute>} />
+            
+            {/* Páginas existentes */}
             <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
             <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
             <Route path="/frota" element={<ProtectedRoute><FrotaGeral /></ProtectedRoute>} />
