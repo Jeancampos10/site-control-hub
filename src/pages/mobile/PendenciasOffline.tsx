@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -66,6 +66,46 @@ const getStatusBadge = (status: PendingItem['status']) => {
       return <Badge variant="secondary" className="bg-green-100 text-green-700">Sincronizado</Badge>;
   }
 };
+
+export default function PendenciasOffline() {
+  const navigate = useNavigate();
+  const { pendingItems, isOnline, removeItem, clearAll, syncItem, syncAll } = useOfflineSync();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    try {
+      await syncAll();
+      toast.success("Sincronização concluída!");
+    } catch (error) {
+      toast.error("Erro na sincronização");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSyncItem = async (item: PendingItem) => {
+    setSyncingId(item.id);
+    try {
+      await syncItem(item.id);
+      toast.success("Item sincronizado!");
+    } catch (error) {
+      toast.error("Erro ao sincronizar item");
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleRemoveItem = (id: string) => {
+    removeItem(id);
+    toast.success("Item removido");
+  };
+
+  const handleClearAll = () => {
+    clearAll();
+    toast.success("Todas as pendências foram removidas");
+  };
 
   return (
     <div className="min-h-screen bg-slate-100">
