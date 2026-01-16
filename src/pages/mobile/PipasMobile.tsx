@@ -9,6 +9,7 @@ import {
   Clock,
   Hash,
   Droplets,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { usePipasAppend } from "@/hooks/useGoogleSheetsAppend";
 
 interface FormData {
   veiculo: string;
@@ -29,7 +31,7 @@ interface FormData {
 export default function PipasMobile() {
   const navigate = useNavigate();
   const { canSeeTrips } = usePermissions();
-  const [loading, setLoading] = useState(false);
+  const { appendPipa, isPending } = usePipasAppend();
   
   const { data: veiculos } = useGoogleSheets('caminhao_pipa');
 
@@ -50,24 +52,25 @@ export default function PipasMobile() {
       return;
     }
 
-    setLoading(true);
     try {
-      // Para apontadores, numViagens = 1 automaticamente
-      const dataToSave = {
-        ...formData,
+      await appendPipa({
+        data: format(new Date(), 'dd/MM/yyyy'),
+        prefixo: formData.veiculo,
+        empresa: veiculoSelecionado?.Empresa || '',
+        motorista: veiculoSelecionado?.Motorista || '',
+        capacidade: veiculoSelecionado?.Capacidade || '',
+        horaChegada: formData.horaChegada,
+        horaSaida: formData.horaSaida,
         numViagens: canSeeTrips ? formData.numViagens : 1,
-        data: format(new Date(), 'yyyy-MM-dd'),
-      };
+      });
       
-      console.log('Dados a salvar:', dataToSave);
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success("Viagem registrada com sucesso!");
+      toast.success("Viagem registrada!", {
+        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      });
       navigate('/m');
-    } catch {
+    } catch (error) {
+      console.error('Error saving:', error);
       toast.error("Erro ao registrar viagem");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -222,9 +225,9 @@ export default function PipasMobile() {
         <Button 
           className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={isPending}
         >
-          {loading ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               SALVANDO...
