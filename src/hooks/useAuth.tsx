@@ -27,7 +27,7 @@ interface AuthContextType {
   loading: boolean;
   pendingApproval: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, nome: string, sobrenome: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, nome: string, sobrenome: string, whatsapp?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   hasModuleAccess: (modulo: ModuloPermitido) => boolean;
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, nome: string, sobrenome: string) => {
+  const signUp = async (email: string, password: string, nome: string, sobrenome: string, whatsapp?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -136,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           nome,
           sobrenome,
+          whatsapp: whatsapp || null,
         },
       },
     });
