@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 // Produção sheets que existem na planilha
 type ProdutionSheetName = 
@@ -14,7 +15,7 @@ type ProdutionSheetName =
   | 'mov_cal'
   | 'estoque_cal';
 
-// Abas virtuais (dados mockados pois não existem na planilha)
+// Abas virtuais (vêm do banco; antes eram mock)
 type VirtualSheetName = 
   | 'escavadeiras'
   | 'locais'
@@ -38,51 +39,78 @@ type AbastechSheetName =
 
 export type SheetName = ProdutionSheetName | VirtualSheetName | AbastechSheetName;
 
-// Dados mockados para abas que não existem na planilha
-const MOCK_DATA: Record<VirtualSheetName, Record<string, string>[]> = {
-  locais: [
-    { Nome: 'Jazida Norte - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
-    { Nome: 'Jazida Sul - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
-    { Nome: 'Corte KM 45 - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
-    { Nome: 'Aterro Norte - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
-    { Nome: 'Aterro Sul - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
-    { Nome: 'Aterro KM 30 - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
-  ],
-  materiais: [
-    { Nome: 'Argila', Unidade: 'm³' },
-    { Nome: 'Brita', Unidade: 'm³' },
-    { Nome: 'Areia', Unidade: 'm³' },
-    { Nome: 'Pedra Rachão', Unidade: 'm³' },
-    { Nome: 'Saibro', Unidade: 'm³' },
-    { Nome: 'Brita 0', Unidade: 't' },
-    { Nome: 'Brita 1', Unidade: 't' },
-    { Nome: 'Pó de Pedra', Unidade: 't' },
-  ],
-  escavadeiras: [], // Usamos a aba 'equipamentos' em vez desta
-  fornecedores_cal: [
-    { Nome: 'Fornecedor Cal A', CNPJ: '00.000.000/0001-00', Contato: '(00) 0000-0000' },
-    { Nome: 'Fornecedor Cal B', CNPJ: '00.000.000/0001-01', Contato: '(00) 0000-0001' },
-    { Nome: 'Fornecedor Cal C', CNPJ: '00.000.000/0001-02', Contato: '(00) 0000-0002' },
-  ],
-};
-
-// Verificar se é uma aba virtual (mock)
+// Verificar se é uma aba virtual (banco)
 function isVirtualSheet(sheetName: SheetName): sheetName is VirtualSheetName {
-  return sheetName in MOCK_DATA;
+  return ['escavadeiras', 'locais', 'materiais', 'fornecedores_cal'].includes(sheetName);
+}
+
+async function fetchVirtualSheet<T>(sheetName: VirtualSheetName): Promise<T[]> {
+  // Observação: "escavadeiras" não é mais usada (usamos 'equipamentos').
+  if (sheetName === 'locais') {
+    const { data, error } = await supabase
+      .from('cad_locais')
+      .select('id,nome,obra,tipo,ativo')
+      .order('nome', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map((r) => ({
+      ID: r.id,
+      Nome: r.nome,
+      Obra: r.obra,
+      Tipo: r.tipo,
+      Ativo: r.ativo,
+    })) as unknown as T[];
+  }
+
+  if (sheetName === 'materiais') {
+    const { data, error } = await supabase
+      .from('cad_materiais')
+      .select('id,nome,unidade,ativo')
+      .order('nome', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map((r) => ({
+      ID: r.id,
+      Nome: r.nome,
+      Unidade: r.unidade,
+      Ativo: r.ativo,
+    })) as unknown as T[];
+  }
+
+  if (sheetName === 'fornecedores_cal') {
+    const { data, error } = await supabase
+      .from('cad_fornecedores_cal')
+      .select('id,nome,cnpj,contato,ativo')
+      .order('nome', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map((r) => ({
+      ID: r.id,
+      Nome: r.nome,
+      CNPJ: r.cnpj,
+      Contato: r.contato,
+      Ativo: r.ativo,
+    })) as unknown as T[];
+  }
+
+  return [] as unknown as T[];
 }
 
 export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName) {
   return useQuery({
     queryKey: ['google-sheets', sheetName],
     queryFn: async (): Promise<T[]> => {
-      console.log(`Fetching ${sheetName} from Google Sheets...`);
-      
-      // Se for uma aba virtual, retornar dados mockados
+      console.log(`Fetching ${sheetName}...`);
+
+      // Se for uma aba virtual, buscar no banco
       if (isVirtualSheet(sheetName)) {
-        console.log(`Using mock data for ${sheetName}`);
-        return MOCK_DATA[sheetName] as T[];
+        console.log(`Using database for ${sheetName}`);
+        return fetchVirtualSheet<T>(sheetName);
       }
-      
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
         {
