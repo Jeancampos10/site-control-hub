@@ -22,17 +22,8 @@ import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
-// Painel do Apontador
+// Painel do Apontador (mantido para compatibilidade)
 import PainelApontador from "./pages/apontador/PainelApontador";
-import ApontadorCarga from "./pages/apontador/ApontadorCarga";
-import ApontadorLancamento from "./pages/apontador/ApontadorLancamento";
-import ApontadorPedreira from "./pages/apontador/ApontadorPedreira";
-import ApontadorPipas from "./pages/apontador/ApontadorPipas";
-import ApontadorCal from "./pages/apontador/ApontadorCal";
-import RelatorioApropriacao from "./pages/apontador/RelatorioApropriacao";
-import RelatorioPedreira from "./pages/apontador/RelatorioPedreira";
-import RelatorioPipas from "./pages/apontador/RelatorioPipas";
-import RelatorioCal from "./pages/apontador/RelatorioCal";
 
 // Mobile
 import PainelMobile from "./pages/mobile/PainelMobile";
@@ -41,7 +32,6 @@ import LancamentoMobile from "./pages/mobile/LancamentoMobile";
 import PedreiraMobile from "./pages/mobile/PedreiraMobile";
 import PipasMobile from "./pages/mobile/PipasMobile";
 import CalMobile from "./pages/mobile/CalMobile";
-import RelatoriosMobile from "./pages/mobile/RelatoriosMobile";
 
 // Cadastros
 import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
@@ -121,24 +111,11 @@ const App = () => (
             <Route path="/m/pedreira" element={<ProtectedMobileRoute><PedreiraMobile /></ProtectedMobileRoute>} />
             <Route path="/m/pipas" element={<ProtectedMobileRoute><PipasMobile /></ProtectedMobileRoute>} />
             <Route path="/m/cal" element={<ProtectedMobileRoute><CalMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/apropriacao/relatorios" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/pedreira/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/pipas/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/cal/relatorio" element={<ProtectedMobileRoute><RelatoriosMobile /></ProtectedMobileRoute>} />
             
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             
-            {/* Painel do Apontador */}
+            {/* Painel do Apontador - Redirecionando para mobile */}
             <Route path="/apontador" element={<ProtectedRoute><PainelApontador /></ProtectedRoute>} />
-            <Route path="/apontador/carga" element={<ProtectedRoute><ApontadorCarga /></ProtectedRoute>} />
-            <Route path="/apontador/lancamento" element={<ProtectedRoute><ApontadorLancamento /></ProtectedRoute>} />
-            <Route path="/apontador/apropriacao/relatorios" element={<ProtectedRoute><RelatorioApropriacao /></ProtectedRoute>} />
-            <Route path="/apontador/pedreira" element={<ProtectedRoute><ApontadorPedreira /></ProtectedRoute>} />
-            <Route path="/apontador/pedreira/relatorio" element={<ProtectedRoute><RelatorioPedreira /></ProtectedRoute>} />
-            <Route path="/apontador/pipas" element={<ProtectedRoute><ApontadorPipas /></ProtectedRoute>} />
-            <Route path="/apontador/pipas/relatorio" element={<ProtectedRoute><RelatorioPipas /></ProtectedRoute>} />
-            <Route path="/apontador/cal" element={<ProtectedRoute><ApontadorCal /></ProtectedRoute>} />
-            <Route path="/apontador/cal/relatorio" element={<ProtectedRoute><RelatorioCal /></ProtectedRoute>} />
             
             {/* Cadastros */}
             <Route path="/cadastros/apontadores" element={<ProtectedRoute><CadastroApontadores /></ProtectedRoute>} />

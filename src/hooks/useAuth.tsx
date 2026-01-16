@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 type AppRole = 'admin_principal' | 'admin' | 'colaborador' | 'visualizacao';
+export type ModuloPermitido = 'apropriacao' | 'pedreira' | 'pipas' | 'cal';
 
 interface Profile {
   id: string;
@@ -19,6 +20,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   role: AppRole | null;
+  modulosPermitidos: ModuloPermitido[];
   isApproved: boolean;
   isAdmin: boolean;
   isAdminPrincipal: boolean;
@@ -28,6 +30,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, nome: string, sobrenome: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  hasModuleAccess: (modulo: ModuloPermitido) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [modulosPermitidos, setModulosPermitidos] = useState<ModuloPermitido[]>([]);
   const [isApproved, setIsApproved] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -54,13 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: roleData } = await supabase
         .from('user_roles')
-        .select('role, approved')
+        .select('role, approved, modulos_permitidos')
         .eq('user_id', userId)
         .single();
 
       if (roleData) {
         setRole(roleData.role as AppRole);
         setIsApproved(roleData.approved);
+        // Se for admin, tem acesso a todos os módulos
+        if (roleData.role === 'admin_principal' || roleData.role === 'admin') {
+          setModulosPermitidos(['apropriacao', 'pedreira', 'pipas', 'cal']);
+        } else {
+          // Usar modulos_permitidos do banco ou padrão todos
+          const modulos = (roleData as unknown as { modulos_permitidos?: string[] }).modulos_permitidos;
+          setModulosPermitidos((modulos as ModuloPermitido[]) || ['apropriacao', 'pedreira', 'pipas', 'cal']);
+        }
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -82,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRole(null);
+          setModulosPermitidos([]);
           setIsApproved(false);
         }
         
@@ -133,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRole(null);
+    setModulosPermitidos([]);
     setIsApproved(false);
   };
 
@@ -146,6 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdminPrincipal = role === 'admin_principal';
   const pendingApproval = !!user && !isApproved;
 
+  // Função para verificar acesso a módulo
+  const hasModuleAccess = (modulo: ModuloPermitido): boolean => {
+    if (isAdmin) return true;
+    return modulosPermitidos.includes(modulo);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -153,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         role,
+        modulosPermitidos,
         isApproved,
         isAdmin,
         isAdminPrincipal,
@@ -162,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         refreshProfile,
+        hasModuleAccess,
       }}
     >
       {children}
