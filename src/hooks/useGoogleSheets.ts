@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 
-// Produção sheets
+// Produção sheets que existem na planilha
 type ProdutionSheetName = 
   | 'carga' 
   | 'descarga' 
@@ -12,7 +12,10 @@ type ProdutionSheetName =
   | 'apontamento_pedreira' 
   | 'apontamento_pipa'
   | 'mov_cal'
-  | 'estoque_cal'
+  | 'estoque_cal';
+
+// Abas virtuais (dados mockados pois não existem na planilha)
+type VirtualSheetName = 
   | 'escavadeiras'
   | 'locais'
   | 'materiais'
@@ -33,13 +36,52 @@ type AbastechSheetName =
   | 'Horimetros'
   | 'Ordem_Servico';
 
-export type SheetName = ProdutionSheetName | AbastechSheetName;
+export type SheetName = ProdutionSheetName | VirtualSheetName | AbastechSheetName;
+
+// Dados mockados para abas que não existem na planilha
+const MOCK_DATA: Record<VirtualSheetName, Record<string, string>[]> = {
+  locais: [
+    { Nome: 'Jazida Norte - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
+    { Nome: 'Jazida Sul - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
+    { Nome: 'Corte KM 45 - BR-101', Tipo: 'Origem', Obra: 'BR-101' },
+    { Nome: 'Aterro Norte - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
+    { Nome: 'Aterro Sul - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
+    { Nome: 'Aterro KM 30 - BR-101', Tipo: 'Destino', Obra: 'BR-101' },
+  ],
+  materiais: [
+    { Nome: 'Argila', Unidade: 'm³' },
+    { Nome: 'Brita', Unidade: 'm³' },
+    { Nome: 'Areia', Unidade: 'm³' },
+    { Nome: 'Pedra Rachão', Unidade: 'm³' },
+    { Nome: 'Saibro', Unidade: 'm³' },
+    { Nome: 'Brita 0', Unidade: 't' },
+    { Nome: 'Brita 1', Unidade: 't' },
+    { Nome: 'Pó de Pedra', Unidade: 't' },
+  ],
+  escavadeiras: [], // Usamos a aba 'equipamentos' em vez desta
+  fornecedores_cal: [
+    { Nome: 'Fornecedor Cal A', CNPJ: '00.000.000/0001-00', Contato: '(00) 0000-0000' },
+    { Nome: 'Fornecedor Cal B', CNPJ: '00.000.000/0001-01', Contato: '(00) 0000-0001' },
+    { Nome: 'Fornecedor Cal C', CNPJ: '00.000.000/0001-02', Contato: '(00) 0000-0002' },
+  ],
+};
+
+// Verificar se é uma aba virtual (mock)
+function isVirtualSheet(sheetName: SheetName): sheetName is VirtualSheetName {
+  return sheetName in MOCK_DATA;
+}
 
 export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName) {
   return useQuery({
     queryKey: ['google-sheets', sheetName],
     queryFn: async (): Promise<T[]> => {
       console.log(`Fetching ${sheetName} from Google Sheets...`);
+      
+      // Se for uma aba virtual, retornar dados mockados
+      if (isVirtualSheet(sheetName)) {
+        console.log(`Using mock data for ${sheetName}`);
+        return MOCK_DATA[sheetName] as T[];
+      }
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
