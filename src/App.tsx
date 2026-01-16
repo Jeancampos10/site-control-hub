@@ -34,6 +34,10 @@ import RelatorioPedreira from "./pages/apontador/RelatorioPedreira";
 import RelatorioPipas from "./pages/apontador/RelatorioPipas";
 import RelatorioCal from "./pages/apontador/RelatorioCal";
 
+// Mobile
+import PainelMobile from "./pages/mobile/PainelMobile";
+import CargaMobile from "./pages/mobile/CargaMobile";
+
 // Cadastros
 import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
 import CadastroLocais from "./pages/cadastros/CadastroLocais";
@@ -71,6 +75,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+// Protected route for mobile (without AppLayout)
+function ProtectedMobileRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, isApproved, isAdminPrincipal } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isApproved && !isAdminPrincipal) {
+    return <Navigate to="/pending-approval" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -81,6 +108,11 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
+            
+            {/* Mobile Routes - Sem AppLayout para experiência app-like */}
+            <Route path="/m" element={<ProtectedMobileRoute><PainelMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/carga" element={<ProtectedMobileRoute><CargaMobile /></ProtectedMobileRoute>} />
+            
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             
             {/* Painel do Apontador */}
