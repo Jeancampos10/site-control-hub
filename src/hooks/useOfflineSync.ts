@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export type PendingSheetKey = 'carga' | 'descarga' | 'apontamento_pedreira' | 'apontamento_pipa' | 'mov_cal';
+
 export interface PendingItem {
   id: string;
-  type: 'carga' | 'descarga' | 'apontamento_pedreira' | 'apontamento_pipa' | 'mov_cal';
-  data: Record<string, unknown>;
+  sheetKey: PendingSheetKey;
+  sheetName: string; // nome real da aba (ex: "Carga")
+  rowData: string[]; // linha já formatada na ordem correta
   createdAt: string;
   status: 'pending' | 'syncing' | 'error' | 'synced';
   error?: string;
   retryCount: number;
 }
 
-const STORAGE_KEY = 'apropriapp_offline_pending';
+const STORAGE_KEY = 'apropriapp_offline_pending_v2';
 
 export function useOfflineSync() {
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
@@ -50,69 +53,65 @@ export function useOfflineSync() {
     };
   }, []);
 
-  // Add new pending item
-  const addPendingItem = useCallback((type: PendingItem['type'], data: Record<string, unknown>) => {
+  const addPendingAppend = useCallback((args: {
+    sheetKey: PendingSheetKey;
+    sheetName: string;
+    rowData: string[];
+  }) => {
     const newItem: PendingItem = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      data,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      sheetKey: args.sheetKey,
+      sheetName: args.sheetName,
+      rowData: args.rowData,
       createdAt: new Date().toISOString(),
       status: 'pending',
       retryCount: 0,
     };
 
-    setPendingItems(prev => [...prev, newItem]);
+    setPendingItems((prev) => [...prev, newItem]);
     return newItem.id;
   }, []);
 
-  // Sync single item
   const syncItem = useCallback(async (itemId: string) => {
-    const item = pendingItems.find(i => i.id === itemId);
+    const item = pendingItems.find((i) => i.id === itemId);
     if (!item) return;
 
-    // Update status to syncing
-    setPendingItems(prev => prev.map(i => 
-      i.id === itemId ? { ...i, status: 'syncing' as const } : i
-    ));
+    setPendingItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, status: 'syncing' } : i)));
 
     try {
-      // Call the edge function to append
       const { error } = await supabase.functions.invoke('google-sheets-append', {
         body: {
           action: 'append',
-          sheetName: item.type,
-          rowData: item.data,
+          sheetName: item.sheetName,
+          rowData: item.rowData,
         },
       });
 
       if (error) throw error;
 
-      // Remove synced item
-      setPendingItems(prev => prev.filter(i => i.id !== itemId));
+      setPendingItems((prev) => prev.filter((i) => i.id !== itemId));
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      // Mark as error
-      setPendingItems(prev => prev.map(i => 
-        i.id === itemId ? { 
-          ...i, 
-          status: 'error' as const, 
-          error: errorMessage,
-          retryCount: i.retryCount + 1 
-        } : i
-      ));
+      setPendingItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId
+            ? { ...i, status: 'error', error: errorMessage, retryCount: i.retryCount + 1 }
+            : i
+        )
+      );
       throw error;
     }
   }, [pendingItems]);
 
-  // Sync all pending items
   const syncAll = useCallback(async () => {
     if (!isOnline || isSyncing) return;
 
     setIsSyncing(true);
-    const pendingToSync = pendingItems.filter(i => i.status === 'pending' || i.status === 'error');
+    const pendingToSync = pendingItems.filter((i) => i.status === 'pending' || i.status === 'error');
 
     for (const item of pendingToSync) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         await syncItem(item.id);
       } catch (error) {
         console.error(`Error syncing item ${item.id}:`, error);
@@ -122,23 +121,20 @@ export function useOfflineSync() {
     setIsSyncing(false);
   }, [pendingItems, isOnline, isSyncing, syncItem]);
 
-  // Remove item
   const removeItem = useCallback((itemId: string) => {
-    setPendingItems(prev => prev.filter(i => i.id !== itemId));
+    setPendingItems((prev) => prev.filter((i) => i.id !== itemId));
   }, []);
 
-  // Clear all items
   const clearAll = useCallback(() => {
     setPendingItems([]);
   }, []);
 
   // Auto-sync when coming online
   useEffect(() => {
-    if (isOnline && pendingItems.some(i => i.status === 'pending')) {
-      // Small delay to ensure connection is stable
+    if (isOnline && pendingItems.some((i) => i.status === 'pending' || i.status === 'error')) {
       const timer = setTimeout(() => {
         syncAll();
-      }, 2000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [isOnline, pendingItems, syncAll]);
@@ -147,10 +143,11 @@ export function useOfflineSync() {
     pendingItems,
     isOnline,
     isSyncing,
-    addPendingItem,
+    addPendingAppend,
     syncItem,
     syncAll,
     removeItem,
     clearAll,
   };
 }
+

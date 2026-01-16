@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 // Mapeamento das planilhas para os nomes corretos
 const SHEET_NAMES: Record<string, string> = {
@@ -64,8 +65,19 @@ function formatRowData(sheetName: string, data: Record<string, unknown>): string
   });
 }
 
+function shouldQueueOffline(errorMessage: string) {
+  const msg = (errorMessage || '').toLowerCase();
+  return (
+    !navigator.onLine ||
+    msg.includes('failed to fetch') ||
+    msg.includes('network') ||
+    msg.includes('timeout')
+  );
+}
+
 export function useGoogleSheetsAppend() {
   const queryClient = useQueryClient();
+  const { addPendingAppend } = useOfflineSync();
 
   return useMutation({
     mutationFn: async ({ sheetName, rowData, alsoSaveTo }: AppendRowParams) => {
@@ -73,17 +85,19 @@ export function useGoogleSheetsAppend() {
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       // Generate ID if not provided
       const id = rowData.ID || rowData.id || generateId();
       const timestamp = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
       const hora = format(new Date(), 'HH:mm');
-      
+
+      const offlineMode = !navigator.onLine;
+
       // Prepare main row data
       const mainRowData = {
         ...rowData,
         ID: id,
-        Sincronizado: 'Sim',
+        Sincronizado: offlineMode ? 'Não' : 'Sim',
         Timestamp: timestamp,
         Hora: hora,
         Apontador: user?.email || 'Sistema',
@@ -92,8 +106,47 @@ export function useGoogleSheetsAppend() {
       const formattedData = formatRowData(sheetName, mainRowData);
       const actualSheetName = SHEET_NAMES[sheetName] || sheetName;
 
+      // If offline, queue and return success
+      if (offlineMode) {
+        addPendingAppend({
+          sheetKey: sheetName as any,
+          sheetName: actualSheetName,
+          rowData: formattedData,
+        });
+
+        // Queue secondary too
+        if (alsoSaveTo) {
+          const alsoId = generateId();
+          const alsoRowData = {
+            ...alsoSaveTo.rowData,
+            ID: alsoId,
+            Sincronizado: 'Não',
+            Timestamp: timestamp,
+            Hora: hora,
+            Apontador: user?.email || 'Sistema',
+            Origem_Carga: id,
+          };
+
+          const alsoFormattedData = formatRowData(alsoSaveTo.sheetName, alsoRowData);
+          const alsoActualSheetName = SHEET_NAMES[alsoSaveTo.sheetName] || alsoSaveTo.sheetName;
+
+          addPendingAppend({
+            sheetKey: alsoSaveTo.sheetName as any,
+            sheetName: alsoActualSheetName,
+            rowData: alsoFormattedData,
+          });
+        }
+
+        return {
+          success: true,
+          id,
+          queued: true,
+          message: 'Registro salvo offline e será sincronizado automaticamente',
+        };
+      }
+
       // Call the edge function to append
-      const { data: response, error } = await supabase.functions.invoke('google-sheets-append', {
+      const { error } = await supabase.functions.invoke('google-sheets-append', {
         body: {
           action: 'append',
           sheetName: actualSheetName,
@@ -102,8 +155,45 @@ export function useGoogleSheetsAppend() {
       });
 
       if (error) {
-        console.error('Error appending row:', error);
-        throw new Error(`Erro ao salvar: ${error.message}`);
+        const message = error.message || 'Erro ao salvar';
+        // fallback offline queue if this is a connectivity error
+        if (shouldQueueOffline(message)) {
+          addPendingAppend({
+            sheetKey: sheetName as any,
+            sheetName: actualSheetName,
+            rowData: formatRowData(sheetName, { ...mainRowData, Sincronizado: 'Não' }),
+          });
+
+          if (alsoSaveTo) {
+            const alsoId = generateId();
+            const alsoRowData = {
+              ...alsoSaveTo.rowData,
+              ID: alsoId,
+              Sincronizado: 'Não',
+              Timestamp: timestamp,
+              Hora: hora,
+              Apontador: user?.email || 'Sistema',
+              Origem_Carga: id,
+            };
+
+            const alsoFormattedData = formatRowData(alsoSaveTo.sheetName, alsoRowData);
+            const alsoActualSheetName = SHEET_NAMES[alsoSaveTo.sheetName] || alsoSaveTo.sheetName;
+            addPendingAppend({
+              sheetKey: alsoSaveTo.sheetName as any,
+              sheetName: alsoActualSheetName,
+              rowData: alsoFormattedData,
+            });
+          }
+
+          return {
+            success: true,
+            id,
+            queued: true,
+            message: 'Registro salvo offline e será sincronizado automaticamente',
+          };
+        }
+
+        throw new Error(`Erro ao salvar: ${message}`);
       }
 
       // If there's additional data to save (e.g., carga + lancamento)
@@ -138,14 +228,17 @@ export function useGoogleSheetsAppend() {
       return {
         success: true,
         id,
+        queued: false,
         message: 'Registro salvo com sucesso',
       };
     },
     onSuccess: (result, variables) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['sheets', variables.sheetName] });
+      queryClient.invalidateQueries({ queryKey: ['google-sheets', variables.sheetName] });
       if (variables.alsoSaveTo) {
         queryClient.invalidateQueries({ queryKey: ['sheets', variables.alsoSaveTo.sheetName] });
+        queryClient.invalidateQueries({ queryKey: ['google-sheets', variables.alsoSaveTo.sheetName] });
       }
       return result;
     },
@@ -155,6 +248,7 @@ export function useGoogleSheetsAppend() {
     },
   });
 }
+
 
 // Hook específico para apontamentos de carga
 export function useCargaAppend() {
