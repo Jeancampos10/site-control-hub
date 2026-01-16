@@ -27,12 +27,15 @@ import GestaoUsuarios from "./pages/GestaoUsuarios";
 import PainelApontador from "./pages/apontador/PainelApontador";
 
 // Mobile
+import AuthMobile from "./pages/mobile/AuthMobile";
 import PainelMobile from "./pages/mobile/PainelMobile";
 import CargaMobile from "./pages/mobile/CargaMobile";
 import LancamentoMobile from "./pages/mobile/LancamentoMobile";
 import PedreiraMobile from "./pages/mobile/PedreiraMobile";
 import PipasMobile from "./pages/mobile/PipasMobile";
 import CalMobile from "./pages/mobile/CalMobile";
+import PendenciasOffline from "./pages/mobile/PendenciasOffline";
+import HistoricoMobile from "./pages/mobile/HistoricoMobile";
 
 // Cadastros
 import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
@@ -84,7 +87,7 @@ function ProtectedMobileRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/m/login" replace />;
   }
 
   if (!isApproved && !isAdminPrincipal) {
@@ -105,6 +108,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             
+            {/* Mobile Login - Rota dedicada */}
+            <Route path="/m/login" element={<AuthMobile />} />
+            
             {/* Mobile Routes - Sem AppLayout para experiência app-like */}
             <Route path="/m" element={<ProtectedMobileRoute><PainelMobile /></ProtectedMobileRoute>} />
             <Route path="/m/carga" element={<ProtectedMobileRoute><CargaMobile /></ProtectedMobileRoute>} />
@@ -112,6 +118,8 @@ const App = () => (
             <Route path="/m/pedreira" element={<ProtectedMobileRoute><PedreiraMobile /></ProtectedMobileRoute>} />
             <Route path="/m/pipas" element={<ProtectedMobileRoute><PipasMobile /></ProtectedMobileRoute>} />
             <Route path="/m/cal" element={<ProtectedMobileRoute><CalMobile /></ProtectedMobileRoute>} />
+            <Route path="/m/pendencias" element={<ProtectedMobileRoute><PendenciasOffline /></ProtectedMobileRoute>} />
+            <Route path="/m/historico" element={<ProtectedMobileRoute><HistoricoMobile /></ProtectedMobileRoute>} />
             
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             
