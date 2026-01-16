@@ -24,6 +24,7 @@ import {
   Shovel,
   Settings,
   UserCog,
+  Smartphone,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -266,8 +267,25 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* App Mobile Destacado */}
+      <div className="px-3 pt-4 pb-2">
+        <Link
+          to="/m"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-[1.02]"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+            <Smartphone className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-semibold">App Mobile</p>
+            <p className="text-xs text-primary-foreground/80">Apontar em campo</p>
+          </div>
+        </Link>
+      </div>
+
       {/* Navigation */}
-      <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
+      <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
         <ul className="space-y-1">
           {mainNavigationItems.map((item) => (
             <NavMenuItem
