@@ -38,44 +38,16 @@ interface NavItem {
   children?: NavItem[];
 }
 
-// Menu estruturado do Painel do Apontador
-const painelApontadorMenu: NavItem = {
-  label: "Painel do Apontador",
+// Menu de Relatórios com links para páginas originais
+const relatoriosMenu: NavItem = {
+  label: "Operação",
   icon: ClipboardList,
   children: [
-    {
-      label: "Apropriação",
-      icon: Upload,
-      children: [
-        { label: "Carga", icon: Upload, href: "/apontador/carga" },
-        { label: "Lançamento", icon: Download, href: "/apontador/lancamento" },
-        { label: "Relatórios", icon: FileText, href: "/apontador/apropriacao/relatorios" },
-      ],
-    },
-    {
-      label: "Pedreira",
-      icon: Mountain,
-      children: [
-        { label: "Apontar Carregamento", icon: Truck, href: "/apontador/pedreira" },
-        { label: "Relatório", icon: FileText, href: "/apontador/pedreira/relatorio" },
-      ],
-    },
-    {
-      label: "Pipas",
-      icon: Droplets,
-      children: [
-        { label: "Apontar Viagens", icon: Droplets, href: "/apontador/pipas" },
-        { label: "Relatório", icon: FileText, href: "/apontador/pipas/relatorio" },
-      ],
-    },
-    {
-      label: "Cal",
-      icon: FlaskConical,
-      children: [
-        { label: "Registrar Movimento", icon: FlaskConical, href: "/apontador/cal" },
-        { label: "Relatório", icon: FileText, href: "/apontador/cal/relatorio" },
-      ],
-    },
+    { label: "Carga", icon: Upload, href: "/carga" },
+    { label: "Descarga", icon: Download, href: "/descarga" },
+    { label: "Pedreira", icon: Mountain, href: "/pedreira" },
+    { label: "Pipas", icon: Droplets, href: "/pipas" },
+    { label: "Cal", icon: FlaskConical, href: "/cal" },
   ],
 };
 
@@ -101,13 +73,12 @@ const cadastrosMenu: NavItem = {
   ],
 };
 
-// Itens de navegação principais (mantendo os existentes)
+// Itens de navegação principais (sem Painel do Apontador)
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  painelApontadorMenu,
+  relatoriosMenu,
   cadastrosMenu,
   { label: "Frota Geral", icon: Truck, href: "/frota" },
-  { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
 ];
 
@@ -149,8 +120,8 @@ function NavMenuItem({
   
   const isChildActive = hasChildren && hasActiveChild(item);
   
-  // Estilo especial para o Painel do Apontador
-  const isPainelApontador = item.label === "Painel do Apontador";
+  // Estilo especial para menu de Operação
+  const isOperacaoMenu = item.label === "Operação";
 
   if (hasChildren) {
     return (
@@ -161,13 +132,13 @@ function NavMenuItem({
             "w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
             "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             isChildActive && "text-sidebar-foreground",
-            isPainelApontador && "bg-gradient-to-r from-sidebar-primary/20 to-transparent border-l-2 border-sidebar-primary text-sidebar-foreground font-semibold",
+            isOperacaoMenu && "bg-gradient-to-r from-sidebar-primary/20 to-transparent border-l-2 border-sidebar-primary text-sidebar-foreground font-semibold",
             level > 0 && "py-2 text-xs"
           )}
           style={{ paddingLeft: `${12 + level * 12}px` }}
         >
           <span className="flex items-center gap-3">
-            <item.icon className={cn("h-4 w-4", isPainelApontador && "text-sidebar-primary")} />
+            <item.icon className={cn("h-4 w-4", isOperacaoMenu && "text-sidebar-primary")} />
             {item.label}
           </span>
           {isExpanded ? (
@@ -220,7 +191,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(["Painel do Apontador"]));
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(["Operação"]));
 
   const handleSignOut = async () => {
     await signOut();

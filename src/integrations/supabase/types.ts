@@ -422,6 +422,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           id: string
+          modulos_permitidos: string[] | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -430,6 +431,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           id?: string
+          modulos_permitidos?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -438,6 +440,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           id?: string
+          modulos_permitidos?: string[] | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
