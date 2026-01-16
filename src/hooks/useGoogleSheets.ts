@@ -12,7 +12,11 @@ type ProdutionSheetName =
   | 'apontamento_pedreira' 
   | 'apontamento_pipa'
   | 'mov_cal'
-  | 'estoque_cal';
+  | 'estoque_cal'
+  | 'escavadeiras'
+  | 'locais'
+  | 'materiais'
+  | 'fornecedores_cal';
 
 // Abastech (Combustível) sheets
 type AbastechSheetName = 
