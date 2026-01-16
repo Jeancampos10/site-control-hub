@@ -60,7 +60,7 @@ const menuCategories: MenuCategory[] = [
     subItems: [
       { label: "Carga", href: "/m/carga", icon: Upload },
       { label: "Lançamento", href: "/m/lancamento", icon: Download },
-      { label: "Relatórios", href: "/carga", icon: FileText },
+      { label: "Relatório", href: "/m/relatorio/apropriacao", icon: FileText },
     ],
   },
   {
@@ -72,7 +72,7 @@ const menuCategories: MenuCategory[] = [
     bgColor: "bg-orange-100",
     subItems: [
       { label: "Apontar Carregamento", href: "/m/pedreira", icon: Truck },
-      { label: "Relatório", href: "/pedreira", icon: FileText },
+      { label: "Relatório", href: "/m/relatorio/pedreira", icon: FileText },
     ],
   },
   {
@@ -84,7 +84,7 @@ const menuCategories: MenuCategory[] = [
     bgColor: "bg-blue-100",
     subItems: [
       { label: "Apontar Viagens", href: "/m/pipas", icon: Droplets },
-      { label: "Relatório", href: "/pipas", icon: FileText },
+      { label: "Relatório", href: "/m/relatorio/pipas", icon: FileText },
     ],
   },
   {
@@ -96,7 +96,7 @@ const menuCategories: MenuCategory[] = [
     bgColor: "bg-emerald-100",
     subItems: [
       { label: "Registrar Movimento", href: "/m/cal", icon: FlaskConical },
-      { label: "Relatório", href: "/cal", icon: FileText },
+      { label: "Relatório", href: "/m/relatorio/cal", icon: FileText },
     ],
   },
 ];
@@ -233,24 +233,14 @@ export default function PainelMobile() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-primary-foreground"
-              onClick={handleShareLink}
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-primary-foreground"
-              onClick={() => navigate('/')}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-primary-foreground"
+            onClick={handleShareLink}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
@@ -399,16 +389,6 @@ export default function PainelMobile() {
             )}
             {syncing ? 'SINCRONIZANDO...' : 'SINCRONIZAR DADOS'}
           </Button>
-          
-          <Link to="/carga">
-            <Button 
-              variant="outline" 
-              className="w-full h-14 justify-start gap-3 text-left font-semibold border-2 bg-white"
-            >
-              <History className="h-5 w-5 text-amber-500" />
-              VER RELATÓRIOS COMPLETOS
-            </Button>
-          </Link>
         </div>
 
         {/* Today's Summary - Only show allowed modules */}
@@ -443,18 +423,14 @@ export default function PainelMobile() {
             <Home className="h-5 w-5" />
             <span className="text-[10px] font-medium">Início</span>
           </Link>
-          <Link to="/carga" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
+          <Link to="/m/historico" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
             <History className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Relatórios</span>
+            <span className="text-[10px] font-medium">Histórico</span>
           </Link>
           <Link to="/m/carga" className="flex flex-col items-center gap-0.5 px-4 py-2">
             <div className="flex h-12 w-12 -mt-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
               <span className="text-2xl font-light">+</span>
             </div>
-          </Link>
-          <Link to="/m/historico" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
-            <History className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Histórico</span>
           </Link>
           <Link to="/m/pendencias" className="flex flex-col items-center gap-0.5 px-4 py-2 text-muted-foreground">
             <Clock className="h-5 w-5" />
