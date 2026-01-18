@@ -31,12 +31,17 @@ interface ApontadorRow {
 const formSchema = z.object({
   nome: z.string().trim().min(2, "Informe o nome").max(80, "Nome muito longo"),
   sobrenome: z.string().trim().max(120, "Sobrenome muito longo").optional().default(""),
-  whatsapp: z
-    .string()
-    .trim()
-    .max(30, "WhatsApp muito longo")
-    .optional()
-    .transform((v) => (v ? v : "")),
+  email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").max(100, "Senha muito longa"),
+  whatsapp: z.string().trim().max(30, "WhatsApp muito longo").optional().transform((v) => v || ""),
+  tipoUsuario: z.enum(["Apontador", "Sala Técnica", "Administrador"]),
+  ativo: z.boolean(),
+});
+
+const editFormSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o nome").max(80, "Nome muito longo"),
+  sobrenome: z.string().trim().max(120, "Sobrenome muito longo").optional().default(""),
+  whatsapp: z.string().trim().max(30, "WhatsApp muito longo").optional().transform((v) => v || ""),
   tipoUsuario: z.enum(["Apontador", "Sala Técnica", "Administrador"]),
   ativo: z.boolean(),
 });
@@ -48,7 +53,7 @@ function roleToTipoUsuario(role: RoleDb): TipoUsuarioUI {
 }
 
 function tipoUsuarioToRole(tipo: TipoUsuarioUI): RoleDb {
-  if (tipo === "Administrador") return "admin"; // admin_principal é reservado ao 1º usuário
+  if (tipo === "Administrador") return "admin";
   if (tipo === "Sala Técnica") return "admin";
   return "colaborador";
 }
@@ -60,11 +65,22 @@ export default function CadastroApontadores() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<ApontadorRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ApontadorRow | null>(null);
 
-  const [form, setForm] = useState({
+  const [newForm, setNewForm] = useState({
+    nome: "",
+    sobrenome: "",
+    email: "",
+    password: "",
+    whatsapp: "",
+    tipoUsuario: "Apontador" as TipoUsuarioUI,
+    ativo: true,
+  });
+
+  const [editForm, setEditForm] = useState({
     nome: "",
     sobrenome: "",
     whatsapp: "",
@@ -132,13 +148,13 @@ export default function CadastroApontadores() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", sobrenome: "", whatsapp: "", tipoUsuario: "Apontador", ativo: true });
+    setNewForm({ nome: "", sobrenome: "", email: "", password: "", whatsapp: "", tipoUsuario: "Apontador", ativo: true });
     setDialogOpen(true);
   };
 
   const openEdit = (row: ApontadorRow) => {
     setEditing(row);
-    setForm({
+    setEditForm({
       nome: row.nome || "",
       sobrenome: row.sobrenome || "",
       whatsapp: row.whatsapp || "",
@@ -148,30 +164,67 @@ export default function CadastroApontadores() {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleCreateNew = async () => {
     if (!canManage) {
       toast.error("Apenas administradores podem gerenciar apontadores");
       return;
     }
 
-    const parsed = formSchema.safeParse(form);
+    const parsed = formSchema.safeParse(newForm);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "Verifique os campos");
       return;
     }
 
-    // OBS: criar novo usuário (login/senha) não pode ser feito só pelo front.
-    // Fluxo correto: o apontador se cadastra na tela de login e o admin aprova aqui.
-    if (!editing) {
-      toast.message(
-        "Para adicionar um apontador: peça para ele se cadastrar (email/senha) na tela de login; depois você aprova aqui."
-      );
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          nome: parsed.data.nome,
+          sobrenome: parsed.data.sobrenome,
+          email: parsed.data.email,
+          password: parsed.data.password,
+          whatsapp: parsed.data.whatsapp,
+          tipoUsuario: parsed.data.tipoUsuario,
+        },
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        toast.error(error.message || "Erro ao criar apontador");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(data?.message || "Apontador cadastrado com sucesso!");
       setDialogOpen(false);
+      await fetchRows();
+    } catch (e: any) {
+      console.error("Erro ao criar apontador:", e);
+      toast.error(e?.message || "Erro ao criar apontador");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateExisting = async () => {
+    if (!canManage || !editing) {
+      toast.error("Apenas administradores podem gerenciar apontadores");
       return;
     }
 
+    const parsed = editFormSchema.safeParse(editForm);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Verifique os campos");
+      return;
+    }
+
+    setSaving(true);
     try {
-      // Atualiza perfil
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -183,7 +236,6 @@ export default function CadastroApontadores() {
 
       if (profileError) throw profileError;
 
-      // Atualiza role/approved
       const roleToSave = tipoUsuarioToRole(parsed.data.tipoUsuario);
       const { error: roleError } = await supabase
         .from("user_roles")
@@ -202,6 +254,8 @@ export default function CadastroApontadores() {
     } catch (e: any) {
       console.error("Erro ao salvar apontador:", e);
       toast.error(e?.message || "Erro ao salvar apontador");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -245,7 +299,7 @@ export default function CadastroApontadores() {
             <Users className="h-6 w-6 text-primary" />
             Cadastro de Apontadores
           </h1>
-          <p className="page-subtitle">Aprovar e gerenciar usuários do campo</p>
+          <p className="page-subtitle">Cadastrar e gerenciar usuários do campo</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -255,67 +309,98 @@ export default function CadastroApontadores() {
               Novo Apontador
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar Apontador" : "Novo Apontador"}</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              {!editing && (
-                <div className="text-sm text-muted-foreground">
-                  Para criar um novo apontador, ele deve se cadastrar (email/senha) na tela de login. Depois, você aprova e configura aqui.
+            {editing ? (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input value={editForm.nome} onChange={(e) => setEditForm((s) => ({ ...s, nome: e.target.value }))} placeholder="Nome" />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={form.nome} onChange={(e) => setForm((s) => ({ ...s, nome: e.target.value }))} placeholder="Nome" />
+                <div className="space-y-2">
+                  <Label>Sobrenome</Label>
+                  <Input value={editForm.sobrenome} onChange={(e) => setEditForm((s) => ({ ...s, sobrenome: e.target.value }))} placeholder="Sobrenome" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>WhatsApp</Label>
+                  <Input value={editForm.whatsapp} onChange={(e) => setEditForm((s) => ({ ...s, whatsapp: e.target.value }))} placeholder="(DD) 9xxxx-xxxx" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de Usuário</Label>
+                  <Select value={editForm.tipoUsuario} onValueChange={(v) => setEditForm((s) => ({ ...s, tipoUsuario: v as TipoUsuarioUI }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Apontador">Apontador</SelectItem>
+                      <SelectItem value="Sala Técnica">Sala Técnica</SelectItem>
+                      <SelectItem value="Administrador">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>Ativo</Label>
+                  <Switch checked={editForm.ativo} onCheckedChange={(v) => setEditForm((s) => ({ ...s, ativo: v }))} />
+                </div>
+
+                <Button className="w-full" onClick={handleUpdateExisting} disabled={saving}>
+                  {saving ? "Salvando..." : "Salvar"}
+                </Button>
               </div>
+            ) : (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Nome *</Label>
+                    <Input value={newForm.nome} onChange={(e) => setNewForm((s) => ({ ...s, nome: e.target.value }))} placeholder="Nome" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sobrenome</Label>
+                    <Input value={newForm.sobrenome} onChange={(e) => setNewForm((s) => ({ ...s, sobrenome: e.target.value }))} placeholder="Sobrenome" />
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Sobrenome</Label>
-                <Input
-                  value={form.sobrenome}
-                  onChange={(e) => setForm((s) => ({ ...s, sobrenome: e.target.value }))}
-                  placeholder="Sobrenome"
-                />
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input type="email" value={newForm.email} onChange={(e) => setNewForm((s) => ({ ...s, email: e.target.value }))} placeholder="email@exemplo.com" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Senha *</Label>
+                  <Input type="password" value={newForm.password} onChange={(e) => setNewForm((s) => ({ ...s, password: e.target.value }))} placeholder="Mínimo 6 caracteres" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>WhatsApp</Label>
+                  <Input value={newForm.whatsapp} onChange={(e) => setNewForm((s) => ({ ...s, whatsapp: e.target.value }))} placeholder="(DD) 9xxxx-xxxx" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de Usuário</Label>
+                  <Select value={newForm.tipoUsuario} onValueChange={(v) => setNewForm((s) => ({ ...s, tipoUsuario: v as TipoUsuarioUI }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Apontador">Apontador</SelectItem>
+                      <SelectItem value="Sala Técnica">Sala Técnica</SelectItem>
+                      <SelectItem value="Administrador">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button className="w-full" onClick={handleCreateNew} disabled={saving}>
+                  {saving ? "Cadastrando..." : "Cadastrar Apontador"}
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <Label>WhatsApp</Label>
-                <Input
-                  value={form.whatsapp}
-                  onChange={(e) => setForm((s) => ({ ...s, whatsapp: e.target.value }))}
-                  placeholder="(DD) 9xxxx-xxxx"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo de Usuário</Label>
-                <Select
-                  value={form.tipoUsuario}
-                  onValueChange={(v) => setForm((s) => ({ ...s, tipoUsuario: v as TipoUsuarioUI }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Apontador">Apontador</SelectItem>
-                    <SelectItem value="Sala Técnica">Sala Técnica</SelectItem>
-                    <SelectItem value="Administrador">Administrador</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label>Ativo</Label>
-                <Switch checked={form.ativo} onCheckedChange={(v) => setForm((s) => ({ ...s, ativo: v }))} />
-              </div>
-
-              <Button className="w-full" onClick={handleSave}>
-                Salvar
-              </Button>
-            </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -325,12 +410,7 @@ export default function CadastroApontadores() {
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Buscar por nome ou email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
           </div>
         </CardHeader>
@@ -369,13 +449,7 @@ export default function CadastroApontadores() {
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} title="Editar">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDisable(item)}
-                          title="Desativar"
-                          className="text-destructive"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleDisable(item)} title="Desativar" className="text-destructive">
                           <UserX className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -390,4 +464,3 @@ export default function CadastroApontadores() {
     </div>
   );
 }
-
