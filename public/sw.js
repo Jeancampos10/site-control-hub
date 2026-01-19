@@ -1,4 +1,4 @@
-const CACHE_NAME = 'apropriapp-v1';
+const CACHE_NAME = 'apropriapp-v2';
 const OFFLINE_URL = '/m';
 
 const urlsToCache = [
@@ -41,13 +41,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Network first, falling back to cache
+// Fetch event - Network first, falling back to cache (same-origin only)
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
   // Skip chrome-extension and other non-http(s) requests
   if (!event.request.url.startsWith('http')) return;
+
+  // IMPORTANT: don't intercept cross-origin requests (ex: backend/functions).
+  // Intercepting them and returning a synthetic 503 ("Offline") causes false negatives.
+  const reqUrl = new URL(event.request.url);
+  if (reqUrl.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)
