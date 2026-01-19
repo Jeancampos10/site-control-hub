@@ -99,6 +99,36 @@ async function fetchVirtualSheet<T>(sheetName: VirtualSheetName): Promise<T[]> {
   return [] as unknown as T[];
 }
 
+// Fetch with retry for transient 503 errors
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // If it's a 503, retry with exponential backoff
+      if (response.status === 503 && attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.log(`Got 503, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Fetch error, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Failed to fetch after retries');
+}
+
 export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName) {
   return useQuery({
     queryKey: ['google-sheets', sheetName],
@@ -111,7 +141,7 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
         return fetchVirtualSheet<T>(sheetName);
       }
 
-      const response = await fetch(
+      const response = await fetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
         {
           method: 'GET',
@@ -119,7 +149,8 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
+        3 // max retries
       );
 
       if (!response.ok) {
@@ -135,6 +166,7 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
     retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
