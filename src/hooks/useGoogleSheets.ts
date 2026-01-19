@@ -146,7 +146,10 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
         {
           method: 'GET',
           headers: {
+            // For functions calls, the platform expects the publishable key as apikey,
+            // and some environments also accept it as the Bearer token.
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             'Content-Type': 'application/json',
           },
         },
@@ -154,9 +157,21 @@ export function useGoogleSheets<T = Record<string, string>>(sheetName: SheetName
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error fetching sheet:', errorData);
-        throw new Error(errorData.error || 'Failed to fetch data');
+        let message = 'Failed to fetch data';
+        try {
+          const errorJson = await response.json();
+          message = errorJson?.error || message;
+        } catch {
+          try {
+            const errorText = await response.text();
+            if (errorText) message = errorText;
+          } catch {
+            // ignore
+          }
+        }
+
+        console.error('Error fetching sheet:', { sheetName, status: response.status, message });
+        throw new Error(message);
       }
 
       const result = await response.json();
