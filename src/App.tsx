@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 // Pages
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Carga from "./pages/Carga";
 import Descarga from "./pages/Descarga";
 import FrotaGeral from "./pages/frota/FrotaGeral";
@@ -122,7 +124,7 @@ const App = () => (
             <Route path="/m/historico" element={<ProtectedMobileRoute><HistoricoMobile /></ProtectedMobileRoute>} />
             
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<PublicLayout><Dashboard /></PublicLayout>} />
             
             {/* Painel do Apontador - Redirecionando para mobile */}
             <Route path="/apontador" element={<ProtectedRoute><PainelApontador /></ProtectedRoute>} />
