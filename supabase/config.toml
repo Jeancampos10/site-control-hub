@@ -2,3 +2,21 @@ project_id = "vecaxcezkecibumqwvxo"
 
 [functions.create-user]
 verify_jwt = false
+
+[functions.google-sheets]
+verify_jwt = false
+
+[functions.google-sheets-append]
+verify_jwt = false
+
+[functions.apply-bulk-update]
+verify_jwt = false
+
+[functions.sync-abastecimentos]
+verify_jwt = false
+
+[functions.sync-apontamento-pipa]
+verify_jwt = false
+
+[functions.sync-horimetros]
+verify_jwt = false
