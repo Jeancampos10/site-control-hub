@@ -122,6 +122,7 @@ const App = () => (
             <Route path="/m/historico" element={<ProtectedMobileRoute><HistoricoMobile /></ProtectedMobileRoute>} />
             
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             
             {/* Painel do Apontador - Redirecionando para mobile */}
             <Route path="/apontador" element={<ProtectedRoute><PainelApontador /></ProtectedRoute>} />
