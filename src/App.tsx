@@ -53,6 +53,7 @@ import CadastroEquipamentosGerais from "./pages/cadastros/CadastroEquipamentosGe
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
 import Manutencao from "./pages/controle/Manutencao";
 import Horimetros from "./pages/controle/Horimetros";
+import Programacao from "./pages/controle/Programacao";
 import Abastecimentos from "./pages/controle/Abastecimentos";
 
 const queryClient = new QueryClient();
@@ -149,6 +150,7 @@ const App = () => (
             <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
             <Route path="/controle/manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
             <Route path="/controle/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
+            <Route path="/controle/programacao" element={<ProtectedRoute><Programacao /></ProtectedRoute>} />
             <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
             
             {/* Páginas existentes */}
