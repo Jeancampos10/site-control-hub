@@ -46,6 +46,7 @@ import { useHorimetros, useHorimetrosSummary, Horimetro } from "@/hooks/useHorim
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { HorimetroEditDialog } from "@/components/horimetros/HorimetroEditDialog";
 import { HorimetroDeleteDialog } from "@/components/horimetros/HorimetroDeleteDialog";
+import { NovoHorimetroDialog } from "@/components/horimetros/NovoHorimetroDialog";
 import { DateFilter } from "@/components/shared/DateFilter";
 
 type DateQuickFilter = "ultimo" | "hoje" | "ontem" | "data" | "range";
