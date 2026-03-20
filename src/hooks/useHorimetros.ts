@@ -15,60 +15,49 @@ export interface Horimetro {
   km_anterior: number | null;
   km_atual: number | null;
   horas_trabalhadas: number;
+  obra: string;
+  observacao: string;
 }
 
 export interface HorimetroFormData {
   id?: string;
   data: string;
-  categoria: string;
+  categoria?: string;
   veiculo: string;
-  descricao: string;
-  operador: string;
-  empresa: string;
+  descricao?: string;
+  operador?: string;
+  empresa?: string;
   horimetro_anterior: number | null;
   horimetro_atual: number | null;
-  km_anterior: number | null;
-  km_atual: number | null;
+  km_anterior?: number | null;
+  km_atual?: number | null;
+  obra?: string;
+  observacao?: string;
 }
 
-// Transform raw sheet data to our Horimetro interface
-function transformSheetData(row: Record<string, string>): Horimetro {
-  const parseNumber = (val: string): number | null => {
-    if (!val || val.trim() === '') return null;
-    // Handle Brazilian number format (1.234,56)
-    const cleaned = val.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? null : num;
-  };
-
-  // Support both old and new column names
-  const horAnterior = parseNumber(row['Horimetro Anterior'] || row['Hor_Anterior'] || '');
-  const horAtual = parseNumber(row['Horimetro Atual'] || row['Hor_Atual'] || '');
-  
-  // Calculate hours worked
-  let horasTrabalhadas = 0;
-  if (horAnterior !== null && horAtual !== null && horAnterior > 0) {
-    horasTrabalhadas = horAtual - horAnterior;
-  }
-  // Also check for pre-calculated "Intervalo H"
-  const intervaloH = parseNumber(row['Intervalo H'] || '');
-  if (intervaloH !== null && intervaloH > 0) {
-    horasTrabalhadas = intervaloH;
+function transformDbRow(row: any): Horimetro {
+  const horAnt = row.horimetro_anterior != null ? Number(row.horimetro_anterior) : null;
+  const horAtual = row.horimetro_atual != null ? Number(row.horimetro_atual) : null;
+  let horas = row.horas_trabalhadas != null ? Number(row.horas_trabalhadas) : 0;
+  if (!horas && horAnt !== null && horAtual !== null) {
+    horas = horAtual - horAnt;
   }
 
   return {
-    id: row['id'] || row['ID'] || `${(row['Data'] || '').trim()}_${row['Veiculo'] || ''}`,
-    data: (row['Data'] || '').trim(),
-    categoria: row['Categoria'] || '',
-    veiculo: row['Veiculo'] || '',
-    descricao: row['Descricao'] || '',
-    operador: row['Operador'] || '',
-    empresa: row['Empresa'] || '',
-    horimetro_anterior: horAnterior,
+    id: row.id,
+    data: row.data || '',
+    categoria: '',
+    veiculo: row.veiculo || '',
+    descricao: row.descricao_veiculo || '',
+    operador: row.operador || '',
+    empresa: '',
+    horimetro_anterior: horAnt,
     horimetro_atual: horAtual,
-    km_anterior: parseNumber(row['Km Anterior'] || row['Km_Anterior'] || ''),
-    km_atual: parseNumber(row['Km Atual'] || row['Km_Atual'] || ''),
-    horas_trabalhadas: horasTrabalhadas,
+    km_anterior: null,
+    km_atual: null,
+    horas_trabalhadas: horas,
+    obra: row.obra || '',
+    observacao: row.observacao || '',
   };
 }
 
@@ -76,142 +65,90 @@ export function useHorimetros() {
   return useQuery({
     queryKey: ['horimetros'],
     queryFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=Horimetros`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
-      );
+      const { data, error } = await supabase
+        .from('horimetros')
+        .select('*')
+        .order('data', { ascending: false });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      const horimetros = (result.data || []).map(transformSheetData);
-      
-      // Sort by date descending
-      horimetros.sort((a: Horimetro, b: Horimetro) => {
-        const parseDate = (dateStr: string) => {
-          const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (match) {
-            return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
-          }
-          return new Date(0);
-        };
-        return parseDate(b.data).getTime() - parseDate(a.data).getTime();
-      });
-
-      return horimetros as Horimetro[];
+      if (error) throw new Error(error.message);
+      return (data || []).map(transformDbRow) as Horimetro[];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 }
 
-// Hook to update a horimetro
 export function useUpdateHorimetro() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: HorimetroFormData) => {
-      const response = await supabase.functions.invoke('sync-horimetros', {
-        body: { 
-          action: 'update', 
-          data: {
-            id: data.id,
-            data: data.data,
-            categoria: data.categoria,
-            veiculo: data.veiculo,
-            descricao: data.descricao,
-            operador: data.operador,
-            empresa: data.empresa,
-            horimetro_anterior: data.horimetro_anterior,
-            horimetro_atual: data.horimetro_atual,
-            km_anterior: data.km_anterior,
-            km_atual: data.km_atual,
-          },
-          rowId: data.id,
-        },
-      });
+    mutationFn: async (formData: HorimetroFormData) => {
+      const horas = (formData.horimetro_atual && formData.horimetro_anterior)
+        ? formData.horimetro_atual - formData.horimetro_anterior
+        : null;
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      const payload = {
+        data: formData.data,
+        veiculo: formData.veiculo,
+        descricao_veiculo: formData.descricao,
+        operador: formData.operador,
+        horimetro_anterior: formData.horimetro_anterior || 0,
+        horimetro_atual: formData.horimetro_atual || 0,
+        horas_trabalhadas: horas,
+        obra: formData.obra,
+        observacao: formData.observacao,
+      };
+
+      if (formData.id) {
+        const { error } = await supabase.from('horimetros').update(payload).eq('id', formData.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase.from('horimetros').insert(payload);
+        if (error) throw new Error(error.message);
       }
-
-      return response.data;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['horimetros'] });
-      toast.success('Horímetro atualizado com sucesso!');
+      toast.success('Horímetro salvo com sucesso!');
     },
     onError: (error) => {
-      console.error('Update error:', error);
-      toast.error(`Erro ao atualizar: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     },
   });
 }
 
-// Hook to delete a horimetro
 export function useDeleteHorimetro() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (rowId: string) => {
-      const response = await supabase.functions.invoke('sync-horimetros', {
-        body: { action: 'delete', rowId },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      return response.data;
+      const { error } = await supabase.from('horimetros').delete().eq('id', rowId);
+      if (error) throw new Error(error.message);
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['horimetros'] });
-      toast.success('Horímetro excluído com sucesso!');
+      toast.success('Horímetro excluído!');
     },
     onError: (error) => {
-      console.error('Delete error:', error);
-      toast.error(`Erro ao excluir: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     },
   });
 }
 
-// Hook to get summary statistics
 export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: string | null) {
-  const filteredData = selectedDate 
-    ? horimetros.filter(h => {
-        const hDate = h.data.trim();
-        const normalizeDate = (d: string) => {
-          const match = d.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-          if (match) {
-            return `${match[1].padStart(2, '0')}/${match[2].padStart(2, '0')}/${match[3]}`;
-          }
-          return d;
-        };
-        return normalizeDate(hDate) === normalizeDate(selectedDate);
-      })
+  const filteredData = selectedDate
+    ? horimetros.filter(h => h.data === selectedDate)
     : horimetros;
 
   const totalHoras = filteredData.reduce((acc, h) => acc + h.horas_trabalhadas, 0);
   const equipamentosAtivos = filteredData.length;
   const mediaHoras = equipamentosAtivos > 0 ? totalHoras / equipamentosAtivos : 0;
-  
+
   const byEmpresa: Record<string, { horas: number; equipamentos: number }> = {};
   filteredData.forEach(h => {
-    const key = h.empresa || 'Sem Empresa';
-    if (!byEmpresa[key]) {
-      byEmpresa[key] = { horas: 0, equipamentos: 0 };
-    }
+    const key = h.empresa || h.obra || 'Sem Info';
+    if (!byEmpresa[key]) byEmpresa[key] = { horas: 0, equipamentos: 0 };
     byEmpresa[key].horas += h.horas_trabalhadas;
     byEmpresa[key].equipamentos += 1;
   });
