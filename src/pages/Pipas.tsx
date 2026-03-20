@@ -47,7 +47,7 @@ export default function Pipas() {
   const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
   
   const createMutation = useCreateApontamentoPipa();
-  const syncMutation = useSyncPendingApontamentos();
+  
 
   // Filter data by selected date
   const filteredData = useMemo(() => {
