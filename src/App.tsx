@@ -10,37 +10,15 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Carga from "./pages/Carga";
-import Descarga from "./pages/Descarga";
 import FrotaGeral from "./pages/frota/FrotaGeral";
-import Cal from "./pages/Cal";
-import Pedreira from "./pages/Pedreira";
-import Pipas from "./pages/Pipas";
-import Apontadores from "./pages/Apontadores";
-import Colaboradores from "./pages/Colaboradores";
-import Relatorios from "./pages/Relatorios";
-import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
-
-// Painel do Apontador (mantido para compatibilidade)
-import PainelApontador from "./pages/apontador/PainelApontador";
-
-// Mobile
-import AuthMobile from "./pages/mobile/AuthMobile";
-import PainelMobile from "./pages/mobile/PainelMobile";
-import CargaMobile from "./pages/mobile/CargaMobile";
-import LancamentoMobile from "./pages/mobile/LancamentoMobile";
-import PedreiraMobile from "./pages/mobile/PedreiraMobile";
-import PipasMobile from "./pages/mobile/PipasMobile";
-import CalMobile from "./pages/mobile/CalMobile";
-import PendenciasOffline from "./pages/mobile/PendenciasOffline";
-import HistoricoMobile from "./pages/mobile/HistoricoMobile";
+import Relatorios from "./pages/Relatorios";
+import Alertas from "./pages/Alertas";
 
 // Cadastros
-import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
 import CadastroLocais from "./pages/cadastros/CadastroLocais";
 import CadastroMateriais from "./pages/cadastros/CadastroMateriais";
 import CadastroFornecedores from "./pages/cadastros/CadastroFornecedores";
@@ -83,29 +61,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-// Protected route for mobile (without AppLayout)
-function ProtectedMobileRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isApproved, isAdminPrincipal } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return <Navigate to="/m/login" replace />;
-  }
-
-  if (!isApproved && !isAdminPrincipal) {
-    return <Navigate to="/pending-approval" replace />;
-  }
-  
-  return <>{children}</>;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -117,27 +72,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
             
-            {/* Mobile Login - Rota dedicada */}
-            <Route path="/m/login" element={<AuthMobile />} />
-            
-            {/* Mobile Routes - Sem AppLayout para experiência app-like */}
-            <Route path="/m" element={<ProtectedMobileRoute><PainelMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/carga" element={<ProtectedMobileRoute><CargaMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/lancamento" element={<ProtectedMobileRoute><LancamentoMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/pedreira" element={<ProtectedMobileRoute><PedreiraMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/pipas" element={<ProtectedMobileRoute><PipasMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/cal" element={<ProtectedMobileRoute><CalMobile /></ProtectedMobileRoute>} />
-            <Route path="/m/pendencias" element={<ProtectedMobileRoute><PendenciasOffline /></ProtectedMobileRoute>} />
-            <Route path="/m/historico" element={<ProtectedMobileRoute><HistoricoMobile /></ProtectedMobileRoute>} />
-            
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/dashboard" element={<PublicLayout><Dashboard /></PublicLayout>} />
             
-            {/* Painel do Apontador - Redirecionando para mobile */}
-            <Route path="/apontador" element={<ProtectedRoute><PainelApontador /></ProtectedRoute>} />
-            
             {/* Cadastros */}
-            <Route path="/cadastros/apontadores" element={<ProtectedRoute><CadastroApontadores /></ProtectedRoute>} />
             <Route path="/cadastros/locais" element={<ProtectedRoute><CadastroLocais /></ProtectedRoute>} />
             <Route path="/cadastros/materiais" element={<ProtectedRoute><CadastroMateriais /></ProtectedRoute>} />
             <Route path="/cadastros/fornecedores" element={<ProtectedRoute><CadastroFornecedores /></ProtectedRoute>} />
@@ -153,15 +91,8 @@ const App = () => (
             <Route path="/controle/programacao" element={<ProtectedRoute><Programacao /></ProtectedRoute>} />
             <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
             
-            {/* Páginas existentes */}
-            <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
-            <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
+            {/* Outras */}
             <Route path="/frota" element={<ProtectedRoute><FrotaGeral /></ProtectedRoute>} />
-            <Route path="/cal" element={<ProtectedRoute><Cal /></ProtectedRoute>} />
-            <Route path="/pedreira" element={<ProtectedRoute><Pedreira /></ProtectedRoute>} />
-            <Route path="/pipas" element={<ProtectedRoute><Pipas /></ProtectedRoute>} />
-            <Route path="/apontadores" element={<ProtectedRoute><Apontadores /></ProtectedRoute>} />
-            <Route path="/colaboradores" element={<ProtectedRoute><Colaboradores /></ProtectedRoute>} />
             <Route path="/gestao-usuarios" element={<ProtectedRoute><GestaoUsuarios /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/alertas" element={<ProtectedRoute><Alertas /></ProtectedRoute>} />

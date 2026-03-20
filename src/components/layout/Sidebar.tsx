@@ -3,14 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Truck,
-  Download,
-  Upload,
   Users,
   FileText,
   Bell,
-  HardHat,
-  Droplets,
-  Mountain,
   LogOut,
   Menu,
   Wrench,
@@ -19,17 +14,14 @@ import {
   Gauge,
   Clock,
   X,
-  FlaskConical,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
   MapPin,
   Package,
   Building2,
   Shovel,
   Settings,
   UserCog,
-  Smartphone,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -43,25 +35,11 @@ interface NavItem {
   children?: NavItem[];
 }
 
-// Menu de Relatórios com links para páginas originais
-const relatoriosMenu: NavItem = {
-  label: "Operação",
-  icon: ClipboardList,
-  children: [
-    { label: "Carga", icon: Upload, href: "/carga" },
-    { label: "Descarga", icon: Download, href: "/descarga" },
-    { label: "Pedreira", icon: Mountain, href: "/pedreira" },
-    { label: "Pipas", icon: Droplets, href: "/pipas" },
-    { label: "Cal", icon: FlaskConical, href: "/cal" },
-  ],
-};
-
 // Menu de Cadastros (Dados Mestres)
 const cadastrosMenu: NavItem = {
   label: "Cadastros",
   icon: Settings,
   children: [
-    { label: "Apontadores", icon: UserCog, href: "/cadastros/apontadores" },
     { label: "Locais", icon: MapPin, href: "/cadastros/locais" },
     { label: "Materiais", icon: Package, href: "/cadastros/materiais" },
     { label: "Fornecedores CAL", icon: Building2, href: "/cadastros/fornecedores" },
@@ -92,13 +70,12 @@ const controleMenu: NavItem = {
   ],
 };
 
-// Itens de navegação principais (sem Painel do Apontador)
+// Itens de navegação principais
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  relatoriosMenu,
   controleMenu,
-  cadastrosMenu,
   { label: "Frota Geral", icon: Truck, href: "/frota" },
+  cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
 ];
@@ -153,13 +130,12 @@ function NavMenuItem({
             "w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
             "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             isChildActive && "text-sidebar-foreground",
-            isOperacaoMenu && "bg-gradient-to-r from-sidebar-primary/20 to-transparent border-l-2 border-sidebar-primary text-sidebar-foreground font-semibold",
             level > 0 && "py-2 text-xs"
           )}
           style={{ paddingLeft: `${12 + level * 12}px` }}
         >
           <span className="flex items-center gap-3">
-            <item.icon className={cn("h-4 w-4", isOperacaoMenu && "text-sidebar-primary")} />
+            <item.icon className="h-4 w-4" />
             {item.label}
           </span>
           {isExpanded ? (
@@ -254,26 +230,9 @@ export function Sidebar() {
           className="h-10 object-contain"
         />
         <div>
-          <h1 className="text-base font-bold text-sidebar-foreground">ApropriAPP</h1>
-          <p className="text-[10px] text-sidebar-foreground/60">Gestão Inteligente</p>
+          <h1 className="text-base font-bold text-sidebar-foreground">ControleAERO</h1>
+          <p className="text-[10px] text-sidebar-foreground/60">Controle de Equipamentos</p>
         </div>
-      </div>
-
-      {/* App Mobile Destacado */}
-      <div className="px-3 pt-4 pb-2">
-        <Link
-          to="/m"
-          onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-[1.02]"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-            <Smartphone className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-semibold">App Mobile</p>
-            <p className="text-xs text-primary-foreground/80">Apontar em campo</p>
-          </div>
-        </Link>
       </div>
 
       {/* Navigation */}

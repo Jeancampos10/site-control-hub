@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { HardHat, ArrowRight, LayoutDashboard, Users, FileText, Bell } from "lucide-react";
+import { HardHat, ArrowRight, LayoutDashboard, Wrench, FileText, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Dashboard from "./Dashboard";
 
@@ -18,9 +18,9 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
 
   const quickLinks = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-    { label: "Colaboradores", icon: Users, href: "/colaboradores" },
+    { label: "Controle", icon: Wrench, href: "/controle" },
+    { label: "Frota Geral", icon: Truck, href: "/frota" },
     { label: "Relatórios", icon: FileText, href: "/relatorios" },
-    { label: "Alertas", icon: Bell, href: "/alertas" },
   ];
 
   return (
