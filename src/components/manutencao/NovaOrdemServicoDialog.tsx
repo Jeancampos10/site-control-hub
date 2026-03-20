@@ -168,40 +168,6 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
         observacoes: observacoes || undefined,
       });
 
-      // 2. Sync to Google Sheets
-      try {
-        await supabase.functions.invoke('sync-manutencoes', {
-          body: {
-            action: 'append',
-            data: {
-              data_entrada: dataEntrada,
-              hora_entrada: horaEntrada,
-              data_saida: dataSaida,
-              hora_saida: horaSaida,
-              veiculo,
-              descricao: veiculoInfo?.Descricao || '',
-              categoria: veiculoInfo?.Categoria || '',
-              empresa: veiculoInfo?.Empresa || '',
-              tipo,
-              prioridade,
-              status,
-              problema: problemaRelatado,
-              tipo_problema: tipoProblema,
-              solucao,
-              mecanico,
-              horimetro_km: horimetroAtual || kmAtual,
-              horas_estimadas: horasEstimadas,
-              horas_realizadas: horasRealizadas,
-              custo_estimado: custoEstimado,
-              custo_real: custoReal,
-              observacoes,
-            },
-          },
-        });
-      } catch (sheetErr) {
-        console.error('Erro ao sincronizar planilha:', sheetErr);
-        toast.warning('Salvo no banco, mas falhou ao sincronizar com a planilha');
-      }
 
       onOpenChange(false);
     } catch {

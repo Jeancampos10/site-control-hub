@@ -157,30 +157,6 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         observacao,
       });
 
-      // 2. Sync to Google Sheets
-      try {
-        const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
-        await supabase.functions.invoke('sync-horimetros', {
-          body: {
-            action: 'append',
-            data: {
-              data: data,
-              veiculo,
-              categoria: veiculoInfo?.Categoria || 'Equipamento',
-              descricao: veiculoInfo?.Descricao || '',
-              empresa: veiculoInfo?.Empresa || '',
-              operador,
-              horimetro_anterior: horimetroAnterior,
-              horimetro_atual: horimetroAtual,
-              km_anterior: parseNumber(lastKm),
-              km_atual: parseNumber(km),
-            },
-          },
-        });
-      } catch (sheetErr) {
-        console.error('Erro ao sincronizar planilha:', sheetErr);
-        toast.warning('Salvo no banco, mas falhou ao sincronizar com a planilha');
-      }
 
       onOpenChange(false);
     } catch (err) {

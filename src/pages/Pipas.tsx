@@ -134,7 +134,7 @@ export default function Pipas() {
             </TooltipProvider>
           )}
           
-          <TesteConexaoDialog />
+          
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar

@@ -178,49 +178,6 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
         },
       });
 
-      // 2. Sync to Google Sheets
-      try {
-        await supabase.functions.invoke('sync-abastecimentos', {
-          body: {
-            action: 'append',
-            source,
-            data: {
-              data: data,
-              hora,
-              tipo,
-              veiculo,
-              categoria: veiculoInfo?.Categoria || '',
-              potencia: veiculoInfo?.Potencia || '',
-              descricao: veiculoInfo?.Descricao || '',
-              motorista,
-              empresa: veiculoInfo?.Empresa || '',
-              obra: veiculoInfo?.Obra || '',
-              horimetro_anterior: parseNum(horimetroAnterior),
-              horimetro_atual: parseNum(horimetroAtual),
-              km_anterior: parseNum(kmAnterior),
-              km_atual: parseNum(kmAtual),
-              quantidade: parseNum(quantidade),
-              tipo_combustivel: tipoCombustivel,
-              local: source,
-              arla,
-              quantidade_arla: parseNum(quantidadeArla),
-              fornecedor,
-              nota_fiscal: notaFiscal,
-              valor_unitario: parseNum(valorUnitario),
-              valor_total: parseNum(valorTotal),
-              observacao,
-              lubrificar: lubrificacao,
-              completar_oleo: !!oleo,
-              tipo_oleo: oleo,
-              sopra_filtro: !!filtro,
-            },
-          },
-        });
-      } catch (sheetErr) {
-        console.error('Erro sync planilha:', sheetErr);
-        toast.warning('Salvo no banco, mas falhou ao sincronizar com a planilha');
-      }
-
       toast.success('Abastecimento registrado com sucesso!');
       onOpenChange(false);
     } catch (err: any) {
