@@ -35,7 +35,10 @@ type AbastechSheetName =
   | 'Estoque_Arla'
   | 'Veiculos'
   | 'Horimetros'
-  | 'Ordem_Servico';
+  | 'Ordem_Servico'
+  | 'Frota Geral'
+  | 'Abastecimentos'
+  | 'Manutencoes';
 
 export type SheetName = ProdutionSheetName | VirtualSheetName | AbastechSheetName;
 
