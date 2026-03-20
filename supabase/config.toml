@@ -11,15 +11,3 @@ verify_jwt = false
 
 [functions.apply-bulk-update]
 verify_jwt = false
-
-[functions.sync-abastecimentos]
-verify_jwt = false
-
-[functions.sync-apontamento-pipa]
-verify_jwt = false
-
-[functions.sync-horimetros]
-verify_jwt = false
-
-[functions.sync-manutencoes]
-verify_jwt = false

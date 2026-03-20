@@ -24,14 +24,14 @@ import {
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity } from "lucide-react";
 import { useGoogleSheets, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
-import { useApontamentosPipa, useCreateApontamentoPipa, useSyncPendingApontamentos } from "@/hooks/useApontamentosPipa";
+import { useApontamentosPipa, useCreateApontamentoPipa } from "@/hooks/useApontamentosPipa";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { NovoApontamentoDialog } from "@/components/pipas/NovoApontamentoDialog";
 import { ApontamentoEditDialog } from "@/components/pipas/ApontamentoEditDialog";
 import { ApontamentoDeleteDialog } from "@/components/pipas/ApontamentoDeleteDialog";
-import { TesteConexaoDialog } from "@/components/pipas/TesteConexaoDialog";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
@@ -47,7 +47,7 @@ export default function Pipas() {
   const { data: pipasData, isLoading: isLoadingPipas } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
   
   const createMutation = useCreateApontamentoPipa();
-  const syncMutation = useSyncPendingApontamentos();
+  
 
   // Filter data by selected date
   const filteredData = useMemo(() => {
@@ -56,11 +56,6 @@ export default function Pipas() {
     return dbData.filter(row => row.data === selectedDateStr);
   }, [dbData, selectedDate]);
 
-  // Count pending sync
-  const pendingSyncCount = useMemo(() => {
-    if (!dbData) return 0;
-    return dbData.filter(row => !row.sincronizado_sheets).length;
-  }, [dbData]);
 
   // Calculate KPIs from filtered data
   const pipasAtivas = new Set(filteredData?.map(row => row.prefixo).filter(Boolean)).size;
@@ -75,31 +70,7 @@ export default function Pipas() {
   const isLoading = isLoadingDb || isLoadingPipas;
   const error = errorDb;
 
-  // Importa da planilha automaticamente na primeira vez (caso o banco esteja vazio)
-  useEffect(() => {
-    if (importAttempted) return;
-    if (isLoadingDb) return;
-    if (!dbData) return;
-    if (dbData.length > 0) return;
-
-    setImportAttempted(true);
-
-    supabase.functions
-      .invoke('sync-apontamento-pipa', { body: { action: 'import' } })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Import error:', error);
-          return;
-        }
-
-        if (data?.imported > 0) {
-          toast.success(`${data.imported} registros importados da planilha.`);
-        }
-      })
-      .finally(() => {
-        refetch();
-      });
-  }, [importAttempted, isLoadingDb, dbData, refetch]);
+  // No longer importing from Google Sheets - data is 100% in the database
 
   // Handler to save new apontamento
   const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
@@ -136,29 +107,8 @@ export default function Pipas() {
         <div className="flex gap-2 flex-wrap">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           
-          {pendingSyncCount > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2 border-warning text-warning hover:bg-warning/10"
-                    onClick={() => syncMutation.mutate()}
-                    disabled={syncMutation.isPending}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-                    Sincronizar ({pendingSyncCount})
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{pendingSyncCount} registro(s) pendente(s) de sincronização com a planilha</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           
-          <TesteConexaoDialog />
+          
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
             Exportar

@@ -28,30 +28,6 @@ export interface ApontamentoPipaFormData {
   n_viagens: number;
 }
 
-// Sync com a planilha (via backend function)
-async function syncWithSheets(
-  action: 'append' | 'update' | 'delete' | 'import',
-  data: any,
-  recordId?: string
-) {
-  try {
-    const { data: result, error } = await supabase.functions.invoke('sync-apontamento-pipa', {
-      body: { action, data, recordId },
-    });
-
-    if (error) return { synced: false, error };
-
-    // A função pode retornar 200 com {success:false,...}
-    if (result?.success === false || result?.synced === false) {
-      return { ...result, synced: false };
-    }
-
-    return result;
-  } catch (error) {
-    return { synced: false, error };
-  }
-}
-
 export function useApontamentosPipa() {
   return useQuery({
     queryKey: ['apontamentos-pipa'],
@@ -74,7 +50,6 @@ export function useCreateApontamentoPipa() {
 
   return useMutation({
     mutationFn: async (formData: ApontamentoPipaFormData) => {
-      // First save to database
       const { data, error } = await supabase
         .from('apontamentos_pipa')
         .insert({
@@ -85,30 +60,11 @@ export function useCreateApontamentoPipa() {
           motorista: formData.motorista || null,
           capacidade: formData.capacidade || null,
           n_viagens: formData.n_viagens,
-          sincronizado_sheets: false,
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      // Then sync with Google Sheets in background
-      syncWithSheets('append', {
-        data: formData.data,
-        prefixo: formData.prefixo,
-        descricao: formData.descricao || '',
-        empresa: formData.empresa || '',
-        motorista: formData.motorista || '',
-        capacidade: formData.capacidade || '',
-        n_viagens: formData.n_viagens,
-      }, data.id).then(result => {
-        if (result?.synced) {
-          console.log('Synced with Google Sheets');
-        } else {
-          console.warn('Failed to sync with Google Sheets');
-        }
-      });
-
       return data;
     },
     onSuccess: () => {
@@ -127,12 +83,10 @@ export function useUpdateApontamentoPipa() {
 
   return useMutation({
     mutationFn: async ({ id, formData }: { id: string; formData: Partial<ApontamentoPipaFormData> }) => {
-      // Update in database
       const { data, error } = await supabase
         .from('apontamentos_pipa')
         .update({
           ...formData,
-          sincronizado_sheets: false,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -140,22 +94,6 @@ export function useUpdateApontamentoPipa() {
         .single();
 
       if (error) throw error;
-
-      // Sync com a planilha em background
-      syncWithSheets(
-        'update',
-        {
-          data: data.data,
-          prefixo: data.prefixo,
-          descricao: data.descricao || '',
-          empresa: data.empresa || '',
-          motorista: data.motorista || '',
-          capacidade: data.capacidade || '',
-          n_viagens: data.n_viagens,
-        },
-        data.id
-      );
-
       return data;
     },
     onSuccess: () => {
@@ -174,9 +112,6 @@ export function useDeleteApontamentoPipa() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Tenta remover da planilha primeiro (best-effort)
-      await syncWithSheets('delete', {}, id);
-
       const { error } = await supabase
         .from('apontamentos_pipa')
         .delete()
@@ -191,59 +126,6 @@ export function useDeleteApontamentoPipa() {
     onError: (error) => {
       console.error('Error deleting apontamento:', error);
       toast.error("Erro ao excluir apontamento");
-    },
-  });
-}
-
-// Hook to sync all pending records
-export function useSyncPendingApontamentos() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const { data: pending, error } = await supabase
-        .from('apontamentos_pipa')
-        .select('*')
-        .eq('sincronizado_sheets', false);
-
-      if (error) throw error;
-      if (!pending || pending.length === 0) return { synced: 0 };
-
-      let syncedCount = 0;
-       for (const record of pending) {
-         const payload = {
-           data: record.data,
-           prefixo: record.prefixo,
-           descricao: record.descricao || '',
-           empresa: record.empresa || '',
-           motorista: record.motorista || '',
-           capacidade: record.capacidade || '',
-           n_viagens: record.n_viagens,
-         };
-
-         // Upsert na planilha: tenta update por ID; se não achar, faz append
-         let result: any = await syncWithSheets('update', payload, record.id);
-         const errText = String(result?.error || '').toLowerCase();
-         if (!result?.synced && errText.includes('não encontrado')) {
-           result = await syncWithSheets('append', payload, record.id);
-         }
-
-         if (result?.synced) syncedCount++;
-       }
-
-      return { synced: syncedCount, total: pending.length };
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['apontamentos-pipa'] });
-      if (result.synced > 0) {
-        toast.success(`${result.synced} de ${result.total} registros sincronizados!`);
-      } else {
-        toast.info("Nenhum registro pendente para sincronizar");
-      }
-    },
-    onError: (error) => {
-      console.error('Error syncing:', error);
-      toast.error("Erro ao sincronizar registros");
     },
   });
 }
