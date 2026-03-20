@@ -1,292 +1,398 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Fuel, 
-  Droplet, 
-  Wrench, 
-  AlertTriangle, 
-  FileText, 
-  Truck, 
-  HardHat, 
-  Activity, 
-  Box, 
-  Building2,
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  Fuel,
+  Droplet,
+  Wrench,
+  AlertTriangle,
+  Truck,
   Clock,
-  ShieldAlert,
-  Gauge,
-  ChevronRight,
+  CheckCircle,
+  Search,
+  CalendarDays,
+  RefreshCw,
+  TrendingUp,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  BarChart3,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { KPICard } from "@/components/dashboard/KPICard";
-import { ProductionChart } from "@/components/dashboard/ProductionChart";
-import { LocalChart } from "@/components/dashboard/LocalChart";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { DataTable } from "@/components/dashboard/DataTable";
-import { EmpresaDetailDialog } from "@/components/dashboard/EmpresaDetailDialog";
-import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
-
-// Mock data for alerts - replace with real data later
-const alertItems = [
-  { label: "Revisões vencidas", count: 3, severity: "high" as const },
-  { label: "Tacógrafo", count: 1, severity: "medium" as const },
-  { label: "Licenças a vencer", count: 2, severity: "high" as const },
-  { label: "Consumo fora do padrão (Diesel)", count: 4, severity: "medium" as const },
-  { label: "Consumo fora do padrão (Lubrif.)", count: 1, severity: "low" as const },
-  { label: "Insumos - Estoque mínimo", count: 2, severity: "high" as const },
-];
-
-const severityColor = {
-  high: "bg-red-500/10 text-red-600 border-red-200",
-  medium: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
-  low: "bg-blue-500/10 text-blue-600 border-blue-200",
-};
+import { Input } from "@/components/ui/input";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { useAbastecimentos } from "@/hooks/useAbastecimentos";
+import { useHorimetros } from "@/hooks/useHorimetros";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [selectedEmpresa, setSelectedEmpresa] = useState<string | null>(null);
-  const selectedDate = new Date();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
-  const { data: equipamentosData } = useGoogleSheets<EquipamentoRow>('equipamentos');
-  const { data: caminhoesData } = useGoogleSheets<CaminhaoRow>('caminhao');
+  const { data: abastecimentos } = useAbastecimentos('Canteiro01');
+  const { data: horimetros } = useHorimetros();
 
-  const cargaData = useMemo(() => filterByDate(allCargaData, selectedDate), [allCargaData, selectedDate]);
+  const formattedDate = format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  // KPIs
-  const kpis = useMemo(() => {
-    const totalViagens = cargaData?.reduce((acc, row) => acc + (parseInt(row.N_Viagens) || 0), 0) || 0;
-    const volumeTotal = cargaData?.reduce((acc, row) => acc + (parseFloat(row.Volume_Total) || 0), 0) || 0;
-    const escavadeirasAtivas = new Set(cargaData?.map(r => r.Prefixo_Eq).filter(Boolean)).size;
-    const caminhoesAtivos = new Set(cargaData?.map(r => r.Prefixo_Cb).filter(Boolean)).size;
-    return { totalViagens, volumeTotal, escavadeirasAtivas, caminhoesAtivos, totalEscavadeiras: equipamentosData?.length || escavadeirasAtivas, totalCaminhoes: caminhoesData?.length || caminhoesAtivos };
-  }, [cargaData, equipamentosData, caminhoesData]);
+  // KPIs de combustível (mock - será substituído por dados reais)
+  const combustivelKpis = useMemo(() => {
+    const totalAbastecimentos = abastecimentos?.length || 0;
+    const totalLitros = abastecimentos?.reduce((acc, a) => acc + (a.quantidade || 0), 0) || 0;
+    return {
+      estoqueAnterior: 20440.10,
+      entradas: 15000.00,
+      saidaEquipamentos: totalLitros || 9535,
+      estoqueAtual: 16965.10,
+      saidaComboios: 8940,
+      estoqueArla: 1754,
+      totalRegistros: totalAbastecimentos || 57,
+    };
+  }, [abastecimentos]);
 
-  // Resumo por empresa
-  const resumoPorEmpresa = useMemo(() => {
-    if (!cargaData || cargaData.length === 0) return [];
-    const empresaEquipamentos: Record<string, Set<string>> = {};
-    const empresaCaminhoes: Record<string, Set<string>> = {};
-    cargaData.forEach(row => {
-      const empresaEq = row.Empresa_Eq || 'Não Informada';
-      if (!empresaEquipamentos[empresaEq]) empresaEquipamentos[empresaEq] = new Set();
-      if (row.Prefixo_Eq) empresaEquipamentos[empresaEq].add(row.Prefixo_Eq);
-      const empresaCb = row.Empresa_Cb || 'Não Informada';
-      if (!empresaCaminhoes[empresaCb]) empresaCaminhoes[empresaCb] = new Set();
-      if (row.Prefixo_Cb) empresaCaminhoes[empresaCb].add(row.Prefixo_Cb);
-    });
-    const todasEmpresas = new Set([...Object.keys(empresaEquipamentos), ...Object.keys(empresaCaminhoes)]);
-    return Array.from(todasEmpresas).map(empresa => ({
-      empresa,
-      equipamentos: empresaEquipamentos[empresa]?.size || 0,
-      caminhoes: empresaCaminhoes[empresa]?.size || 0,
-    })).filter(e => e.equipamentos > 0 || e.caminhoes > 0)
-      .sort((a, b) => (b.equipamentos + b.caminhoes) - (a.equipamentos + a.caminhoes));
-  }, [cargaData]);
+  // Horímetros KPIs
+  const horimetroKpis = useMemo(() => {
+    const totalHoras = horimetros?.reduce((acc, h) => acc + (parseFloat(String(h.horas_trabalhadas)) || 0), 0) || 0;
+    const equipOperando = horimetros?.length || 0;
+    return { totalHoras, equipOperando };
+  }, [horimetros]);
 
-  // Tables
-  const materialByExcavatorData = useMemo(() => {
-    if (!cargaData || cargaData.length === 0) return [];
-    const grouped: Record<string, Record<string, number>> = {};
-    cargaData.forEach(row => {
-      const esc = row.Prefixo_Eq; const mat = row.Material || 'Outros'; const v = parseInt(row.N_Viagens) || 1;
-      if (!esc) return;
-      if (!grouped[esc]) grouped[esc] = {};
-      grouped[esc][mat] = (grouped[esc][mat] || 0) + v;
-    });
-    return Object.entries(grouped).map(([escavadeira, materiais]) => {
-      const total = Object.values(materiais).reduce((a, b) => a + b, 0);
-      return { escavadeira, ...Object.fromEntries(Object.entries(materiais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ''), v])), total };
-    }).sort((a, b) => b.total - a.total).slice(0, 8);
-  }, [cargaData]);
+  // Mock manutenções em oficina
+  const equipamentosOficina = [
+    { veiculo: "PC-200 #03", tipo: "Preventiva", cor: "bg-orange-500/10 text-orange-600 border-orange-200" },
+    { veiculo: "CB-012", tipo: "Corretiva", cor: "bg-destructive/10 text-destructive border-destructive/20" },
+    { veiculo: "CB-045", tipo: "Aguardando peça", cor: "bg-yellow-500/10 text-yellow-600 border-yellow-200" },
+  ];
 
-  const materialColumns = useMemo((): Array<{ key: string; label: string; className?: string }> => {
-    if (!cargaData || cargaData.length === 0) return [{ key: "escavadeira", label: "Escavadeira" }];
-    const materials = new Set(cargaData.map(r => r.Material).filter(Boolean));
-    const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
-    Array.from(materials).slice(0, 4).forEach(m => cols.push({ key: m.toLowerCase().replace(/\s+/g, ''), label: m, className: "text-right" }));
-    cols.push({ key: "total", label: "Total", className: "text-right font-semibold" });
-    return cols;
-  }, [cargaData]);
+  // Mock próximas revisões
+  const proximasRevisoes = [
+    { veiculo: "CAM-003", tipo: "Troca de óleo", diasRestantes: 2 },
+    { veiculo: "ESC-001", tipo: "Revisão 500h", diasRestantes: 5 },
+    { veiculo: "CAM-007", tipo: "Troca de filtros", diasRestantes: 7 },
+    { veiculo: "RET-002", tipo: "Revisão geral", diasRestantes: 10 },
+  ];
 
-  const formattedDate = selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const totalAlerts = alertItems.reduce((a, b) => a + b.count, 0);
+  // Mock tanques
+  const tanques = [
+    { nome: "Tanque Canteiro 01", capacidade: 10000, nivel: 7500, status: "normal" },
+    { nome: "Tanque Canteiro 02", capacidade: 10000, nivel: 3200, status: "alerta" },
+    { nome: "Comboio 01", capacidade: 5000, nivel: 4800, status: "normal" },
+    { nome: "Comboio 02", capacidade: 5000, nivel: 2100, status: "alerta" },
+  ];
+
+  // Top consumidores mock
+  const topConsumidores = [
+    { equip: "ESC-001", consumo: 850, percentual: 100 },
+    { equip: "CAM-012", consumo: 720, percentual: 85 },
+    { equip: "CAM-005", consumo: 680, percentual: 80 },
+    { equip: "PC-200 #02", consumo: 620, percentual: 73 },
+    { equip: "CAM-008", consumo: 580, percentual: 68 },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">Visão geral das operações • {formattedDate}</p>
+      {/* Header com busca e filtros */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar veículos, locais, motoristas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-card"
+            />
+          </div>
+          <DateFilter date={selectedDate} onDateChange={(d) => d && setSelectedDate(d)} />
+          <Button variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
+          <Badge variant="outline" className="gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-600 border-green-200">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            Sincronizado
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4" />
+          <span>Data: {formattedDate}</span>
+          <span>•</span>
+          <span>{combustivelKpis.totalRegistros} registros</span>
+        </div>
       </div>
 
-      {/* Quick Action Buttons Row */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+      {/* KPI Cards Coloridos - Combustível */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Estoque Anterior */}
+        <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-5 text-white shadow-lg">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Estoque Anterior</p>
+              <p className="mt-2 text-2xl font-extrabold">{combustivelKpis.estoqueAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} L</p>
+              <p className="mt-1 text-xs text-white/70">Diesel - Início do período</p>
+            </div>
+            <div className="rounded-xl bg-white/20 p-2.5">
+              <Fuel className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Entradas */}
+        <div className="rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-5 text-white shadow-lg">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Entradas</p>
+              <p className="mt-2 text-2xl font-extrabold">{combustivelKpis.entradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} L</p>
+              <p className="mt-1 text-xs text-white/70">Recebimentos no período</p>
+            </div>
+            <div className="rounded-xl bg-white/20 p-2.5">
+              <ArrowDownToLine className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Saída p/ Equipamentos */}
+        <div className="rounded-2xl bg-gradient-to-br from-[hsl(222,60%,22%)] to-[hsl(222,60%,32%)] p-5 text-white shadow-lg">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Saída p/ Equipamentos</p>
+              <p className="mt-2 text-2xl font-extrabold">{combustivelKpis.saidaEquipamentos.toLocaleString('pt-BR')} L</p>
+              <p className="mt-1 text-xs text-white/70">Diesel consumido</p>
+            </div>
+            <div className="rounded-xl bg-white/20 p-2.5">
+              <ArrowUpFromLine className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
         {/* Estoque Atual */}
-        <Card 
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
-          onClick={() => navigate('/controle/abastecimentos')}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-blue-500/10 p-3">
-                  <Fuel className="h-6 w-6 text-blue-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Estoque Atual</h3>
-                  <p className="text-xs text-muted-foreground">Combustíveis</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+        <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 text-white shadow-lg">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Estoque Atual</p>
+              <p className="mt-2 text-2xl font-extrabold">{combustivelKpis.estoqueAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} L</p>
+              <p className="mt-1 text-xs text-white/70">Diesel disponível</p>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1 rounded-lg bg-muted/60 p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Diesel S10</p>
-                <p className="text-lg font-bold text-foreground">65%</p>
-                <div className="h-1.5 w-full rounded-full bg-muted mt-2">
-                  <div className="h-1.5 rounded-full bg-green-500" style={{ width: '65%' }} />
-                </div>
+            <div className="rounded-xl bg-white/20 p-2.5">
+              <Droplet className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Segunda linha - Saída Comboios + Estoque Arla */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Saída p/ Comboios */}
+        <div className="rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 p-5 text-white shadow-lg">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Saída p/ Comboios</p>
+              <p className="mt-2 text-2xl font-extrabold">{combustivelKpis.saidaComboios.toLocaleString('pt-BR')} L</p>
+              <p className="mt-1 text-xs text-white/70">Transferências internas</p>
+            </div>
+            <div className="rounded-xl bg-white/20 p-2.5">
+              <Truck className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Estoque Arla */}
+        <Card className="rounded-2xl shadow-lg border-2">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estoque Arla</p>
+                <p className="mt-2 text-2xl font-extrabold text-foreground">{combustivelKpis.estoqueArla.toLocaleString('pt-BR')} L</p>
+                <p className="mt-1 text-xs text-muted-foreground">Arla disponível</p>
               </div>
-              <div className="flex-1 rounded-lg bg-muted/60 p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Arla</p>
-                <p className="text-lg font-bold text-foreground">42%</p>
-                <div className="h-1.5 w-full rounded-full bg-muted mt-2">
-                  <div className="h-1.5 rounded-full bg-yellow-500" style={{ width: '42%' }} />
-                </div>
+              <div className="rounded-xl bg-blue-500/10 p-2.5">
+                <Droplet className="h-5 w-5 text-blue-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Equipamentos em Oficina */}
-        <Card 
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
-          onClick={() => navigate('/controle/manutencao')}
-        >
+        {/* Equipamentos em Oficina - Quick */}
+        <Card className="rounded-2xl shadow-lg border-2 cursor-pointer hover:border-primary/40 transition-colors" onClick={() => navigate('/controle/manutencao')}>
           <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-orange-500/10 p-3">
-                  <Wrench className="h-6 w-6 text-orange-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Equipamentos em Oficina</h3>
-                  <p className="text-xs text-muted-foreground">Manutenção ativa</p>
-                </div>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Em Oficina</p>
+                <p className="mt-1 text-2xl font-extrabold text-foreground">{equipamentosOficina.length}</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
-                <span className="text-sm">PC-200 #03</span>
-                <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">Preventiva</Badge>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
-                <span className="text-sm">CB-012</span>
-                <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Corretiva</Badge>
-              </div>
-              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
-                <span className="text-sm">CB-045</span>
-                <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Aguardando peça</Badge>
+              <div className="rounded-xl bg-orange-500/10 p-2.5">
+                <Wrench className="h-5 w-5 text-orange-500" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Alertas */}
-        <Card 
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
-          onClick={() => navigate('/alertas')}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-red-500/10 p-3">
-                  <AlertTriangle className="h-6 w-6 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Alertas</h3>
-                  <p className="text-xs text-muted-foreground">{totalAlerts} pendências</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-            <div className="space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar">
-              {alertItems.map((alert) => (
-                <div key={alert.label} className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-1.5">
-                  <span className="text-sm truncate flex-1">{alert.label}</span>
-                  <Badge variant="outline" className={`ml-2 text-xs ${severityColor[alert.severity]}`}>
-                    {alert.count}
-                  </Badge>
+            <div className="space-y-1">
+              {equipamentosOficina.slice(0, 2).map((e) => (
+                <div key={e.veiculo} className="flex items-center justify-between text-xs">
+                  <span className="font-medium">{e.veiculo}</span>
+                  <Badge variant="outline" className={`text-[10px] py-0 ${e.cor}`}>{e.tipo}</Badge>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+
+        {/* Alertas Quick */}
+        <Card className="rounded-2xl shadow-lg border-2 border-destructive/20 cursor-pointer hover:border-destructive/40 transition-colors" onClick={() => navigate('/alertas')}>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-destructive">Alertas</p>
+                <p className="mt-1 text-2xl font-extrabold text-destructive">7</p>
+              </div>
+              <div className="rounded-xl bg-destructive/10 p-2.5">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between"><span>Revisões vencidas</span><span className="font-bold text-destructive">3</span></div>
+              <div className="flex justify-between"><span>Licenças a vencer</span><span className="font-bold text-yellow-600">2</span></div>
+              <div className="flex justify-between"><span>Consumo irregular</span><span className="font-bold text-orange-500">2</span></div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <KPICard title="Viagens" value={kpis.totalViagens.toLocaleString('pt-BR')} subtitle="Hoje" icon={Activity} variant="accent" />
-        <KPICard title="Vol. Transportado" value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`} subtitle="Movimentado" icon={Box} variant="primary" />
-        <KPICard title="Escavadeiras" value={kpis.escavadeirasAtivas} subtitle={`de ${kpis.totalEscavadeiras}`} icon={HardHat} variant="success" />
-        <KPICard title="Caminhões" value={kpis.caminhoesAtivos} subtitle={`de ${kpis.totalCaminhoes}`} icon={Truck} variant="default" />
-      </div>
-
-      {/* Resumo por Empresa */}
-      {resumoPorEmpresa.length > 0 && (
-        <Card>
+      {/* Grid de Cards detalhados */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Resumo de Estoque / Tanques */}
+        <Card className="rounded-2xl shadow-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Building2 className="h-4 w-4" />
-              Resumo por Empresa
+              <Fuel className="h-5 w-5 text-blue-500" />
+              Resumo de Estoque
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">{formattedDate}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {tanques.map((tanque) => {
+              const pct = Math.round((tanque.nivel / tanque.capacidade) * 100);
+              return (
+                <div key={tanque.nome} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{tanque.nome}</span>
+                    <span className={`text-sm font-semibold ${tanque.status === 'normal' ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {tanque.nivel.toLocaleString('pt-BR')}L / {tanque.capacidade.toLocaleString('pt-BR')}L ({pct}%)
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-muted">
+                    <div
+                      className={`h-2.5 rounded-full transition-all ${tanque.status === 'normal' ? 'bg-green-500' : 'bg-yellow-500'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Ranking de Consumo */}
+        <Card className="rounded-2xl shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Ranking de Consumo
+              </CardTitle>
+              <div className="flex gap-1">
+                <Button size="sm" variant="default" className="h-7 text-xs rounded-full">Total</Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs rounded-full">Mês</Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Top 5 equipamentos (exceto comboios)</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {topConsumidores.map((item, idx) => (
+              <div key={item.equip} className="flex items-center gap-3">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                  idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {idx + 1}
+                </span>
+                <div className="flex-1">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">{item.equip}</span>
+                    <span className="text-sm font-bold">{item.consumo.toLocaleString('pt-BR')} L</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted">
+                    <div className="h-2 rounded-full bg-primary/70 transition-all" style={{ width: `${item.percentual}%` }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Horímetros - Resumo */}
+        <Card className="rounded-2xl shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-5 w-5 text-purple-500" />
+              Horímetros - Resumo do Dia
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {resumoPorEmpresa.map((item) => (
-                <button 
-                  key={item.empresa}
-                  onClick={() => setSelectedEmpresa(item.empresa)}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border hover:bg-muted hover:border-primary/50 transition-colors cursor-pointer text-left w-full"
-                >
-                  <span className="font-medium text-sm truncate flex-1">{item.empresa}</span>
-                  <div className="flex gap-3 text-sm text-muted-foreground ml-2">
-                    <span className="flex items-center gap-1"><HardHat className="h-3 w-3" />{item.equipamentos}</span>
-                    <span className="flex items-center gap-1"><Truck className="h-3 w-3" />{item.caminhoes}</span>
+            <div className="grid gap-3 grid-cols-2">
+              <div className="rounded-xl bg-purple-500/10 p-4 text-center">
+                <p className="text-2xl font-extrabold text-purple-600">{horimetroKpis.totalHoras || 156}h</p>
+                <p className="text-xs text-muted-foreground mt-1">Horas Trabalhadas</p>
+              </div>
+              <div className="rounded-xl bg-green-500/10 p-4 text-center">
+                <p className="text-2xl font-extrabold text-green-600">{horimetroKpis.equipOperando || 12}</p>
+                <p className="text-xs text-muted-foreground mt-1">Equip. Operando</p>
+              </div>
+              <div className="rounded-xl bg-blue-500/10 p-4 text-center">
+                <p className="text-2xl font-extrabold text-blue-600">8,5h</p>
+                <p className="text-xs text-muted-foreground mt-1">Média / Equip.</p>
+              </div>
+              <div className="rounded-xl bg-orange-500/10 p-4 text-center">
+                <p className="text-2xl font-extrabold text-orange-600">3</p>
+                <p className="text-xs text-muted-foreground mt-1">Equip. Parados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Próximas Revisões */}
+        <Card className="rounded-2xl shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Próximas Revisões Programadas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {proximasRevisoes.map((revisao) => (
+                <div key={revisao.veiculo} className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-card">
+                      <Truck className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{revisao.veiculo}</p>
+                      <p className="text-xs text-muted-foreground">{revisao.tipo}</p>
+                    </div>
                   </div>
-                </button>
+                  <div className={`rounded-full px-3 py-1 text-xs font-bold ${
+                    revisao.diasRestantes <= 3 ? 'bg-destructive/10 text-destructive' :
+                    revisao.diasRestantes <= 7 ? 'bg-yellow-500/10 text-yellow-600' :
+                    'bg-green-500/10 text-green-600'
+                  }`}>
+                    {revisao.diasRestantes} dias
+                  </div>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      )}
-
-      <EmpresaDetailDialog
-        open={!!selectedEmpresa}
-        onOpenChange={(open) => !open && setSelectedEmpresa(null)}
-        empresa={selectedEmpresa}
-        cargaData={cargaData || []}
-      />
-
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ProductionChart cargaData={cargaData || []} />
-        <LocalChart cargaData={cargaData || []} />
       </div>
-
-      {/* Tables */}
-      <DataTable
-        title="Escavadeira × Material"
-        subtitle="Total de viagens por tipo de material"
-        columns={materialColumns}
-        data={materialByExcavatorData}
-      />
-
-      {/* Recent Activity */}
-      <RecentActivity cargaData={cargaData || []} />
     </div>
   );
 }
