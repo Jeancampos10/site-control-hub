@@ -26,10 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useManutencoes, OrdemServico } from "@/hooks/useManutencoes";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { NovaOrdemServicoDialog } from "@/components/manutencao/NovaOrdemServicoDialog";
 
 export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTab, setSelectedTab] = useState("todas");
+  const [novaOSOpen, setNovaOSOpen] = useState(false);
   const { data: ordens, isLoading } = useManutencoes();
 
   const ordensServico = ordens || [];
@@ -82,7 +84,7 @@ export default function Manutencao() {
         </div>
         <div className="flex gap-2">
           <DateFilter date={selectedDate} onDateChange={(d) => d && setSelectedDate(d)} />
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setNovaOSOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova OS
           </Button>
@@ -294,6 +296,8 @@ export default function Manutencao() {
           )}
         </>
       )}
+
+      <NovaOrdemServicoDialog open={novaOSOpen} onOpenChange={setNovaOSOpen} />
     </div>
   );
 }

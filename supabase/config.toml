@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.sync-horimetros]
 verify_jwt = false
+
+[functions.sync-manutencoes]
+verify_jwt = false
