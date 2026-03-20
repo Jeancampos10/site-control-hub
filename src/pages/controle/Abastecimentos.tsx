@@ -380,6 +380,7 @@ function EntradasTab() {
 export default function Abastecimentos() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [mainTab, setMainTab] = useState("estoque");
+  const [novoDialogOpen, setNovoDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -392,12 +393,18 @@ export default function Abastecimentos() {
             {selectedDate && ` — ${format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
           </p>
         </div>
-        <DateFilter 
-          date={selectedDate} 
-          onDateChange={setSelectedDate}
-          placeholder="Filtrar por data"
-          showClear={true}
-        />
+        <div className="flex items-center gap-2">
+          <Button className="gap-2" onClick={() => setNovoDialogOpen(true)}>
+            <Fuel className="h-4 w-4" />
+            Novo Abastecimento
+          </Button>
+          <DateFilter 
+            date={selectedDate} 
+            onDateChange={setSelectedDate}
+            placeholder="Filtrar por data"
+            showClear={true}
+          />
+        </div>
       </div>
 
       {/* Main Tabs */}
