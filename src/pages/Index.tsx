@@ -18,9 +18,9 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
 
   const quickLinks = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-    { label: "Colaboradores", icon: Users, href: "/colaboradores" },
+    { label: "Controle", icon: Wrench, href: "/controle" },
+    { label: "Frota Geral", icon: Truck, href: "/frota" },
     { label: "Relatórios", icon: FileText, href: "/relatorios" },
-    { label: "Alertas", icon: Bell, href: "/alertas" },
   ];
 
   return (
