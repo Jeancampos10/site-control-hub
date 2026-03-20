@@ -40,7 +40,7 @@ export default function Dashboard() {
   // KPIs de combustível (mock - será substituído por dados reais)
   const combustivelKpis = useMemo(() => {
     const totalAbastecimentos = abastecimentos?.length || 0;
-    const totalLitros = abastecimentos?.reduce((acc, a) => acc + (a.quantidade_combustivel || 0), 0) || 0;
+    const totalLitros = abastecimentos?.reduce((acc, a) => acc + (a.quantidade || 0), 0) || 0;
     return {
       estoqueAnterior: 20440.10,
       entradas: 15000.00,
