@@ -119,7 +119,7 @@ export function AbastecimentoEditDialog({
       km_atual: parseNumber(formData.km_atual),
       quantidade: parseNumber(formData.quantidade),
       tipo_combustivel: formData.tipo_combustivel,
-      local: formData.local,
+      local_abastecimento: formData.local,
       arla: formData.arla,
       quantidade_arla: parseNumber(formData.quantidade_arla),
       fornecedor: formData.fornecedor,
@@ -127,12 +127,9 @@ export function AbastecimentoEditDialog({
       valor_unitario: parseNumber(formData.valor_unitario),
       valor_total: parseNumber(formData.valor_total),
       observacao: formData.observacao,
-      lubrificar: formData.lubrificar,
-      lubrificante: formData.lubrificante,
-      completar_oleo: formData.completar_oleo,
-      tipo_oleo: formData.tipo_oleo,
-      qtd_oleo: parseNumber(formData.qtd_oleo),
-      sopra_filtro: formData.sopra_filtro,
+      lubrificacao: formData.lubrificar,
+      oleo: formData.tipo_oleo || formData.lubrificante,
+      filtro: formData.sopra_filtro ? 'Sim' : '',
     };
 
     await syncMutation.mutateAsync({
