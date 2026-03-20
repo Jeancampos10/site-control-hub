@@ -32,7 +32,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: abastecimentos } = useAbastecimentos();
+  const { data: abastecimentos } = useAbastecimentos('Canteiro01');
   const { data: horimetros } = useHorimetros();
 
   const formattedDate = format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
