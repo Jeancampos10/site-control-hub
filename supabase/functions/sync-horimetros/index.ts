@@ -9,19 +9,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Column mapping for Horimetros sheet
+// Column mapping for Horimetros sheet (updated to match new structure)
 const HORIMETROS_COLUMNS = [
-  'ID',           // A
-  'Data',         // B
-  'Categoria',    // C
-  'Veiculo',      // D
-  'Descricao',    // E
-  'Operador',     // F
-  'Empresa',      // G
-  'Hor_Anterior', // H
-  'Hor_Atual',    // I
-  'Km_Anterior',  // J
-  'Km_Atual',     // K
+  'id',                   // A
+  'Data',                 // B
+  'Categoria',            // C
+  'Veiculo',              // D
+  'Descricao',            // E
+  'Operador',             // F
+  'Empresa',              // G
+  'Horimetro Anterior',   // H
+  'Horimetro Atual',      // I
+  'Intervalo H',          // J
+  'Km Anterior',          // K
+  'Km Atual',             // L
+  'Total Km',             // M
 ];
 
 interface HorimetroData {
@@ -45,6 +47,15 @@ function formatNumber(value: number | null | undefined): string {
 }
 
 function formatDataForSheet(data: HorimetroData): string[] {
+  const horAnterior = data.horimetro_anterior;
+  const horAtual = data.horimetro_atual;
+  const intervaloH = (horAnterior !== null && horAnterior !== undefined && horAtual !== null && horAtual !== undefined) 
+    ? horAtual - horAnterior : null;
+  const kmAnterior = data.km_anterior;
+  const kmAtual = data.km_atual;
+  const totalKm = (kmAnterior !== null && kmAnterior !== undefined && kmAtual !== null && kmAtual !== undefined)
+    ? kmAtual - kmAnterior : null;
+
   return [
     data.id || '',
     data.data || '',
@@ -53,10 +64,12 @@ function formatDataForSheet(data: HorimetroData): string[] {
     data.descricao || '',
     data.operador || '',
     data.empresa || '',
-    formatNumber(data.horimetro_anterior),
-    formatNumber(data.horimetro_atual),
-    formatNumber(data.km_anterior),
-    formatNumber(data.km_atual),
+    formatNumber(horAnterior),
+    formatNumber(horAtual),
+    formatNumber(intervaloH),
+    formatNumber(kmAnterior),
+    formatNumber(kmAtual),
+    formatNumber(totalKm),
   ];
 }
 
