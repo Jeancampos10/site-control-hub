@@ -53,6 +53,7 @@ import CadastroEquipamentosGerais from "./pages/cadastros/CadastroEquipamentosGe
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
 import Manutencao from "./pages/controle/Manutencao";
 import Horimetros from "./pages/controle/Horimetros";
+import Programacao from "./pages/controle/Programacao";
 import Abastecimentos from "./pages/controle/Abastecimentos";
 
 const queryClient = new QueryClient();

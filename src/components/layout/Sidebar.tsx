@@ -17,6 +17,7 @@ import {
   Fuel,
   CalendarClock,
   Gauge,
+  Clock,
   X,
   FlaskConical,
   ChevronDown,
