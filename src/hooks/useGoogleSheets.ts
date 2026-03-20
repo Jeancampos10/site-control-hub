@@ -25,6 +25,7 @@ type VirtualSheetName =
 // Abastech (Combustível) sheets
 type AbastechSheetName = 
   | 'AbastecimentoCanteiro01'
+  | 'Abastecimentos'
   | 'Geral'
   | 'EstoqueCanteiro01'
   | 'EstoqueCanteiro02'
@@ -35,6 +36,7 @@ type AbastechSheetName =
   | 'Estoque_Arla'
   | 'Veiculos'
   | 'Horimetros'
+  | 'Manutencoes'
   | 'Ordem_Servico'
   | 'Frota Geral';
 
