@@ -296,6 +296,8 @@ export default function Manutencao() {
           )}
         </>
       )}
+
+      <NovaOrdemServicoDialog open={novaOSOpen} onOpenChange={setNovaOSOpen} />
     </div>
   );
 }
