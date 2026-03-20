@@ -24,7 +24,7 @@ import {
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Truck, Activity } from "lucide-react";
 import { useGoogleSheets, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
-import { useApontamentosPipa, useCreateApontamentoPipa, useSyncPendingApontamentos } from "@/hooks/useApontamentosPipa";
+import { useApontamentosPipa, useCreateApontamentoPipa } from "@/hooks/useApontamentosPipa";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { DateFilter } from "@/components/shared/DateFilter";
