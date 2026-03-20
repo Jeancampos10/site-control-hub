@@ -10,37 +10,15 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Carga from "./pages/Carga";
-import Descarga from "./pages/Descarga";
 import FrotaGeral from "./pages/frota/FrotaGeral";
-import Cal from "./pages/Cal";
-import Pedreira from "./pages/Pedreira";
-import Pipas from "./pages/Pipas";
-import Apontadores from "./pages/Apontadores";
-import Colaboradores from "./pages/Colaboradores";
-import Relatorios from "./pages/Relatorios";
-import Alertas from "./pages/Alertas";
 import Auth from "./pages/Auth";
 import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
-
-// Painel do Apontador (mantido para compatibilidade)
-import PainelApontador from "./pages/apontador/PainelApontador";
-
-// Mobile
-import AuthMobile from "./pages/mobile/AuthMobile";
-import PainelMobile from "./pages/mobile/PainelMobile";
-import CargaMobile from "./pages/mobile/CargaMobile";
-import LancamentoMobile from "./pages/mobile/LancamentoMobile";
-import PedreiraMobile from "./pages/mobile/PedreiraMobile";
-import PipasMobile from "./pages/mobile/PipasMobile";
-import CalMobile from "./pages/mobile/CalMobile";
-import PendenciasOffline from "./pages/mobile/PendenciasOffline";
-import HistoricoMobile from "./pages/mobile/HistoricoMobile";
+import Relatorios from "./pages/Relatorios";
+import Alertas from "./pages/Alertas";
 
 // Cadastros
-import CadastroApontadores from "./pages/cadastros/CadastroApontadores";
 import CadastroLocais from "./pages/cadastros/CadastroLocais";
 import CadastroMateriais from "./pages/cadastros/CadastroMateriais";
 import CadastroFornecedores from "./pages/cadastros/CadastroFornecedores";
