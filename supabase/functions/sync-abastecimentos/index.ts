@@ -142,14 +142,11 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, source, data, rowId } = body;
+    const { action, data, rowId } = body;
 
-    console.log(`Sync request: action=${action}, source=${source}, rowId=${rowId}`);
+    console.log(`Sync request: action=${action}, rowId=${rowId}`);
 
-    const sheetName = SHEET_NAMES[source];
-    if (!sheetName) {
-      throw new Error(`Unknown source: ${source}. Available: ${Object.keys(SHEET_NAMES).join(', ')}`);
-    }
+    const sheetName = SHEET_NAME;
 
     let result;
 
