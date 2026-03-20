@@ -206,10 +206,11 @@ export function useBulkUpdateAbastecimentos() {
       updates: Record<string, string>;
       dateFilter?: string;
     }) => {
-      // Build query with filters
-      let query = supabase.from('abastecimentos').update(updates as any);
+      // Build query with filters - use type assertion to avoid deep instantiation
+      const updatePayload: Record<string, any> = updates;
+      let query: any = supabase.from('abastecimentos').update(updatePayload);
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) query = query.eq(key as any, value);
+        if (value) query = query.eq(key, value);
       });
       const { error, count } = await query;
       if (error) throw new Error(error.message);
