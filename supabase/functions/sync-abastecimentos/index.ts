@@ -9,14 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Map of sheet names for each source
-const SHEET_NAMES: Record<string, string> = {
-  'tanque01': 'AbastecimentoCanteiro01',
-  'tanque02': 'AbastecimentoCanteiro02',
-  'comboio01': 'AbastecimentoComboio01',
-  'comboio02': 'AbastecimentoComboio02',
-  'comboio03': 'AbastecimentoComboio03',
-};
+// Single sheet name for all fuel entries
+const SHEET_NAME = 'Abastecimentos';
 
 // Column mapping from our system to Google Sheets columns (1-indexed for Apps Script)
 const COLUMN_MAPPING: Record<string, number> = {
