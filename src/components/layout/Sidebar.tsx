@@ -78,12 +78,26 @@ const cadastrosMenu: NavItem = {
   ],
 };
 
+// Menu de Controle
+const controleMenu: NavItem = {
+  label: "Controle",
+  icon: Gauge,
+  children: [
+    { label: "Visão Geral", icon: Gauge, href: "/controle" },
+    { label: "Manutenção", icon: Wrench, href: "/controle/manutencao" },
+    { label: "Programação", icon: CalendarClock, href: "/controle/horimetros" },
+    { label: "Abastecimentos", icon: Fuel, href: "/controle/abastecimentos" },
+  ],
+};
+
 // Itens de navegação principais (sem Painel do Apontador)
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   relatoriosMenu,
+  controleMenu,
   cadastrosMenu,
   { label: "Frota Geral", icon: Truck, href: "/frota" },
+  { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
 ];
 
