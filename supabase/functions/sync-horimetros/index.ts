@@ -9,21 +9,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Column mapping for Horimetros sheet (updated to match new structure)
+// Column mapping for Horimetros sheet (A:L - no id column)
 const HORIMETROS_COLUMNS = [
-  'id',                   // A
-  'Data',                 // B
+  'Data',                 // A
+  'Veiculo',              // B
   'Categoria',            // C
-  'Veiculo',              // D
-  'Descricao',            // E
+  'Descricao',            // D
+  'Empresa',              // E
   'Operador',             // F
-  'Empresa',              // G
-  'Horimetro Anterior',   // H
-  'Horimetro Atual',      // I
-  'Intervalo H',          // J
-  'Km Anterior',          // K
-  'Km Atual',             // L
-  'Total Km',             // M
+  'Horimetro Anterior',   // G
+  'Horimetro Atual',      // H
+  'Intervalo H',          // I
+  'Km Anterior',          // J
+  'Km Atual',             // K
+  'Total Km',             // L
 ];
 
 interface HorimetroData {
