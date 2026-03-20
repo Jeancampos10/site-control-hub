@@ -41,17 +41,23 @@ function transformSheetData(row: Record<string, string>): Horimetro {
     return isNaN(num) ? null : num;
   };
 
-  const horAnterior = parseNumber(row['Hor_Anterior'] || '');
-  const horAtual = parseNumber(row['Hor_Atual'] || '');
+  // Support both old and new column names
+  const horAnterior = parseNumber(row['Horimetro Anterior'] || row['Hor_Anterior'] || '');
+  const horAtual = parseNumber(row['Horimetro Atual'] || row['Hor_Atual'] || '');
   
   // Calculate hours worked
   let horasTrabalhadas = 0;
   if (horAnterior !== null && horAtual !== null && horAnterior > 0) {
     horasTrabalhadas = horAtual - horAnterior;
   }
+  // Also check for pre-calculated "Intervalo H"
+  const intervaloH = parseNumber(row['Intervalo H'] || '');
+  if (intervaloH !== null && intervaloH > 0) {
+    horasTrabalhadas = intervaloH;
+  }
 
   return {
-    id: row['ID'] || '',
+    id: row['id'] || row['ID'] || '',
     data: (row[' Data'] || row['Data'] || '').trim(),
     categoria: row['Categoria'] || '',
     veiculo: row['Veiculo'] || '',
@@ -60,8 +66,8 @@ function transformSheetData(row: Record<string, string>): Horimetro {
     empresa: row['Empresa'] || '',
     horimetro_anterior: horAnterior,
     horimetro_atual: horAtual,
-    km_anterior: parseNumber(row['Km_Anterior'] || ''),
-    km_atual: parseNumber(row['Km_Atual'] || ''),
+    km_anterior: parseNumber(row['Km Anterior'] || row['Km_Anterior'] || ''),
+    km_atual: parseNumber(row['Km Atual'] || row['Km_Atual'] || ''),
     horas_trabalhadas: horasTrabalhadas,
   };
 }

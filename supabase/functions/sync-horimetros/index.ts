@@ -47,6 +47,15 @@ function formatNumber(value: number | null | undefined): string {
 }
 
 function formatDataForSheet(data: HorimetroData): string[] {
+  const horAnterior = data.horimetro_anterior;
+  const horAtual = data.horimetro_atual;
+  const intervaloH = (horAnterior !== null && horAnterior !== undefined && horAtual !== null && horAtual !== undefined) 
+    ? horAtual - horAnterior : null;
+  const kmAnterior = data.km_anterior;
+  const kmAtual = data.km_atual;
+  const totalKm = (kmAnterior !== null && kmAnterior !== undefined && kmAtual !== null && kmAtual !== undefined)
+    ? kmAtual - kmAnterior : null;
+
   return [
     data.id || '',
     data.data || '',
@@ -55,10 +64,12 @@ function formatDataForSheet(data: HorimetroData): string[] {
     data.descricao || '',
     data.operador || '',
     data.empresa || '',
-    formatNumber(data.horimetro_anterior),
-    formatNumber(data.horimetro_atual),
-    formatNumber(data.km_anterior),
-    formatNumber(data.km_atual),
+    formatNumber(horAnterior),
+    formatNumber(horAtual),
+    formatNumber(intervaloH),
+    formatNumber(kmAnterior),
+    formatNumber(kmAtual),
+    formatNumber(totalKm),
   ];
 }
 
