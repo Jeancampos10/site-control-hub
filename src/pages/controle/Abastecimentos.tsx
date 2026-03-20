@@ -444,6 +444,8 @@ export default function Abastecimentos() {
           <EntradasTab />
         </TabsContent>
       </Tabs>
+
+      <NovoAbastecimentoDialog open={novoDialogOpen} onOpenChange={setNovoDialogOpen} />
     </div>
   );
 }
