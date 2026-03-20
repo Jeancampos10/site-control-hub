@@ -58,6 +58,7 @@ export default function Horimetros() {
   const [deletingHorimetro, setDeletingHorimetro] = useState<Horimetro | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [novoDialogOpen, setNovoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("registros");
   const [dateFilter, setDateFilter] = useState<DateQuickFilter>("ultimo");
   const [searchTerm, setSearchTerm] = useState("");
