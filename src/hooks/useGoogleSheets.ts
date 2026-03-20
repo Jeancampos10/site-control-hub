@@ -353,3 +353,14 @@ export interface EstoqueCalRow {
   Entrada: string;
   EstoqueAtual: string;
 }
+
+export interface FrotaGeralRow {
+  Codigo: string;
+  Motorista: string;
+  Potencia: string;
+  Categoria: string;
+  Descricao: string;
+  Empresa: string;
+  Obra: string;
+  Status: string;
+}

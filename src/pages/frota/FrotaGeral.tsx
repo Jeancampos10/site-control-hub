@@ -1,9 +1,11 @@
-import { useMemo } from "react";
-import { Car, HardHat, Truck, Droplets, Building2 } from "lucide-react";
-import { KPICard } from "@/components/dashboard/KPICard";
-import { useGoogleSheets, EquipamentoRow, CaminhaoRow, CamReboqueRow, CaminhaoPipaRow } from "@/hooks/useGoogleSheets";
+import { useMemo, useState } from "react";
+import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2 } from "lucide-react";
+import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { ErrorState } from "@/components/ui/error-state";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -14,241 +16,210 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface EmpresaSummary {
-  empresa: string;
-  equipamentos: number;
-  caminhoes: number;
-  reboques: number;
-  pipas: number;
-  total: number;
-}
-
-interface DescricaoSummary {
-  descricao: string;
-  quantidade: number;
-  tipo: string;
-}
-
 export default function FrotaGeral() {
-  const { data: equipamentosData, isLoading: loadingEq, error: errorEq } = useGoogleSheets<EquipamentoRow>('equipamentos');
-  const { data: caminhoesData, isLoading: loadingCam, error: errorCam } = useGoogleSheets<CaminhaoRow>('caminhao');
-  const { data: reboqueData, isLoading: loadingReb, error: errorReb } = useGoogleSheets<CamReboqueRow>('cam_reboque');
-  const { data: pipaData, isLoading: loadingPipa, error: errorPipa } = useGoogleSheets<CaminhaoPipaRow>('caminhao_pipa');
+  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota Geral');
+  const [search, setSearch] = useState("");
+  const [filterCategoria, setFilterCategoria] = useState("all");
+  const [filterEmpresa, setFilterEmpresa] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
-  const isLoading = loadingEq || loadingCam || loadingReb || loadingPipa;
-  const hasError = errorEq || errorCam || errorReb || errorPipa;
+  const items = data || [];
 
-  // Total counts
-  const totalEquipamentos = equipamentosData?.length || 0;
-  const totalCaminhoes = caminhoesData?.length || 0;
-  const totalReboques = reboqueData?.length || 0;
-  const totalPipas = pipaData?.length || 0;
-  const totalGeral = totalEquipamentos + totalCaminhoes + totalReboques + totalPipas;
+  const categorias = useMemo(() => [...new Set(items.map(i => i.Categoria).filter(Boolean))].sort(), [items]);
+  const empresas = useMemo(() => [...new Set(items.map(i => i.Empresa).filter(Boolean))].sort(), [items]);
+  const statuses = useMemo(() => [...new Set(items.map(i => i.Status).filter(Boolean))].sort(), [items]);
 
-  // Group by Empresa
-  const empresaSummary = useMemo((): EmpresaSummary[] => {
-    const grouped = new Map<string, EmpresaSummary>();
+  const filtered = useMemo(() => {
+    return items.filter(row => {
+      const matchSearch = !search || Object.values(row).some(v => v?.toLowerCase().includes(search.toLowerCase()));
+      const matchCat = filterCategoria === "all" || row.Categoria === filterCategoria;
+      const matchEmp = filterEmpresa === "all" || row.Empresa === filterEmpresa;
+      const matchSt = filterStatus === "all" || row.Status === filterStatus;
+      return matchSearch && matchCat && matchEmp && matchSt;
+    });
+  }, [items, search, filterCategoria, filterEmpresa, filterStatus]);
 
-    const addToGroup = (empresa: string, type: 'equipamentos' | 'caminhoes' | 'reboques' | 'pipas') => {
-      const key = empresa?.trim() || 'Não informado';
-      if (!grouped.has(key)) {
-        grouped.set(key, { empresa: key, equipamentos: 0, caminhoes: 0, reboques: 0, pipas: 0, total: 0 });
-      }
-      const summary = grouped.get(key)!;
-      summary[type]++;
-      summary.total++;
-    };
+  // KPIs
+  const total = items.length;
+  const mobilizados = items.filter(i => i.Status?.toLowerCase().includes("mobiliz") || i.Status?.toLowerCase().includes("ativo")).length;
+  const manutencao = items.filter(i => i.Status?.toLowerCase().includes("manuten")).length;
+  const parados = items.filter(i => i.Status?.toLowerCase().includes("parad") || i.Status?.toLowerCase().includes("inativ")).length;
 
-    (equipamentosData || []).forEach(eq => addToGroup(eq.Empresa_Eq, 'equipamentos'));
-    (caminhoesData || []).forEach(cam => addToGroup(cam.Empresa_Cb, 'caminhoes'));
-    (reboqueData || []).forEach(reb => addToGroup(reb.Empresa_Cb || reb.Empresa, 'reboques'));
-    (pipaData || []).forEach(pipa => addToGroup(pipa.Empresa, 'pipas'));
+  // By category
+  const byCat = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach(i => {
+      const cat = i.Categoria || "Outros";
+      map.set(cat, (map.get(cat) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [items]);
 
-    return Array.from(grouped.values()).sort((a, b) => b.total - a.total);
-  }, [equipamentosData, caminhoesData, reboqueData, pipaData]);
+  // By empresa
+  const byEmpresa = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach(i => {
+      const emp = i.Empresa || "Não informado";
+      map.set(emp, (map.get(emp) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [items]);
 
-  // Group by Descrição
-  const descricaoSummary = useMemo((): DescricaoSummary[] => {
-    const grouped = new Map<string, DescricaoSummary>();
-
-    const addToGroup = (descricao: string, tipo: string) => {
-      const key = `${tipo}:${descricao?.trim() || 'Não informado'}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, { descricao: descricao?.trim() || 'Não informado', quantidade: 0, tipo });
-      }
-      grouped.get(key)!.quantidade++;
-    };
-
-    (equipamentosData || []).forEach(eq => addToGroup(eq.Descricao_Eq, 'Equipamento'));
-    (caminhoesData || []).forEach(cam => addToGroup(cam.Descricao_Cb, 'Caminhão'));
-    (reboqueData || []).forEach(reb => addToGroup(reb.Descricao, 'Reboque'));
-    (pipaData || []).forEach(pipa => addToGroup(pipa.Descricao, 'Pipa'));
-
-    return Array.from(grouped.values()).sort((a, b) => b.quantidade - a.quantidade);
-  }, [equipamentosData, caminhoesData, reboqueData, pipaData]);
-
-  if (hasError) {
-    return (
-      <div className="p-6">
-        <ErrorState message="Erro ao carregar dados da frota" />
-      </div>
-    );
+  function statusBadge(status: string) {
+    const s = status?.toLowerCase() || "";
+    if (s.includes("mobiliz") || s.includes("ativo")) return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200">{status}</Badge>;
+    if (s.includes("manuten")) return <Badge className="bg-amber-500/15 text-amber-700 border-amber-200">{status}</Badge>;
+    if (s.includes("parad") || s.includes("inativ")) return <Badge className="bg-red-500/15 text-red-700 border-red-200">{status}</Badge>;
+    return <Badge variant="outline">{status || "—"}</Badge>;
   }
+
+  if (error) return <div className="p-6"><ErrorState message="Erro ao carregar dados da frota" /></div>;
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="page-header">
         <h1 className="page-title flex items-center gap-2">
           <Car className="h-6 w-6 text-primary" />
           Frota Geral
         </h1>
-        <p className="page-subtitle">
-          Resumo geral de todos os equipamentos e veículos
-        </p>
+        <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
       </div>
 
-      {isLoading ? (
-        <TableLoader />
-      ) : (
+      {isLoading ? <TableLoader /> : (
         <>
           {/* KPIs */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Total Geral com destaque */}
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg animate-fade-in">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 p-5 text-white shadow-lg">
               <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium opacity-90">Total Geral</p>
-                  <p className="text-3xl font-bold tracking-tight">{totalGeral}</p>
-                  <p className="text-xs opacity-80">Todos os tipos</p>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
-                  <Car className="h-5 w-5" />
-                </div>
+                <div><p className="text-sm opacity-90">Total Frota</p><p className="text-3xl font-bold">{total}</p></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><Car className="h-5 w-5" /></div>
               </div>
             </div>
-            <KPICard
-              title="Equipamentos"
-              value={totalEquipamentos}
-              subtitle="Escavadeiras"
-              icon={HardHat}
-              variant="accent"
-            />
-            <KPICard
-              title="Caminhões"
-              value={totalCaminhoes}
-              subtitle="Basculantes"
-              icon={Truck}
-              variant="success"
-            />
-            <KPICard
-              title="Reboques"
-              value={totalReboques}
-              subtitle="Carretas"
-              icon={Truck}
-              variant="default"
-            />
-            <KPICard
-              title="Pipas"
-              value={totalPipas}
-              subtitle="Caminhões Pipa"
-              icon={Droplets}
-              variant="primary"
-            />
+            <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 text-white shadow-lg">
+              <div className="flex items-start justify-between">
+                <div><p className="text-sm opacity-90">Mobilizados</p><p className="text-3xl font-bold">{mobilizados}</p></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><CheckCircle className="h-5 w-5" /></div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 p-5 text-white shadow-lg">
+              <div className="flex items-start justify-between">
+                <div><p className="text-sm opacity-90">Manutenção</p><p className="text-3xl font-bold">{manutencao}</p></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><AlertTriangle className="h-5 w-5" /></div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-5 text-white shadow-lg">
+              <div className="flex items-start justify-between">
+                <div><p className="text-sm opacity-90">Parados</p><p className="text-3xl font-bold">{parados}</p></div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20"><XCircle className="h-5 w-5" /></div>
+              </div>
+            </div>
           </div>
 
-          {/* Tables Grid */}
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar equipamento..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Empresa" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {empresas.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Summary cards */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* By Empresa */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Agrupado por Empresa
-                </CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5" />Por Categoria</CardTitle></CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="data-table-header">Empresa</TableHead>
-                        <TableHead className="data-table-header text-center">Equip.</TableHead>
-                        <TableHead className="data-table-header text-center">Cam.</TableHead>
-                        <TableHead className="data-table-header text-center">Reb.</TableHead>
-                        <TableHead className="data-table-header text-center">Pipas</TableHead>
-                        <TableHead className="data-table-header text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {empresaSummary.length > 0 ? (
-                        empresaSummary.map((row) => (
-                          <TableRow key={row.empresa} className="data-table-row">
-                            <TableCell className="font-medium">{row.empresa}</TableCell>
-                            <TableCell className="text-center">{row.equipamentos || '-'}</TableCell>
-                            <TableCell className="text-center">{row.caminhoes || '-'}</TableCell>
-                            <TableCell className="text-center">{row.reboques || '-'}</TableCell>
-                            <TableCell className="text-center">{row.pipas || '-'}</TableCell>
-                            <TableCell className="text-right font-bold">{row.total}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="h-16 text-center text-muted-foreground">
-                            Nenhum registro encontrado
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {byCat.length > 0 ? byCat.map(([cat, qty]) => (
+                    <div key={cat} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-sm font-medium">{cat}</span>
+                      <Badge variant="secondary">{qty}</Badge>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
                 </div>
               </CardContent>
             </Card>
-
-            {/* By Descrição */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <HardHat className="h-5 w-5" />
-                  Agrupado por Descrição
-                </CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />Por Empresa</CardTitle></CardHeader>
               <CardContent>
-                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="data-table-header">Descrição</TableHead>
-                        <TableHead className="data-table-header">Tipo</TableHead>
-                        <TableHead className="data-table-header text-right">Qtd</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {descricaoSummary.length > 0 ? (
-                        descricaoSummary.map((row, idx) => (
-                          <TableRow key={idx} className="data-table-row">
-                            <TableCell className="font-medium">{row.descricao}</TableCell>
-                            <TableCell>
-                              <span className="status-badge bg-muted text-muted-foreground">
-                                {row.tipo}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right font-bold">{row.quantidade}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="h-16 text-center text-muted-foreground">
-                            Nenhum registro encontrado
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {byEmpresa.length > 0 ? byEmpresa.map(([emp, qty]) => (
+                    <div key={emp} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-sm font-medium">{emp}</span>
+                      <Badge variant="secondary">{qty}</Badge>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipamentos ({filtered.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Potência</TableHead>
+                      <TableHead>Motorista</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Obra</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length > 0 ? filtered.map((row, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono font-medium">{row.Codigo || "—"}</TableCell>
+                        <TableCell>{row.Descricao || "—"}</TableCell>
+                        <TableCell>{row.Categoria || "—"}</TableCell>
+                        <TableCell>{row.Potencia || "—"}</TableCell>
+                        <TableCell>{row.Motorista || "—"}</TableCell>
+                        <TableCell>{row.Empresa || "—"}</TableCell>
+                        <TableCell>{row.Obra || "—"}</TableCell>
+                        <TableCell>{statusBadge(row.Status)}</TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                          {items.length === 0
+                            ? "A aba 'Frota Geral' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
+                            : "Nenhum resultado para os filtros aplicados."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
