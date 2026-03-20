@@ -46,6 +46,7 @@ import { useHorimetros, useHorimetrosSummary, Horimetro } from "@/hooks/useHorim
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { HorimetroEditDialog } from "@/components/horimetros/HorimetroEditDialog";
 import { HorimetroDeleteDialog } from "@/components/horimetros/HorimetroDeleteDialog";
+import { NovoHorimetroDialog } from "@/components/horimetros/NovoHorimetroDialog";
 import { DateFilter } from "@/components/shared/DateFilter";
 
 type DateQuickFilter = "ultimo" | "hoje" | "ontem" | "data" | "range";
@@ -57,6 +58,7 @@ export default function Horimetros() {
   const [deletingHorimetro, setDeletingHorimetro] = useState<Horimetro | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [novoDialogOpen, setNovoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("registros");
   const [dateFilter, setDateFilter] = useState<DateQuickFilter>("ultimo");
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,7 +183,7 @@ export default function Horimetros() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNovoDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Novo Registro
           </Button>
@@ -497,6 +499,10 @@ export default function Horimetros() {
         horimetro={deletingHorimetro}
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
+      />
+      <NovoHorimetroDialog
+        open={novoDialogOpen}
+        onOpenChange={setNovoDialogOpen}
       />
     </div>
   );
