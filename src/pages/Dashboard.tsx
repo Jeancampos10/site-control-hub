@@ -1,86 +1,82 @@
 import { useState, useMemo } from "react";
-import { Truck, Box, HardHat, Activity, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Fuel, 
+  Droplet, 
+  Wrench, 
+  AlertTriangle, 
+  FileText, 
+  Truck, 
+  HardHat, 
+  Activity, 
+  Box, 
+  Building2,
+  Clock,
+  ShieldAlert,
+  Gauge,
+  ChevronRight,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ProductionChart } from "@/components/dashboard/ProductionChart";
 import { LocalChart } from "@/components/dashboard/LocalChart";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { DataTable } from "@/components/dashboard/DataTable";
-import { FilterBar } from "@/components/dashboard/FilterBar";
 import { EmpresaDetailDialog } from "@/components/dashboard/EmpresaDetailDialog";
 import { useGoogleSheets, CargaRow, EquipamentoRow, CaminhaoRow, filterByDate } from "@/hooks/useGoogleSheets";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Mock data for alerts - replace with real data later
+const alertItems = [
+  { label: "Revisões vencidas", count: 3, severity: "high" as const },
+  { label: "Tacógrafo", count: 1, severity: "medium" as const },
+  { label: "Licenças a vencer", count: 2, severity: "high" as const },
+  { label: "Consumo fora do padrão (Diesel)", count: 4, severity: "medium" as const },
+  { label: "Consumo fora do padrão (Lubrif.)", count: 1, severity: "low" as const },
+  { label: "Insumos - Estoque mínimo", count: 2, severity: "high" as const },
+];
+
+const severityColor = {
+  high: "bg-red-500/10 text-red-600 border-red-200",
+  medium: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
+  low: "bg-blue-500/10 text-blue-600 border-blue-200",
+};
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const navigate = useNavigate();
   const [selectedEmpresa, setSelectedEmpresa] = useState<string | null>(null);
-  
+  const selectedDate = new Date();
+
   const { data: allCargaData } = useGoogleSheets<CargaRow>('carga');
   const { data: equipamentosData } = useGoogleSheets<EquipamentoRow>('equipamentos');
   const { data: caminhoesData } = useGoogleSheets<CaminhaoRow>('caminhao');
 
-  // Filter carga data by selected date
-  const cargaData = useMemo(() => {
-    return filterByDate(allCargaData, selectedDate);
-  }, [allCargaData, selectedDate]);
+  const cargaData = useMemo(() => filterByDate(allCargaData, selectedDate), [allCargaData, selectedDate]);
 
-  // Calculate KPIs from filtered data
+  // KPIs
   const kpis = useMemo(() => {
-    const totalViagens = cargaData?.reduce((acc, row) => {
-      const viagens = parseInt(row.N_Viagens) || 0;
-      return acc + viagens;
-    }, 0) || 0;
-
-    const volumeTotal = cargaData?.reduce((acc, row) => {
-      const vol = parseFloat(row.Volume_Total) || 0;
-      return acc + vol;
-    }, 0) || 0;
-
-    const escavadeirasAtivas = new Set(cargaData?.map(row => row.Prefixo_Eq).filter(Boolean)).size;
-    const totalEscavadeiras = equipamentosData?.length || escavadeirasAtivas;
-
-    const caminhoesAtivos = new Set(cargaData?.map(row => row.Prefixo_Cb).filter(Boolean)).size;
-    const totalCaminhoes = caminhoesData?.length || caminhoesAtivos;
-
-    // Média de viagens por caminhão
-    const mediaViagensPorCaminhao = caminhoesAtivos > 0 ? (totalViagens / caminhoesAtivos) : 0;
-
-    return {
-      totalViagens,
-      volumeTotal,
-      escavadeirasAtivas,
-      totalEscavadeiras,
-      caminhoesAtivos,
-      totalCaminhoes,
-      mediaViagensPorCaminhao,
-    };
+    const totalViagens = cargaData?.reduce((acc, row) => acc + (parseInt(row.N_Viagens) || 0), 0) || 0;
+    const volumeTotal = cargaData?.reduce((acc, row) => acc + (parseFloat(row.Volume_Total) || 0), 0) || 0;
+    const escavadeirasAtivas = new Set(cargaData?.map(r => r.Prefixo_Eq).filter(Boolean)).size;
+    const caminhoesAtivos = new Set(cargaData?.map(r => r.Prefixo_Cb).filter(Boolean)).size;
+    return { totalViagens, volumeTotal, escavadeirasAtivas, caminhoesAtivos, totalEscavadeiras: equipamentosData?.length || escavadeirasAtivas, totalCaminhoes: caminhoesData?.length || caminhoesAtivos };
   }, [cargaData, equipamentosData, caminhoesData]);
 
-  // Resumo por empresa (equipamentos e caminhões)
+  // Resumo por empresa
   const resumoPorEmpresa = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
-
     const empresaEquipamentos: Record<string, Set<string>> = {};
     const empresaCaminhoes: Record<string, Set<string>> = {};
-
     cargaData.forEach(row => {
-      // Equipamentos por empresa
       const empresaEq = row.Empresa_Eq || 'Não Informada';
-      if (!empresaEquipamentos[empresaEq]) {
-        empresaEquipamentos[empresaEq] = new Set();
-      }
+      if (!empresaEquipamentos[empresaEq]) empresaEquipamentos[empresaEq] = new Set();
       if (row.Prefixo_Eq) empresaEquipamentos[empresaEq].add(row.Prefixo_Eq);
-
-      // Caminhões por empresa
       const empresaCb = row.Empresa_Cb || 'Não Informada';
-      if (!empresaCaminhoes[empresaCb]) {
-        empresaCaminhoes[empresaCb] = new Set();
-      }
+      if (!empresaCaminhoes[empresaCb]) empresaCaminhoes[empresaCb] = new Set();
       if (row.Prefixo_Cb) empresaCaminhoes[empresaCb].add(row.Prefixo_Cb);
     });
-
-    // Combinar todas as empresas
     const todasEmpresas = new Set([...Object.keys(empresaEquipamentos), ...Object.keys(empresaCaminhoes)]);
-
     return Array.from(todasEmpresas).map(empresa => ({
       empresa,
       equipamentos: empresaEquipamentos[empresa]?.size || 0,
@@ -89,162 +85,154 @@ export default function Dashboard() {
       .sort((a, b) => (b.equipamentos + b.caminhoes) - (a.equipamentos + a.caminhoes));
   }, [cargaData]);
 
-  // Calculate material by excavator table - WITH TRIP COUNTS
+  // Tables
   const materialByExcavatorData = useMemo(() => {
     if (!cargaData || cargaData.length === 0) return [];
-
     const grouped: Record<string, Record<string, number>> = {};
-
     cargaData.forEach(row => {
-      const escavadeira = row.Prefixo_Eq;
-      const material = row.Material || 'Outros';
-      const viagens = parseInt(row.N_Viagens) || 1;
-
-      if (!escavadeira) return;
-
-      if (!grouped[escavadeira]) {
-        grouped[escavadeira] = {};
-      }
-      grouped[escavadeira][material] = (grouped[escavadeira][material] || 0) + viagens;
+      const esc = row.Prefixo_Eq; const mat = row.Material || 'Outros'; const v = parseInt(row.N_Viagens) || 1;
+      if (!esc) return;
+      if (!grouped[esc]) grouped[esc] = {};
+      grouped[esc][mat] = (grouped[esc][mat] || 0) + v;
     });
-
     return Object.entries(grouped).map(([escavadeira, materiais]) => {
       const total = Object.values(materiais).reduce((a, b) => a + b, 0);
-      return {
-        escavadeira,
-        ...Object.fromEntries(
-          Object.entries(materiais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ''), v])
-        ),
-        total,
-      };
+      return { escavadeira, ...Object.fromEntries(Object.entries(materiais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ''), v])), total };
     }).sort((a, b) => b.total - a.total).slice(0, 8);
   }, [cargaData]);
 
-  // Calculate location by excavator table - WITH TRIP COUNTS
-  const locationByExcavatorData = useMemo(() => {
-    if (!cargaData || cargaData.length === 0) return [];
-
-    const grouped: Record<string, Record<string, number>> = {};
-
-    cargaData.forEach(row => {
-      const escavadeira = row.Prefixo_Eq;
-      const local = row.Local_da_Obra || 'Outros';
-      const viagens = parseInt(row.N_Viagens) || 1;
-
-      if (!escavadeira) return;
-
-      if (!grouped[escavadeira]) {
-        grouped[escavadeira] = {};
-      }
-      grouped[escavadeira][local] = (grouped[escavadeira][local] || 0) + viagens;
-    });
-
-    return Object.entries(grouped).map(([escavadeira, locais]) => {
-      const total = Object.values(locais).reduce((a, b) => a + b, 0);
-      return {
-        escavadeira,
-        ...Object.fromEntries(
-          Object.entries(locais).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, '_'), v])
-        ),
-        total,
-      };
-    }).sort((a, b) => b.total - a.total).slice(0, 8);
-  }, [cargaData]);
-
-  // Dynamic columns for material table
   const materialColumns = useMemo((): Array<{ key: string; label: string; className?: string }> => {
     if (!cargaData || cargaData.length === 0) return [{ key: "escavadeira", label: "Escavadeira" }];
-    
-    const materials = new Set(cargaData.map(row => row.Material).filter(Boolean));
+    const materials = new Set(cargaData.map(r => r.Material).filter(Boolean));
     const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
-    
-    Array.from(materials).slice(0, 4).forEach(m => {
-      cols.push({ 
-        key: m.toLowerCase().replace(/\s+/g, ''), 
-        label: m,
-        className: "text-right" 
-      });
-    });
-    
+    Array.from(materials).slice(0, 4).forEach(m => cols.push({ key: m.toLowerCase().replace(/\s+/g, ''), label: m, className: "text-right" }));
     cols.push({ key: "total", label: "Total", className: "text-right font-semibold" });
     return cols;
   }, [cargaData]);
 
-  // Dynamic columns for location table
-  const locationColumns = useMemo((): Array<{ key: string; label: string; className?: string }> => {
-    if (!cargaData || cargaData.length === 0) return [{ key: "escavadeira", label: "Escavadeira" }];
-    
-    const locations = new Set(cargaData.map(row => row.Local_da_Obra).filter(Boolean));
-    const cols: Array<{ key: string; label: string; className?: string }> = [{ key: "escavadeira", label: "Escavadeira" }];
-    
-    Array.from(locations).slice(0, 3).forEach(l => {
-      cols.push({ 
-        key: l.toLowerCase().replace(/\s+/g, '_'), 
-        label: l.length > 15 ? l.substring(0, 15) + '...' : l,
-        className: "text-right" 
-      });
-    });
-    
-    cols.push({ key: "total", label: "Total", className: "text-right font-semibold" });
-    return cols;
-  }, [cargaData]);
-
-  const formattedDate = selectedDate.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  });
+  const formattedDate = selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const totalAlerts = alertItems.reduce((a, b) => a + b.count, 0);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">Dashboard Geral</h1>
-        <p className="page-subtitle">
-          Visão executiva das operações de terraplenagem • {formattedDate}
-        </p>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Visão geral das operações • {formattedDate}</p>
       </div>
 
-      {/* Filters */}
-      <FilterBar selectedDate={selectedDate} onDateChange={setSelectedDate} />
+      {/* Quick Action Buttons Row */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        {/* Estoque Atual */}
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
+          onClick={() => navigate('/controle/abastecimentos')}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-blue-500/10 p-3">
+                  <Fuel className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Estoque Atual</h3>
+                  <p className="text-xs text-muted-foreground">Combustíveis</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1 rounded-lg bg-muted/60 p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Diesel S10</p>
+                <p className="text-lg font-bold text-foreground">65%</p>
+                <div className="h-1.5 w-full rounded-full bg-muted mt-2">
+                  <div className="h-1.5 rounded-full bg-green-500" style={{ width: '65%' }} />
+                </div>
+              </div>
+              <div className="flex-1 rounded-lg bg-muted/60 p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Arla</p>
+                <p className="text-lg font-bold text-foreground">42%</p>
+                <div className="h-1.5 w-full rounded-full bg-muted mt-2">
+                  <div className="h-1.5 rounded-full bg-yellow-500" style={{ width: '42%' }} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Equipamentos em Oficina */}
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
+          onClick={() => navigate('/controle/manutencao')}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-orange-500/10 p-3">
+                  <Wrench className="h-6 w-6 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Equipamentos em Oficina</h3>
+                  <p className="text-xs text-muted-foreground">Manutenção ativa</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
+                <span className="text-sm">PC-200 #03</span>
+                <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">Preventiva</Badge>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
+                <span className="text-sm">CB-012</span>
+                <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Corretiva</Badge>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2">
+                <span className="text-sm">CB-045</span>
+                <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Aguardando peça</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Alertas */}
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/40 group"
+          onClick={() => navigate('/alertas')}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-red-500/10 p-3">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Alertas</h3>
+                  <p className="text-xs text-muted-foreground">{totalAlerts} pendências</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <div className="space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar">
+              {alertItems.map((alert) => (
+                <div key={alert.label} className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-1.5">
+                  <span className="text-sm truncate flex-1">{alert.label}</span>
+                  <Badge variant="outline" className={`ml-2 text-xs ${severityColor[alert.severity]}`}>
+                    {alert.count}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <KPICard
-          title="Viagens"
-          value={kpis.totalViagens.toLocaleString('pt-BR')}
-          subtitle="Hoje"
-          icon={Activity}
-          variant="accent"
-        />
-        <KPICard
-          title="Vol. Transportado"
-          value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`}
-          subtitle="Movimentado"
-          icon={Box}
-          variant="primary"
-        />
-        <KPICard
-          title="Escavadeiras"
-          value={kpis.escavadeirasAtivas}
-          subtitle={`de ${kpis.totalEscavadeiras}`}
-          icon={HardHat}
-          variant="success"
-        />
-        <KPICard
-          title="Caminhões"
-          value={kpis.caminhoesAtivos}
-          subtitle={`de ${kpis.totalCaminhoes}`}
-          icon={Truck}
-          variant="default"
-        />
-        <KPICard
-          title="Média/Caminhão"
-          value={kpis.mediaViagensPorCaminhao.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
-          subtitle="Viagens"
-          icon={Truck}
-          variant="default"
-        />
+        <KPICard title="Viagens" value={kpis.totalViagens.toLocaleString('pt-BR')} subtitle="Hoje" icon={Activity} variant="accent" />
+        <KPICard title="Vol. Transportado" value={`${kpis.volumeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} m³`} subtitle="Movimentado" icon={Box} variant="primary" />
+        <KPICard title="Escavadeiras" value={kpis.escavadeirasAtivas} subtitle={`de ${kpis.totalEscavadeiras}`} icon={HardHat} variant="success" />
+        <KPICard title="Caminhões" value={kpis.caminhoesAtivos} subtitle={`de ${kpis.totalCaminhoes}`} icon={Truck} variant="default" />
       </div>
 
       {/* Resumo por Empresa */}
@@ -266,14 +254,8 @@ export default function Dashboard() {
                 >
                   <span className="font-medium text-sm truncate flex-1">{item.empresa}</span>
                   <div className="flex gap-3 text-sm text-muted-foreground ml-2">
-                    <span className="flex items-center gap-1">
-                      <HardHat className="h-3 w-3" />
-                      {item.equipamentos}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Truck className="h-3 w-3" />
-                      {item.caminhoes}
-                    </span>
+                    <span className="flex items-center gap-1"><HardHat className="h-3 w-3" />{item.equipamentos}</span>
+                    <span className="flex items-center gap-1"><Truck className="h-3 w-3" />{item.caminhoes}</span>
                   </div>
                 </button>
               ))}
@@ -282,7 +264,6 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Dialog de detalhes da empresa */}
       <EmpresaDetailDialog
         open={!!selectedEmpresa}
         onOpenChange={(open) => !open && setSelectedEmpresa(null)}
@@ -290,27 +271,19 @@ export default function Dashboard() {
         cargaData={cargaData || []}
       />
 
-      {/* Charts Row - Full width on mobile */}
+      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ProductionChart cargaData={cargaData || []} />
         <LocalChart cargaData={cargaData || []} />
       </div>
 
-      {/* Tables Row - Full width on mobile */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DataTable
-          title="Escavadeira × Material"
-          subtitle="Total de viagens por tipo de material"
-          columns={materialColumns}
-          data={materialByExcavatorData}
-        />
-        <DataTable
-          title="Escavadeira × Local"
-          subtitle="Total de viagens por área de trabalho"
-          columns={locationColumns}
-          data={locationByExcavatorData}
-        />
-      </div>
+      {/* Tables */}
+      <DataTable
+        title="Escavadeira × Material"
+        subtitle="Total de viagens por tipo de material"
+        columns={materialColumns}
+        data={materialByExcavatorData}
+      />
 
       {/* Recent Activity */}
       <RecentActivity cargaData={cargaData || []} />
