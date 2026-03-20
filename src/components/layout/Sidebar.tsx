@@ -135,7 +135,7 @@ function NavMenuItem({
           style={{ paddingLeft: `${12 + level * 12}px` }}
         >
           <span className="flex items-center gap-3">
-            <item.icon className={cn("h-4 w-4", isOperacaoMenu && "text-sidebar-primary")} />
+            <item.icon className="h-4 w-4" />
             {item.label}
           </span>
           {isExpanded ? (
