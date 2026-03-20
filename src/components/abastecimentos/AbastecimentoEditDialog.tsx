@@ -75,7 +75,7 @@ export function AbastecimentoEditDialog({
         km_atual: abastecimento.km_atual?.toString() || "",
         quantidade: abastecimento.quantidade?.toString() || "",
         tipo_combustivel: abastecimento.tipo_combustivel || "",
-        local: abastecimento.local || "",
+        local: abastecimento.local_abastecimento || "",
         arla: abastecimento.arla || false,
         quantidade_arla: abastecimento.quantidade_arla?.toString() || "",
         fornecedor: abastecimento.fornecedor || "",
@@ -83,12 +83,12 @@ export function AbastecimentoEditDialog({
         valor_unitario: abastecimento.valor_unitario?.toString() || "",
         valor_total: abastecimento.valor_total?.toString() || "",
         observacao: abastecimento.observacao || "",
-        lubrificar: abastecimento.lubrificar || false,
-        lubrificante: abastecimento.lubrificante || "",
-        completar_oleo: abastecimento.completar_oleo || false,
-        tipo_oleo: abastecimento.tipo_oleo || "",
-        qtd_oleo: abastecimento.qtd_oleo?.toString() || "",
-        sopra_filtro: abastecimento.sopra_filtro || false,
+        lubrificar: abastecimento.lubrificacao || false,
+        lubrificante: abastecimento.oleo || "",
+        completar_oleo: false,
+        tipo_oleo: abastecimento.oleo || "",
+        qtd_oleo: "",
+        sopra_filtro: false,
       });
     }
   }, [abastecimento]);

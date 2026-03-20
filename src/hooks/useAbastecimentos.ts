@@ -207,9 +207,9 @@ export function useBulkUpdateAbastecimentos() {
       dateFilter?: string;
     }) => {
       // Build query with filters
-      let query = supabase.from('abastecimentos').update(updates);
+      let query = supabase.from('abastecimentos').update(updates as any);
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) query = query.eq(key, value);
+        if (value) query = query.eq(key as any, value);
       });
       const { error, count } = await query;
       if (error) throw new Error(error.message);
