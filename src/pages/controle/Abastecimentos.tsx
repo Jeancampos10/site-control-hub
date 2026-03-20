@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { useState, useMemo } from "react";
+import { NovoAbastecimentoDialog } from "@/components/abastecimentos/NovoAbastecimentoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -379,6 +380,7 @@ function EntradasTab() {
 export default function Abastecimentos() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [mainTab, setMainTab] = useState("estoque");
+  const [novoDialogOpen, setNovoDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -391,12 +393,18 @@ export default function Abastecimentos() {
             {selectedDate && ` — ${format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
           </p>
         </div>
-        <DateFilter 
-          date={selectedDate} 
-          onDateChange={setSelectedDate}
-          placeholder="Filtrar por data"
-          showClear={true}
-        />
+        <div className="flex items-center gap-2">
+          <Button className="gap-2" onClick={() => setNovoDialogOpen(true)}>
+            <Fuel className="h-4 w-4" />
+            Novo Abastecimento
+          </Button>
+          <DateFilter 
+            date={selectedDate} 
+            onDateChange={setSelectedDate}
+            placeholder="Filtrar por data"
+            showClear={true}
+          />
+        </div>
       </div>
 
       {/* Main Tabs */}
@@ -436,6 +444,8 @@ export default function Abastecimentos() {
           <EntradasTab />
         </TabsContent>
       </Tabs>
+
+      <NovoAbastecimentoDialog open={novoDialogOpen} onOpenChange={setNovoDialogOpen} />
     </div>
   );
 }
