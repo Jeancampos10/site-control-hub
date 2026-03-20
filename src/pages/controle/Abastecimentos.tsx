@@ -235,11 +235,15 @@ function LancamentoTab({ selectedDate }: { selectedDate: Date | null }) {
   const filteredData = useMemo(() => {
     if (!abastecimentos) return [];
     if (!selectedDate) return abastecimentos;
-    const targetDate = format(selectedDate, 'dd/MM/yyyy');
+    const targetDate = format(selectedDate, 'yyyy-MM-dd');
     return abastecimentos.filter(ab => {
-      const match = ab.data?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-      if (!match) return false;
-      return `${match[1].padStart(2,'0')}/${match[2].padStart(2,'0')}/${match[3]}` === targetDate;
+      if (!ab.data) return false;
+      // Support both ISO (YYYY-MM-DD) and BR (DD/MM/YYYY) formats
+      const isoMatch = ab.data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) return ab.data.startsWith(targetDate);
+      const brMatch = ab.data.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (brMatch) return `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}` === targetDate;
+      return false;
     });
   }, [abastecimentos, selectedDate]);
 
