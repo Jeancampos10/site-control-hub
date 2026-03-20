@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useManutencoes, OrdemServico } from "@/hooks/useManutencoes";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { NovaOrdemServicoDialog } from "@/components/manutencao/NovaOrdemServicoDialog";
 
 export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
