@@ -107,27 +107,6 @@ export default function Pipas() {
         <div className="flex gap-2 flex-wrap">
           <DateFilter date={selectedDate} onDateChange={setSelectedDate} />
           
-          {pendingSyncCount > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2 border-warning text-warning hover:bg-warning/10"
-                    onClick={() => syncMutation.mutate()}
-                    disabled={syncMutation.isPending}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-                    Sincronizar ({pendingSyncCount})
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{pendingSyncCount} registro(s) pendente(s) de sincronização com a planilha</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           
           
           <Button variant="outline" size="sm" className="gap-2">
