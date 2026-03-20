@@ -93,7 +93,6 @@ export function useUpdateHorimetro() {
         operador: formData.operador,
         horimetro_anterior: formData.horimetro_anterior || 0,
         horimetro_atual: formData.horimetro_atual || 0,
-        horas_trabalhadas: horas,
         obra: formData.obra,
         observacao: formData.observacao,
       };
