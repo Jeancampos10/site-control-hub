@@ -31,7 +31,7 @@ import { DateFilter } from "@/components/shared/DateFilter";
 import { NovoApontamentoDialog } from "@/components/pipas/NovoApontamentoDialog";
 import { ApontamentoEditDialog } from "@/components/pipas/ApontamentoEditDialog";
 import { ApontamentoDeleteDialog } from "@/components/pipas/ApontamentoDeleteDialog";
-import { TesteConexaoDialog } from "@/components/pipas/TesteConexaoDialog";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parsePtBrNumber } from "@/lib/utils";
