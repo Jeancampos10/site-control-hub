@@ -3,14 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Truck,
-  Download,
-  Upload,
   Users,
   FileText,
   Bell,
-  HardHat,
-  Droplets,
-  Mountain,
   LogOut,
   Menu,
   Wrench,
@@ -19,17 +14,14 @@ import {
   Gauge,
   Clock,
   X,
-  FlaskConical,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
   MapPin,
   Package,
   Building2,
   Shovel,
   Settings,
   UserCog,
-  Smartphone,
 } from "lucide-react";
 import logoApropriapp from "@/assets/logo-apropriapp.png";
 import { cn } from "@/lib/utils";
@@ -43,25 +35,11 @@ interface NavItem {
   children?: NavItem[];
 }
 
-// Menu de Relatórios com links para páginas originais
-const relatoriosMenu: NavItem = {
-  label: "Operação",
-  icon: ClipboardList,
-  children: [
-    { label: "Carga", icon: Upload, href: "/carga" },
-    { label: "Descarga", icon: Download, href: "/descarga" },
-    { label: "Pedreira", icon: Mountain, href: "/pedreira" },
-    { label: "Pipas", icon: Droplets, href: "/pipas" },
-    { label: "Cal", icon: FlaskConical, href: "/cal" },
-  ],
-};
-
 // Menu de Cadastros (Dados Mestres)
 const cadastrosMenu: NavItem = {
   label: "Cadastros",
   icon: Settings,
   children: [
-    { label: "Apontadores", icon: UserCog, href: "/cadastros/apontadores" },
     { label: "Locais", icon: MapPin, href: "/cadastros/locais" },
     { label: "Materiais", icon: Package, href: "/cadastros/materiais" },
     { label: "Fornecedores CAL", icon: Building2, href: "/cadastros/fornecedores" },
@@ -92,13 +70,12 @@ const controleMenu: NavItem = {
   ],
 };
 
-// Itens de navegação principais (sem Painel do Apontador)
+// Itens de navegação principais
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  relatoriosMenu,
   controleMenu,
-  cadastrosMenu,
   { label: "Frota Geral", icon: Truck, href: "/frota" },
+  cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
 ];
