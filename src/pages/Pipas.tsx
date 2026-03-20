@@ -56,11 +56,6 @@ export default function Pipas() {
     return dbData.filter(row => row.data === selectedDateStr);
   }, [dbData, selectedDate]);
 
-  // Count pending sync
-  const pendingSyncCount = useMemo(() => {
-    if (!dbData) return 0;
-    return dbData.filter(row => !row.sincronizado_sheets).length;
-  }, [dbData]);
 
   // Calculate KPIs from filtered data
   const pipasAtivas = new Set(filteredData?.map(row => row.prefixo).filter(Boolean)).size;
