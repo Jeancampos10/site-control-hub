@@ -35,7 +35,13 @@ const SHEET_RANGES: SheetRanges = {
   mov_cal: { range: 'Mov_Cal!B:L', spreadsheetId: SPREADSHEET_ID },
   estoque_cal: { range: 'Estoque_Cal!A:F', spreadsheetId: SPREADSHEET_ID },
   
-  // Abastech sheets (combustível/frota)
+  // Abastech sheets (new consolidated structure)
+  'Frota Geral': { range: "'Frota Geral'!A:H", spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Abastecimentos: { range: 'Abastecimentos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Horimetros: { range: 'Horimetros!A:L', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Manutencoes: { range: "'Manutenções'!A:O", spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  
+  // Legacy Abastech sheets (keep for backward compatibility)
   AbastecimentoCanteiro01: { range: 'AbastecimentoCanteiro01!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   AbastecimentoCanteiro02: { range: 'AbastecimentoCanteiro02!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   AbastecimentoComboio01: { range: 'AbastecimentoComboio01!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
@@ -50,10 +56,7 @@ const SHEET_RANGES: SheetRanges = {
   EstoqueObraSaneamento: { range: 'EstoqueObraSaneamento!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Estoque_Arla: { range: 'Estoque_Arla!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Veiculos: { range: 'Veiculos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  Horimetros: { range: 'Horimetros!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Ordem_Servico: { range: 'Ordem_Servico!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  // New tabs
-  'Frota Geral': { range: "'Frota Geral'!A:Z", spreadsheetId: ABASTECH_SPREADSHEET_ID },
 };
 
 async function fetchSheetData(sheetName: string): Promise<any[]> {

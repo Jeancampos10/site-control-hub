@@ -56,13 +56,12 @@ function formatDataForSheet(data: HorimetroData): string[] {
     ? kmAtual - kmAnterior : null;
 
   return [
-    data.id || '',
     data.data || '',
-    data.categoria || 'Equipamento',
     data.veiculo || '',
+    data.categoria || 'Equipamento',
     data.descricao || '',
-    data.operador || '',
     data.empresa || '',
+    data.operador || '',
     formatNumber(horAnterior),
     formatNumber(horAtual),
     formatNumber(intervaloH),
