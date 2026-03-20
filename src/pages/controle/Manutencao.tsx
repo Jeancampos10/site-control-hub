@@ -31,6 +31,7 @@ import { NovaOrdemServicoDialog } from "@/components/manutencao/NovaOrdemServico
 export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTab, setSelectedTab] = useState("todas");
+  const [novaOSOpen, setNovaOSOpen] = useState(false);
   const { data: ordens, isLoading } = useManutencoes();
 
   const ordensServico = ordens || [];
