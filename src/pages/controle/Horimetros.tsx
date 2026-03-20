@@ -500,6 +500,10 @@ export default function Horimetros() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
       />
+      <NovoHorimetroDialog
+        open={novoDialogOpen}
+        onOpenChange={setNovoDialogOpen}
+      />
     </div>
   );
 }
