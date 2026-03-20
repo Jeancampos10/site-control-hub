@@ -130,7 +130,6 @@ function NavMenuItem({
             "w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
             "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             isChildActive && "text-sidebar-foreground",
-            isOperacaoMenu && "bg-gradient-to-r from-sidebar-primary/20 to-transparent border-l-2 border-sidebar-primary text-sidebar-foreground font-semibold",
             level > 0 && "py-2 text-xs"
           )}
           style={{ paddingLeft: `${12 + level * 12}px` }}
