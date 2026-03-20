@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { HardHat, ArrowRight, LayoutDashboard, Users, FileText, Bell } from "lucide-react";
+import { HardHat, ArrowRight, LayoutDashboard, Wrench, FileText, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Dashboard from "./Dashboard";
 
