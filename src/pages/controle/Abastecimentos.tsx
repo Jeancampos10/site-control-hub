@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { useState, useMemo } from "react";
+import { NovoAbastecimentoDialog } from "@/components/abastecimentos/NovoAbastecimentoDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
