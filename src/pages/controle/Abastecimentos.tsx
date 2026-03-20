@@ -82,10 +82,9 @@ function EstoquePanel({ selectedDate }: { selectedDate: Date | null }) {
   const stockData = allSources.map(s => {
     const data = s.data || [];
     const todayData = selectedDate ? data.filter(ab => {
-      const match = ab.data?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-      if (!match) return false;
-      const d = `${match[1].padStart(2,'0')}/${match[2].padStart(2,'0')}/${match[3]}`;
-      return d === format(selectedDate, 'dd/MM/yyyy');
+      if (!ab.data) return false;
+      const target = format(selectedDate, 'yyyy-MM-dd');
+      return ab.data.startsWith(target);
     }) : data;
 
     const saidaDia = todayData.reduce((acc, ab) => acc + (ab.quantidade || 0), 0);
