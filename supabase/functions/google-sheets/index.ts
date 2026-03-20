@@ -52,10 +52,8 @@ const SHEET_RANGES: SheetRanges = {
   Veiculos: { range: 'Veiculos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Horimetros: { range: 'Horimetros!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Ordem_Servico: { range: 'Ordem_Servico!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  // New consolidated tabs
+  // New tabs
   'Frota Geral': { range: "'Frota Geral'!A:Z", spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  'Abastecimentos': { range: 'Abastecimentos!A:AI', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  'Manutencoes': { range: "'Manutenções'!A:Z", spreadsheetId: ABASTECH_SPREADSHEET_ID },
 };
 
 async function fetchSheetData(sheetName: string): Promise<any[]> {
