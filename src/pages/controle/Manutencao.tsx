@@ -84,7 +84,7 @@ export default function Manutencao() {
         </div>
         <div className="flex gap-2">
           <DateFilter date={selectedDate} onDateChange={(d) => d && setSelectedDate(d)} />
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setNovaOSOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova OS
           </Button>
