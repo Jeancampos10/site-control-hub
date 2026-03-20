@@ -7,7 +7,6 @@ export interface Abastecimento {
   data: string;
   hora: string;
   tipo: string;
-  categoria: string;
   veiculo: string;
   potencia: string;
   descricao: string;
@@ -20,7 +19,7 @@ export interface Abastecimento {
   km_atual: number | null;
   quantidade: number;
   tipo_combustivel: string;
-  local: string;
+  local_abastecimento: string;
   arla: boolean;
   quantidade_arla: number | null;
   fornecedor: string;
@@ -29,254 +28,200 @@ export interface Abastecimento {
   valor_total: number | null;
   localizacao: string;
   observacao: string;
-  foto_bomba: string;
-  foto_horimetro: string;
-  local_entrada: string;
-  lubrificar: boolean;
-  lubrificante: string;
-  completar_oleo: boolean;
-  tipo_oleo: string;
-  qtd_oleo: number | null;
-  sopra_filtro: boolean;
+  lubrificacao: boolean;
+  oleo: string;
+  filtro: string;
 }
 
-// Transform raw sheet data to our Abastecimento interface
-function transformSheetData(row: Record<string, string>): Abastecimento {
-  const parseNumber = (val: string): number | null => {
-    if (!val) return null;
-    // Handle Brazilian number format (1.234,56)
-    const cleaned = val.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? null : num;
-  };
-
-  const parseBoolean = (val: string): boolean => {
-    return val === '✔' || val === 'true' || val === '1' || val === 'Sim';
-  };
-
+function transformDbRow(row: any): Abastecimento {
   return {
-    id: row['IdAbastecimento'] || row['id'] || '',
-    data: row['Data'] || '',
-    hora: row['Hora'] || '',
-    tipo: row['Tipo'] || '',
-    categoria: row['Categoria'] || '',
-    veiculo: row['Veiculo'] || '',
-    potencia: row['Potencia'] || '',
-    descricao: row['Descricao'] || '',
-    motorista: row['Motorista'] || '',
-    empresa: row['Empresa'] || '',
-    obra: row['Obra'] || '',
-    horimetro_anterior: parseNumber(row['Horimetro_Anterior_Eq'] || row['Horimetro_Anterior'] || ''),
-    horimetro_atual: parseNumber(row['Horimetro_Atual_Eq'] || row['Horimetro_Atual'] || ''),
-    km_anterior: parseNumber(row['Km_Anterior_Eq'] || row['Km_Anterior'] || ''),
-    km_atual: parseNumber(row['Km_Atual_Eq'] || row['Km_Atual'] || ''),
-    quantidade: parseNumber(row['Quantidade'] || '0') || 0,
-    tipo_combustivel: row['Tipo_Combustivel'] || '',
-    local: row['Local'] || '',
-    arla: parseBoolean(row['Arla'] || ''),
-    quantidade_arla: parseNumber(row['Quantidade_Arla'] || ''),
-    fornecedor: row['Fornecedor'] || '',
-    nota_fiscal: row['NotaFiscal'] || '',
-    valor_unitario: parseNumber(row['ValorUnitario'] || ''),
-    valor_total: parseNumber(row['ValorTotal'] || ''),
-    localizacao: row['Localizacao'] || row['Observacao'] || '', // Note: Column Y might be Localizacao or Observacao depending on sheet
-    observacao: row['Observacao'] || '',
-    foto_bomba: row['Foto_Bomba'] || '',
-    foto_horimetro: row['Foto_Horimetro'] || '',
-    local_entrada: row['Local_Entrada'] || '',
-    lubrificar: parseBoolean(row['Lubrificar'] || ''),
-    lubrificante: row['Lubrificante'] || '',
-    completar_oleo: parseBoolean(row['CompletarOleo'] || ''),
-    tipo_oleo: row['TipoOleo'] || '',
-    qtd_oleo: parseNumber(row['Qtd_Oleo'] || ''),
-    sopra_filtro: parseBoolean(row['Sopra_Filtro'] || ''),
+    id: row.id,
+    data: row.data || '',
+    hora: row.hora || '',
+    tipo: row.tipo || '',
+    veiculo: row.veiculo || '',
+    potencia: row.potencia || '',
+    descricao: row.descricao || '',
+    motorista: row.motorista || '',
+    empresa: row.empresa || '',
+    obra: row.obra || '',
+    horimetro_anterior: row.horimetro_anterior,
+    horimetro_atual: row.horimetro_atual,
+    km_anterior: row.km_anterior,
+    km_atual: row.km_atual,
+    quantidade: row.quantidade_combustivel || 0,
+    tipo_combustivel: row.tipo_combustivel || '',
+    local_abastecimento: row.local_abastecimento || '',
+    arla: row.arla || false,
+    quantidade_arla: row.quantidade_arla,
+    fornecedor: row.fornecedor || '',
+    nota_fiscal: row.nota_fiscal || '',
+    valor_unitario: row.valor_unitario,
+    valor_total: row.valor_total,
+    localizacao: row.localizacao || '',
+    observacao: row.observacao || '',
+    lubrificacao: row.lubrificacao || false,
+    oleo: row.oleo || '',
+    filtro: row.filtro || '',
   };
 }
 
-// Source to sheet name mapping
-const SOURCE_TO_SHEET: Record<string, string> = {
-  'tanque01': 'AbastecimentoCanteiro01',
-  'tanque02': 'AbastecimentoCanteiro02',
-  'comboio01': 'AbastecimentoComboio01',
-  'comboio02': 'AbastecimentoComboio02',
-  'comboio03': 'AbastecimentoComboio03',
-};
-
-export function useAbastecimentos(source: string) {
-  const sheetName = SOURCE_TO_SHEET[source];
-  
+export function useAbastecimentos(source?: string) {
   return useQuery({
-    queryKey: ['abastecimentos', source],
+    queryKey: ['abastecimentos', source || 'all'],
     queryFn: async () => {
-      if (!sheetName) {
-        throw new Error(`Unknown source: ${source}`);
+      let query = supabase
+        .from('abastecimentos')
+        .select('*')
+        .order('data', { ascending: false })
+        .order('hora', { ascending: false });
+
+      if (source && source !== 'all') {
+        query = query.eq('local_abastecimento', source);
       }
 
-      const { data, error } = await supabase.functions.invoke('google-sheets', {
-        body: null,
-        method: 'GET',
-      });
+      const { data, error } = await query;
 
-      // For GET requests, we need to use the URL params approach
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      const abastecimentos = (result.data || []).map(transformSheetData);
-      return abastecimentos as Abastecimento[];
+      if (error) throw new Error(error.message);
+      return (data || []).map(transformDbRow) as Abastecimento[];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!source,
+    staleTime: 1000 * 60 * 2,
   });
 }
 
-// Hook to sync changes with Google Sheets
+export function useAllAbastecimentos() {
+  return useAbastecimentos('all');
+}
+
 export function useSyncAbastecimento() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      action, 
-      source, 
-      data, 
-      rowId 
-    }: { 
-      action: 'append' | 'update' | 'delete'; 
-      source: string; 
-      data?: Partial<Abastecimento>; 
+    mutationFn: async ({
+      action,
+      data,
+      rowId,
+    }: {
+      action: 'append' | 'update' | 'delete';
+      source?: string;
+      data?: Partial<Abastecimento>;
       rowId?: string;
     }) => {
-      const response = await supabase.functions.invoke('sync-abastecimentos', {
-        body: { action, source, data, rowId },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (action === 'delete' && rowId) {
+        const { error } = await supabase.from('abastecimentos').delete().eq('id', rowId);
+        if (error) throw new Error(error.message);
+        return { success: true };
       }
 
-      return response.data;
+      if (action === 'append' && data) {
+        const { error } = await supabase.from('abastecimentos').insert({
+          data: data.data || new Date().toISOString().split('T')[0],
+          veiculo: data.veiculo || '',
+          quantidade_combustivel: data.quantidade || 0,
+          hora: data.hora,
+          tipo: data.tipo,
+          potencia: data.potencia,
+          descricao: data.descricao,
+          motorista: data.motorista,
+          empresa: data.empresa,
+          obra: data.obra,
+          horimetro_anterior: data.horimetro_anterior,
+          horimetro_atual: data.horimetro_atual,
+          km_anterior: data.km_anterior,
+          km_atual: data.km_atual,
+          tipo_combustivel: data.tipo_combustivel,
+          local_abastecimento: data.local_abastecimento,
+          arla: data.arla,
+          quantidade_arla: data.quantidade_arla,
+          fornecedor: data.fornecedor,
+          nota_fiscal: data.nota_fiscal,
+          valor_unitario: data.valor_unitario,
+          valor_total: data.valor_total,
+          localizacao: data.localizacao,
+          observacao: data.observacao,
+          lubrificacao: data.lubrificacao,
+          oleo: data.oleo,
+          filtro: data.filtro,
+        });
+        if (error) throw new Error(error.message);
+        return { success: true };
+      }
+
+      if (action === 'update' && rowId && data) {
+        const { error } = await supabase.from('abastecimentos').update({
+          data: data.data,
+          veiculo: data.veiculo,
+          quantidade_combustivel: data.quantidade,
+          hora: data.hora,
+          tipo: data.tipo,
+          potencia: data.potencia,
+          descricao: data.descricao,
+          motorista: data.motorista,
+          empresa: data.empresa,
+          obra: data.obra,
+          horimetro_anterior: data.horimetro_anterior,
+          horimetro_atual: data.horimetro_atual,
+          km_anterior: data.km_anterior,
+          km_atual: data.km_atual,
+          tipo_combustivel: data.tipo_combustivel,
+          local_abastecimento: data.local_abastecimento,
+          arla: data.arla,
+          quantidade_arla: data.quantidade_arla,
+          fornecedor: data.fornecedor,
+          nota_fiscal: data.nota_fiscal,
+          valor_unitario: data.valor_unitario,
+          valor_total: data.valor_total,
+          localizacao: data.localizacao,
+          observacao: data.observacao,
+          lubrificacao: data.lubrificacao,
+          oleo: data.oleo,
+          filtro: data.filtro,
+        }).eq('id', rowId);
+        if (error) throw new Error(error.message);
+        return { success: true };
+      }
+
+      throw new Error('Invalid action');
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['abastecimentos', variables.source] });
-      
-      const actionMessages = {
-        append: 'Abastecimento adicionado com sucesso!',
-        update: 'Abastecimento atualizado com sucesso!',
-        delete: 'Abastecimento excluído com sucesso!',
-      };
-      
-      toast.success(actionMessages[variables.action]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['abastecimentos'] });
+      toast.success('Operação realizada com sucesso!');
     },
     onError: (error) => {
-      console.error('Sync error:', error);
-      toast.error(`Erro ao sincronizar: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     },
   });
 }
 
-// Hook for bulk updates
 export function useBulkUpdateAbastecimentos() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
-      source,
       filters,
       updates,
-      dateFilter,
     }: {
-      source: string;
+      source?: string;
       filters: Record<string, string>;
       updates: Record<string, string>;
       dateFilter?: string;
     }) => {
-      const response = await supabase.functions.invoke('sync-abastecimentos', {
-        body: { 
-          action: 'bulkUpdate', 
-          source, 
-          filters, 
-          updates, 
-          dateFilter 
-        },
+      // Build query with filters - use type assertion to avoid deep instantiation
+      const updatePayload: Record<string, any> = updates;
+      let query: any = supabase.from('abastecimentos').update(updatePayload);
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) query = query.eq(key, value);
       });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      return response.data;
+      const { error, count } = await query;
+      if (error) throw new Error(error.message);
+      return { updatedCount: count || 0 };
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['abastecimentos', variables.source] });
-      toast.success(`${data.updatedCount || 0} registros atualizados com sucesso!`);
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['abastecimentos'] });
+      toast.success(`${data.updatedCount} registros atualizados!`);
     },
     onError: (error) => {
-      console.error('Bulk update error:', error);
-      toast.error(`Erro na atualização em lote: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     },
-  });
-}
-
-// Hook to get all abastecimentos from all sources combined
-export function useAllAbastecimentos() {
-  const sources = Object.keys(SOURCE_TO_SHEET);
-  
-  return useQuery({
-    queryKey: ['abastecimentos', 'all'],
-    queryFn: async () => {
-      const allData: Abastecimento[] = [];
-      
-      for (const source of sources) {
-        const sheetName = SOURCE_TO_SHEET[source];
-        try {
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets?sheet=${sheetName}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              },
-            }
-          );
-
-          if (response.ok) {
-            const result = await response.json();
-            const abastecimentos = (result.data || []).map((row: Record<string, string>) => ({
-              ...transformSheetData(row),
-              fonte: source, // Add source identifier
-            }));
-            allData.push(...abastecimentos);
-          }
-        } catch (error) {
-          console.error(`Error fetching ${source}:`, error);
-        }
-      }
-
-      // Sort by date and time descending
-      allData.sort((a, b) => {
-        const dateA = a.data.split('/').reverse().join('-') + ' ' + a.hora;
-        const dateB = b.data.split('/').reverse().join('-') + ' ' + b.hora;
-        return dateB.localeCompare(dateA);
-      });
-
-      return allData;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

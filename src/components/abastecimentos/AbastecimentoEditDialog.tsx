@@ -75,7 +75,7 @@ export function AbastecimentoEditDialog({
         km_atual: abastecimento.km_atual?.toString() || "",
         quantidade: abastecimento.quantidade?.toString() || "",
         tipo_combustivel: abastecimento.tipo_combustivel || "",
-        local: abastecimento.local || "",
+        local: abastecimento.local_abastecimento || "",
         arla: abastecimento.arla || false,
         quantidade_arla: abastecimento.quantidade_arla?.toString() || "",
         fornecedor: abastecimento.fornecedor || "",
@@ -83,12 +83,12 @@ export function AbastecimentoEditDialog({
         valor_unitario: abastecimento.valor_unitario?.toString() || "",
         valor_total: abastecimento.valor_total?.toString() || "",
         observacao: abastecimento.observacao || "",
-        lubrificar: abastecimento.lubrificar || false,
-        lubrificante: abastecimento.lubrificante || "",
-        completar_oleo: abastecimento.completar_oleo || false,
-        tipo_oleo: abastecimento.tipo_oleo || "",
-        qtd_oleo: abastecimento.qtd_oleo?.toString() || "",
-        sopra_filtro: abastecimento.sopra_filtro || false,
+        lubrificar: abastecimento.lubrificacao || false,
+        lubrificante: abastecimento.oleo || "",
+        completar_oleo: false,
+        tipo_oleo: abastecimento.oleo || "",
+        qtd_oleo: "",
+        sopra_filtro: false,
       });
     }
   }, [abastecimento]);
@@ -119,7 +119,7 @@ export function AbastecimentoEditDialog({
       km_atual: parseNumber(formData.km_atual),
       quantidade: parseNumber(formData.quantidade),
       tipo_combustivel: formData.tipo_combustivel,
-      local: formData.local,
+      local_abastecimento: formData.local,
       arla: formData.arla,
       quantidade_arla: parseNumber(formData.quantidade_arla),
       fornecedor: formData.fornecedor,
@@ -127,12 +127,9 @@ export function AbastecimentoEditDialog({
       valor_unitario: parseNumber(formData.valor_unitario),
       valor_total: parseNumber(formData.valor_total),
       observacao: formData.observacao,
-      lubrificar: formData.lubrificar,
-      lubrificante: formData.lubrificante,
-      completar_oleo: formData.completar_oleo,
-      tipo_oleo: formData.tipo_oleo,
-      qtd_oleo: parseNumber(formData.qtd_oleo),
-      sopra_filtro: formData.sopra_filtro,
+      lubrificacao: formData.lubrificar,
+      oleo: formData.tipo_oleo || formData.lubrificante,
+      filtro: formData.sopra_filtro ? 'Sim' : '',
     };
 
     await syncMutation.mutateAsync({
