@@ -145,6 +145,12 @@ const App = () => (
             <Route path="/cadastros/reboques" element={<ProtectedRoute><CadastroReboques /></ProtectedRoute>} />
             <Route path="/cadastros/equipamentos-gerais" element={<ProtectedRoute><CadastroEquipamentosGerais /></ProtectedRoute>} />
             
+            {/* Controle */}
+            <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
+            <Route path="/controle/manutencao" element={<ProtectedRoute><Manutencao /></ProtectedRoute>} />
+            <Route path="/controle/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
+            <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
+            
             {/* Páginas existentes */}
             <Route path="/carga" element={<ProtectedRoute><Carga /></ProtectedRoute>} />
             <Route path="/descarga" element={<ProtectedRoute><Descarga /></ProtectedRoute>} />
