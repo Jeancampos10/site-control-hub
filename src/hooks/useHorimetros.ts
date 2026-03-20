@@ -57,8 +57,8 @@ function transformSheetData(row: Record<string, string>): Horimetro {
   }
 
   return {
-    id: row['id'] || row['ID'] || '',
-    data: (row[' Data'] || row['Data'] || '').trim(),
+    id: row['id'] || row['ID'] || `${(row['Data'] || '').trim()}_${row['Veiculo'] || ''}`,
+    data: (row['Data'] || '').trim(),
     categoria: row['Categoria'] || '',
     veiculo: row['Veiculo'] || '',
     descricao: row['Descricao'] || '',
