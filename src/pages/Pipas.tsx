@@ -75,31 +75,7 @@ export default function Pipas() {
   const isLoading = isLoadingDb || isLoadingPipas;
   const error = errorDb;
 
-  // Importa da planilha automaticamente na primeira vez (caso o banco esteja vazio)
-  useEffect(() => {
-    if (importAttempted) return;
-    if (isLoadingDb) return;
-    if (!dbData) return;
-    if (dbData.length > 0) return;
-
-    setImportAttempted(true);
-
-    supabase.functions
-      .invoke('sync-apontamento-pipa', { body: { action: 'import' } })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Import error:', error);
-          return;
-        }
-
-        if (data?.imported > 0) {
-          toast.success(`${data.imported} registros importados da planilha.`);
-        }
-      })
-      .finally(() => {
-        refetch();
-      });
-  }, [importAttempted, isLoadingDb, dbData, refetch]);
+  // No longer importing from Google Sheets - data is 100% in the database
 
   // Handler to save new apontamento
   const handleSaveApontamento = async (dados: { Data: string; Prefixo: string; N_Viagens: string }) => {
