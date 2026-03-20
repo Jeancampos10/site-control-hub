@@ -183,7 +183,7 @@ export default function Horimetros() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+          <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNovoDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Novo Registro
           </Button>
