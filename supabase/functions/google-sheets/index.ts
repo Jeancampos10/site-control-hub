@@ -37,8 +37,8 @@ const SHEET_RANGES: SheetRanges = {
   
   // Abastech sheets (new consolidated structure)
   'Frota': { range: "'Frota'!A:I", spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  Abastecimentos: { range: 'Abastecimentos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
-  Horimetros: { range: 'Horimetros!A:L', spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Abastecimentos: { range: "'Abastecimentos'!A:Z", spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  Horimetros: { range: "'Horímetros'!A:L", spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Manutencoes: { range: "'Manutenções'!A:O", spreadsheetId: ABASTECH_SPREADSHEET_ID },
   
   // Legacy Abastech sheets (keep for backward compatibility)
