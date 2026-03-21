@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Clock, Save, X, Loader2, Search } from "lucide-react";
 import { useUpdateHorimetro } from "@/hooks/useHorimetros";
+import { useSyncToSheet } from "@/hooks/useSyncToSheet";
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
