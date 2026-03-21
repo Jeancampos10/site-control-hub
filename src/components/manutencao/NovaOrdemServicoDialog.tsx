@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, Save, X, Loader2, Search, Clock } from "lucide-react";
 import { useCreateOrdemServico } from "@/hooks/useManutencoes";
+import { useSyncToSheet } from "@/hooks/useSyncToSheet";
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -30,6 +31,7 @@ interface NovaOrdemServicoDialogProps {
 
 export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoDialogProps) {
   const createMutation = useCreateOrdemServico();
+  const sheetSync = useSyncToSheet();
   const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
@@ -168,6 +170,16 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
         observacoes: observacoes || undefined,
       });
 
+      // 2. Sync to Google Sheets (non-blocking)
+      sheetSync.mutate({
+        sheetName: 'Manutenções',
+        rowData: [
+          dataEntrada, veiculo, veiculoInfo?.Descricao || '', tipo, prioridade, status,
+          problemaRelatado, tipoProblema || '', solucao || '', mecanico || '',
+          veiculoInfo?.Motorista || '', horimetroAtual || kmAtual || '',
+          horasEstimadas || '', custoEstimado || '', observacoes || '',
+        ],
+      });
 
       onOpenChange(false);
     } catch {
