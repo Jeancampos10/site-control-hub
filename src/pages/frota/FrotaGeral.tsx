@@ -210,7 +210,7 @@ export default function FrotaGeral() {
                       <TableRow>
                         <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                           {items.length === 0
-                            ? "A aba 'Frota Geral' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
+                            ? "A aba 'Frota' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
                             : "Nenhum resultado para os filtros aplicados."}
                         </TableCell>
                       </TableRow>

@@ -36,7 +36,7 @@ const SHEET_RANGES: SheetRanges = {
   estoque_cal: { range: 'Estoque_Cal!A:F', spreadsheetId: SPREADSHEET_ID },
   
   // Abastech sheets (new consolidated structure)
-  'Frota Geral': { range: "'Frota Geral'!A:I", spreadsheetId: ABASTECH_SPREADSHEET_ID },
+  'Frota': { range: "'Frota'!A:I", spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Abastecimentos: { range: 'Abastecimentos!A:Z', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Horimetros: { range: 'Horimetros!A:L', spreadsheetId: ABASTECH_SPREADSHEET_ID },
   Manutencoes: { range: "'Manutenções'!A:O", spreadsheetId: ABASTECH_SPREADSHEET_ID },
