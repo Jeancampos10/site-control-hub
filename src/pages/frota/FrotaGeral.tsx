@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function FrotaGeral() {
-  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota Geral');
+  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota');
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterEmpresa, setFilterEmpresa] = useState("all");
