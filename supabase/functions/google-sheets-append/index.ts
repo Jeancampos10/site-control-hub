@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GOOGLE_APPS_SCRIPT_URL = Deno.env.get('GOOGLE_APPS_SCRIPT_URL');
 const GOOGLE_APPS_SCRIPT_SECRET = Deno.env.get('GOOGLE_APPS_SCRIPT_SECRET');
-const SPREADSHEET_ID = '1B9-SbnayFySlsITdRqn_2WJNnA9ZHhD0PWYka83581c';
+const ABASTECH_SPREADSHEET_ID = Deno.env.get('ABASTECH_SPREADSHEET_ID') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,7 +23,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, sheetName, rowData, rowId, idColumn, filters, updates, dateFilter } = body;
+    const { action, sheetName, rowData, rowId, idColumn, filters, updates, dateFilter, spreadsheetId } = body;
 
     console.log(`Google Sheets Append - Action: ${action}, Sheet: ${sheetName}`);
 
@@ -36,10 +35,12 @@ serve(async (req) => {
       );
     }
 
-    // Prepare the request to Apps Script
+    // Use provided spreadsheetId or default to ABASTECH
+    const targetSpreadsheetId = spreadsheetId || ABASTECH_SPREADSHEET_ID;
+
     const appsScriptBody = {
       authToken: GOOGLE_APPS_SCRIPT_SECRET,
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: targetSpreadsheetId,
       action,
       sheetName,
       rowData,
@@ -54,9 +55,7 @@ serve(async (req) => {
 
     const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(appsScriptBody),
     });
 
