@@ -38,7 +38,7 @@ type AbastechSheetName =
   | 'Horimetros'
   | 'Manutencoes'
   | 'Ordem_Servico'
-  | 'Frota Geral';
+  | 'Frota';
 
 export type SheetName = ProdutionSheetName | VirtualSheetName | AbastechSheetName;
 

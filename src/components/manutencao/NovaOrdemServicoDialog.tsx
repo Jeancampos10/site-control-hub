@@ -30,7 +30,7 @@ interface NovaOrdemServicoDialogProps {
 
 export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoDialogProps) {
   const createMutation = useCreateOrdemServico();
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota Geral');
+  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
   const [tipo, setTipo] = useState("Corretiva");

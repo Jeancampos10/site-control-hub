@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function FrotaGeral() {
-  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota Geral');
+  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota');
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("all");
   const [filterEmpresa, setFilterEmpresa] = useState("all");
@@ -80,7 +80,7 @@ export default function FrotaGeral() {
       <div className="page-header">
         <h1 className="page-title flex items-center gap-2">
           <Car className="h-6 w-6 text-primary" />
-          Frota Geral
+          Frota
         </h1>
         <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
       </div>
@@ -210,7 +210,7 @@ export default function FrotaGeral() {
                       <TableRow>
                         <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                           {items.length === 0
-                            ? "A aba 'Frota Geral' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
+                            ? "A aba 'Frota' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
                             : "Nenhum resultado para os filtros aplicados."}
                         </TableCell>
                       </TableRow>

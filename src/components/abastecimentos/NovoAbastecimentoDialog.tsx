@@ -39,7 +39,7 @@ const SOURCES = [
 
 export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
   const syncMutation = useSyncAbastecimento();
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota Geral');
+  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
   const [data, setData] = useState("");

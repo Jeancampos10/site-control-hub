@@ -19,7 +19,7 @@ function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
   const quickLinks = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/" },
     { label: "Controle", icon: Wrench, href: "/controle" },
-    { label: "Frota Geral", icon: Truck, href: "/frota" },
+    { label: "Frota", icon: Truck, href: "/frota" },
     { label: "Relatórios", icon: FileText, href: "/relatorios" },
   ];
 
