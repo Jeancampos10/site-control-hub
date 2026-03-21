@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, Save, X, Loader2, Search, Clock } from "lucide-react";
 import { useCreateOrdemServico } from "@/hooks/useManutencoes";
+import { useSyncToSheet } from "@/hooks/useSyncToSheet";
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
