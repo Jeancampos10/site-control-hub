@@ -180,6 +180,20 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
         },
       });
 
+      // 2. Sync to Google Sheets (non-blocking)
+      sheetSync.mutate({
+        sheetName: 'Abastecimentos',
+        rowData: [
+          data, hora, tipo, veiculo, veiculoInfo?.Descricao || '', veiculoInfo?.Potencia || '',
+          motorista, veiculoInfo?.Empresa || '', veiculoInfo?.Obra || '',
+          source, tipoCombustivel, quantidade,
+          horimetroAnterior, horimetroAtual, kmAnterior, kmAtual,
+          arla ? 'Sim' : 'Não', quantidadeArla,
+          fornecedor, notaFiscal, valorUnitario, valorTotal,
+          lubrificacao ? 'Sim' : 'Não', oleo, filtro, observacao,
+        ],
+      });
+
       toast.success('Abastecimento registrado com sucesso!');
       onOpenChange(false);
     } catch (err: any) {
