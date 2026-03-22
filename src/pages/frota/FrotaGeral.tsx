@@ -100,7 +100,7 @@ export default function FrotaGeral() {
         <div className="page-header mb-0">
           <h1 className="page-title flex items-center gap-2">
             <Car className="h-6 w-6 text-primary" />
-            Frota
+            Frota Geral
           </h1>
           <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
         </div>
