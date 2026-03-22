@@ -59,16 +59,16 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
   const veiculos = useMemo(() => {
     if (!frota) return [];
     return frota
-      .filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado')
-      .sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+      .filter(v => v.codigo && v.status !== 'Desmobilizado')
+      .sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const filteredVeiculos = useMemo(() => {
     if (!searchTerm) return veiculos;
     const term = searchTerm.toLowerCase();
     return veiculos.filter(v =>
-      v.Codigo.toLowerCase().includes(term) ||
-      v.Descricao?.toLowerCase().includes(term)
+      v.codigo.toLowerCase().includes(term) ||
+      v.descricao?.toLowerCase().includes(term)
     );
   }, [veiculos, searchTerm]);
 
