@@ -19,7 +19,7 @@ import {
 import { FileText, Save, X, Loader2, Search, Clock } from "lucide-react";
 import { useCreateOrdemServico } from "@/hooks/useManutencoes";
 
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
