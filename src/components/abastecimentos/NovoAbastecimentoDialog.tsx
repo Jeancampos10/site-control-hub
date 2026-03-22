@@ -86,9 +86,14 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     );
   }, [veiculos, searchTerm]);
 
-  // Auto-fill last horimetro/km
+  // Auto-fill vehicle info + last horimetro/km
   useEffect(() => {
     if (!veiculo) return;
+
+    // Auto-fill motorista from frota
+    const veiculoInfo = frota?.find(v => v.codigo === veiculo);
+    if (veiculoInfo?.motorista) setMotorista(veiculoInfo.motorista);
+
     const fetchLast = async () => {
       const { data: hRows } = await supabase
         .from('horimetros')
@@ -111,7 +116,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
       }
     };
     fetchLast();
-  }, [veiculo]);
+  }, [veiculo, frota]);
 
   useEffect(() => {
     if (open) {

@@ -247,14 +247,29 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
           </div>
 
           {/* Info do último registro */}
-          {veiculo && lastHorimetro && (
+          {veiculo && (
             <div className="rounded-lg bg-muted/50 border p-3 text-xs space-y-1">
-              <p className="font-medium text-muted-foreground">Último registro:</p>
-              <div className="flex gap-4">
-                <span>Data: <strong>{lastData}</strong></span>
-                <span>Horímetro: <strong>{lastHorimetro}</strong></span>
-                {lastKm !== "0" && <span>KM: <strong>{lastKm}</strong></span>}
-              </div>
+              {(() => {
+                const vi = frota?.find(v => v.codigo === veiculo);
+                return vi ? (
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                    {vi.descricao && <span>Desc: <strong className="text-foreground">{vi.descricao}</strong></span>}
+                    {vi.motorista && <span>Operador: <strong className="text-foreground">{vi.motorista}</strong></span>}
+                    {vi.empresa && <span>Empresa: <strong className="text-foreground">{vi.empresa}</strong></span>}
+                    {vi.obra && <span>Obra: <strong className="text-foreground">{vi.obra}</strong></span>}
+                  </div>
+                ) : null;
+              })()}
+              {lastHorimetro && (
+                <>
+                  <p className="font-medium text-muted-foreground mt-1">Último registro:</p>
+                  <div className="flex gap-4">
+                    <span>Data: <strong>{lastData}</strong></span>
+                    <span>Horímetro: <strong>{lastHorimetro}</strong></span>
+                    {lastKm !== "0" && <span>KM: <strong>{lastKm}</strong></span>}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
