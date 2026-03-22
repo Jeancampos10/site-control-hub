@@ -19,7 +19,7 @@ import {
 import { FileText, Save, X, Loader2, Search, Clock } from "lucide-react";
 import { useCreateOrdemServico } from "@/hooks/useManutencoes";
 
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ interface NovaOrdemServicoDialogProps {
 export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoDialogProps) {
   const createMutation = useCreateOrdemServico();
   
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data: frota } = useFrota();
 
   const [veiculo, setVeiculo] = useState("");
   const [tipo, setTipo] = useState("Corretiva");
@@ -59,16 +59,16 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
   const veiculos = useMemo(() => {
     if (!frota) return [];
     return frota
-      .filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado')
-      .sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+      .filter(v => v.codigo && v.status !== 'Desmobilizado')
+      .sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const filteredVeiculos = useMemo(() => {
     if (!searchTerm) return veiculos;
     const term = searchTerm.toLowerCase();
     return veiculos.filter(v =>
-      v.Codigo.toLowerCase().includes(term) ||
-      v.Descricao?.toLowerCase().includes(term)
+      v.codigo.toLowerCase().includes(term) ||
+      v.descricao?.toLowerCase().includes(term)
     );
   }, [veiculos, searchTerm]);
 
@@ -142,7 +142,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
     if (!veiculo) { toast.error("Selecione um veículo"); return; }
     if (!problemaRelatado) { toast.error("Descreva o problema"); return; }
 
-    const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+    const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
     const isoDataAbertura = parseDateToISO(dataEntrada);
     const isoDataFechamento = dataSaida ? parseDateToISO(dataSaida) : null;
 
@@ -151,7 +151,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
       // 1. Save to Supabase
       await createMutation.mutateAsync({
         veiculo,
-        descricao_veiculo: veiculoInfo?.Descricao || '',
+        descricao_veiculo: veiculoInfo?.descricao || '',
         tipo,
         prioridade,
         status,
@@ -161,7 +161,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
         diagnostico: tipoProblema,
         solucao_aplicada: solucao || undefined,
         mecanico_responsavel: mecanico || undefined,
-        motorista_operador: veiculoInfo?.Motorista || undefined,
+        motorista_operador: veiculoInfo?.motorista || undefined,
         horimetro_km: parseNumber(horimetroAtual) || parseNumber(kmAtual),
         tempo_estimado_horas: parseNumber(horasEstimadas),
         tempo_real_horas: parseNumber(horasRealizadas),
@@ -214,9 +214,9 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
                     </div>
                   </div>
                   {filteredVeiculos.map((v) => (
-                    <SelectItem key={v.Codigo} value={v.Codigo}>
-                      <span className="font-medium">{v.Codigo}</span>
-                      {v.Descricao && <span className="text-muted-foreground ml-1">- {v.Descricao}</span>}
+                    <SelectItem key={v.codigo} value={v.codigo}>
+                      <span className="font-medium">{v.codigo}</span>
+                      {v.descricao && <span className="text-muted-foreground ml-1">- {v.descricao}</span>}
                     </SelectItem>
                   ))}
                 </SelectContent>

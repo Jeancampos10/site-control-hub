@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Fuel, Save, X, Loader2, Search, Clock, AlertTriangle } from "lucide-react";
 import { useSyncAbastecimento } from "@/hooks/useAbastecimentos";
 
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ const SOURCES = [
 export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
   const syncMutation = useSyncAbastecimento();
   
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data: frota } = useFrota();
 
   const [veiculo, setVeiculo] = useState("");
   const [data, setData] = useState("");
@@ -72,16 +72,16 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
   const veiculos = useMemo(() => {
     if (!frota) return [];
     return frota
-      .filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado')
-      .sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+      .filter(v => v.codigo && v.status !== 'Desmobilizado')
+      .sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const filteredVeiculos = useMemo(() => {
     if (!searchTerm) return veiculos;
     const term = searchTerm.toLowerCase();
     return veiculos.filter(v =>
-      v.Codigo.toLowerCase().includes(term) ||
-      v.Descricao?.toLowerCase().includes(term)
+      v.codigo.toLowerCase().includes(term) ||
+      v.descricao?.toLowerCase().includes(term)
     );
   }, [veiculos, searchTerm]);
 
@@ -158,7 +158,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
       return;
     }
 
-    const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+    const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
     const isoData = parseDateToISO(data);
 
     // Verificar duplicidade no mesmo dia + mesmo local
@@ -187,11 +187,11 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           hora,
           tipo,
           veiculo,
-          descricao: veiculoInfo?.Descricao || '',
+          descricao: veiculoInfo?.descricao || '',
           motorista,
-          empresa: veiculoInfo?.Empresa || '',
-          obra: veiculoInfo?.Obra || '',
-          potencia: veiculoInfo?.Potencia || '',
+          empresa: veiculoInfo?.empresa || '',
+          obra: veiculoInfo?.obra || '',
+          potencia: veiculoInfo?.potencia || '',
           horimetro_anterior: parseNum(horimetroAnterior),
           horimetro_atual: parseNum(horimetroAtual),
           km_anterior: parseNum(kmAnterior),
@@ -248,9 +248,9 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
                     </div>
                   </div>
                   {filteredVeiculos.map((v) => (
-                    <SelectItem key={v.Codigo} value={v.Codigo}>
-                      <span className="font-medium">{v.Codigo}</span>
-                      {v.Descricao && <span className="text-muted-foreground ml-1">- {v.Descricao}</span>}
+                    <SelectItem key={v.codigo} value={v.codigo}>
+                      <span className="font-medium">{v.codigo}</span>
+                      {v.descricao && <span className="text-muted-foreground ml-1">- {v.descricao}</span>}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -346,8 +346,8 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             const hAt = parseNum(horimetroAtual);
             const kAnt = parseNum(kmAnterior);
             const kAt = parseNum(kmAtual);
-            const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
-            const isEquip = veiculoInfo?.Categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.Categoria?.toLowerCase()?.includes('equipamento');
+            const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
+            const isEquip = veiculoInfo?.categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.categoria?.toLowerCase()?.includes('equipamento');
             
             let consumo: number | null = null;
             let label = '';

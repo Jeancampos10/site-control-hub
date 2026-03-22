@@ -15,7 +15,7 @@ import {
   AlertTriangle, CheckCircle, Filter, Trash2, Settings2, Gauge,
 } from "lucide-react";
 import { usePlanosComStatus, useCreatePlano, useDeletePlano, PlanoComStatus } from "@/hooks/usePlanosManutencao";
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota } from "@/hooks/useFrota";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatBR } from "@/lib/formatters";
 
@@ -34,7 +34,7 @@ const statusConfig = {
 /* ─── Novo Plano Dialog ─── */
 function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const createPlano = useCreatePlano();
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data: frota } = useFrota();
   const [veiculo, setVeiculo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipoIntervalo, setTipoIntervalo] = useState<string>("horimetro");
@@ -43,7 +43,7 @@ function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   const veiculos = useMemo(() => {
     if (!frota) return [];
-    return frota.filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado').sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+    return frota.filter(v => v.codigo && v.status !== 'Desmobilizado').sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const handleSave = async () => {
@@ -76,8 +76,8 @@ function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {veiculos.map(v => (
-                  <SelectItem key={v.Codigo} value={v.Codigo}>
-                    {v.Codigo} {v.Descricao ? `- ${v.Descricao}` : ''}
+                  <SelectItem key={v.codigo} value={v.codigo}>
+                    {v.codigo} {v.descricao ? `- ${v.descricao}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Clock, Save, X, Loader2, Search } from "lucide-react";
 import { useUpdateHorimetro } from "@/hooks/useHorimetros";
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ interface NovoHorimetroDialogProps {
 export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogProps) {
   const updateMutation = useUpdateHorimetro();
   
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data: frota } = useFrota();
 
   const [veiculo, setVeiculo] = useState("");
   const [data, setData] = useState(format(new Date(), "dd/MM/yy"));
@@ -49,16 +49,16 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
   const veiculos = useMemo(() => {
     if (!frota) return [];
     return frota
-      .filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado')
-      .sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+      .filter(v => v.codigo && v.status !== 'Desmobilizado')
+      .sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const filteredVeiculos = useMemo(() => {
     if (!searchTerm) return veiculos;
     const term = searchTerm.toLowerCase();
     return veiculos.filter(v =>
-      v.Codigo.toLowerCase().includes(term) ||
-      v.Descricao?.toLowerCase().includes(term)
+      v.codigo.toLowerCase().includes(term) ||
+      v.descricao?.toLowerCase().includes(term)
     );
   }, [veiculos, searchTerm]);
 
@@ -223,9 +223,9 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
                     </div>
                   </div>
                   {filteredVeiculos.map((v) => (
-                    <SelectItem key={v.Codigo} value={v.Codigo}>
-                      <span className="font-medium">{v.Codigo}</span>
-                      {v.Descricao && <span className="text-muted-foreground ml-1">- {v.Descricao}</span>}
+                    <SelectItem key={v.codigo} value={v.codigo}>
+                      <span className="font-medium">{v.codigo}</span>
+                      {v.descricao && <span className="text-muted-foreground ml-1">- {v.descricao}</span>}
                     </SelectItem>
                   ))}
                   {filteredVeiculos.length === 0 && (
