@@ -32,6 +32,7 @@ import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
 import CadastroPecas from "./pages/cadastros/CadastroPecas";
 import CadastroTanques from "./pages/cadastros/CadastroTanques";
 import CadastroObras from "./pages/cadastros/CadastroObras";
+import CadastroFornecedoresGeral from "./pages/cadastros/CadastroFornecedoresGeral";
 
 // Controle
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
