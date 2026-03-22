@@ -63,13 +63,20 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     );
   }, [veiculos, searchTerm]);
 
-  // Fetch last record when vehicle changes
+  // Auto-fill vehicle info + last record when vehicle changes
   useEffect(() => {
     if (!veiculo) {
       setLastData("");
       setLastHorimetro("");
       setLastKm("");
+      setOperador("");
       return;
+    }
+
+    // Auto-fill from frota data
+    const veiculoInfo = frota?.find(v => v.codigo === veiculo);
+    if (veiculoInfo) {
+      if (veiculoInfo.motorista) setOperador(veiculoInfo.motorista);
     }
 
     const fetchLast = async () => {
@@ -81,15 +88,13 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         .limit(1);
 
       if (rows && rows.length > 0) {
-        const row = rows[0];
-        setLastData(row.data || '');
-        setLastHorimetro(row.horimetro_atual?.toString() || '');
+        setLastData(rows[0].data || '');
+        setLastHorimetro(rows[0].horimetro_atual?.toString() || '');
       } else {
         setLastData("—");
         setLastHorimetro("0");
       }
 
-      // Also check abastecimentos for km
       const { data: abRows } = await supabase
         .from('abastecimentos')
         .select('km_atual')
@@ -98,7 +103,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         .order('data', { ascending: false })
         .limit(1);
 
-      if (abRows && abRows.length > 0 && abRows[0].km_atual) {
+      if (abRows?.[0]?.km_atual) {
         setLastKm(abRows[0].km_atual.toString());
       } else {
         setLastKm("0");
@@ -106,7 +111,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     };
 
     fetchLast();
-  }, [veiculo]);
+  }, [veiculo, frota]);
 
   // Reset form when dialog opens
   useEffect(() => {
