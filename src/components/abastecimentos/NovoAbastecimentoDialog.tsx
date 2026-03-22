@@ -318,7 +318,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Quantidade (L) *</Label>
-              <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} placeholder="0" className="h-10" />
+              <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} onBlur={() => handleBlurFormat(quantidade, setQuantidade)} placeholder="0,00" className="h-10" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Motorista</Label>
