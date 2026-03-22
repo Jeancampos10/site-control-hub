@@ -330,13 +330,47 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Horímetro Atual</Label>
-              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} placeholder="Ex: 4500" className="h-10" />
+              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} onBlur={() => handleBlurFormat(horimetroAtual, setHorimetroAtual)} placeholder="0,00" className="h-10" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">KM Atual</Label>
-              <Input value={kmAtual} onChange={(e) => setKmAtual(e.target.value)} placeholder="Ex: 120000" className="h-10" />
+              <Input value={kmAtual} onChange={(e) => setKmAtual(e.target.value)} onBlur={() => handleBlurFormat(kmAtual, setKmAtual)} placeholder="0,00" className="h-10" />
             </div>
           </div>
+
+          {/* Cálculo de consumo automático */}
+          {(() => {
+            const litros = parseNum(quantidade);
+            const hAnt = parseNum(horimetroAnterior);
+            const hAt = parseNum(horimetroAtual);
+            const kAnt = parseNum(kmAnterior);
+            const kAt = parseNum(kmAtual);
+            const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+            const isEquip = veiculoInfo?.Categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.Categoria?.toLowerCase()?.includes('equipamento');
+            
+            let consumo: number | null = null;
+            let label = '';
+            
+            if (kAt != null && kAnt != null && litros && litros > 0) {
+              consumo = calcConsumo('veiculo', kAt - kAnt, litros);
+              label = 'KM/L';
+            } else if (hAt != null && hAnt != null && litros && litros > 0) {
+              consumo = calcConsumo('equipamento', hAt - hAnt, litros);
+              label = 'L/h';
+            }
+            
+            if (consumo != null) {
+              const isAnomaly = (label === 'KM/L' && (consumo < 1 || consumo > 20)) || (label === 'L/h' && (consumo < 1 || consumo > 50));
+              return (
+                <div className={`rounded-lg p-3 text-sm flex items-center gap-2 ${isAnomaly ? 'bg-destructive/10 border border-destructive/30' : 'bg-primary/10 border border-primary/20'}`}>
+                  {isAnomaly && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
+                  <span>Consumo calculado: <strong>{formatBR(consumo)} {label}</strong></span>
+                  {isAnomaly && <span className="text-destructive text-xs">(valor fora do padrão)</span>}
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* ARLA + Lubrificação */}
           <div className="grid grid-cols-2 gap-3">
