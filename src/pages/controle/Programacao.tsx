@@ -76,8 +76,8 @@ function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {veiculos.map(v => (
-                  <SelectItem key={v.Codigo} value={v.Codigo}>
-                    {v.Codigo} {v.Descricao ? `- ${v.Descricao}` : ''}
+                  <SelectItem key={v.codigo} value={v.codigo}>
+                    {v.codigo} {v.descricao ? `- ${v.descricao}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
