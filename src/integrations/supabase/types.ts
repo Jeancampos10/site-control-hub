@@ -215,6 +215,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cad_fornecedores: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          contato: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cad_fornecedores_cal: {
         Row: {
           ativo: boolean
