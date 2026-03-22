@@ -524,6 +524,102 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_itens: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      checklists: {
+        Row: {
+          assinatura_motorista: string | null
+          assinatura_usuario: string | null
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao_veiculo: string | null
+          hora: string | null
+          id: string
+          km_horimetro: string | null
+          motorista: string | null
+          obra: string | null
+          observacoes: string | null
+          operador: string | null
+          respostas: Json
+          status: string
+          tipo: string
+          updated_at: string
+          veiculo: string
+        }
+        Insert: {
+          assinatura_motorista?: string | null
+          assinatura_usuario?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao_veiculo?: string | null
+          hora?: string | null
+          id?: string
+          km_horimetro?: string | null
+          motorista?: string | null
+          obra?: string | null
+          observacoes?: string | null
+          operador?: string | null
+          respostas?: Json
+          status?: string
+          tipo?: string
+          updated_at?: string
+          veiculo: string
+        }
+        Update: {
+          assinatura_motorista?: string | null
+          assinatura_usuario?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao_veiculo?: string | null
+          hora?: string | null
+          id?: string
+          km_horimetro?: string | null
+          motorista?: string | null
+          obra?: string | null
+          observacoes?: string | null
+          operador?: string | null
+          respostas?: Json
+          status?: string
+          tipo?: string
+          updated_at?: string
+          veiculo?: string
+        }
+        Relationships: []
+      }
       entradas_combustivel: {
         Row: {
           created_at: string
