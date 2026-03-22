@@ -332,7 +332,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Horímetro Atual</Label>
-              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} onBlur={() => handleBlurFormat(horimetroAtual, setHorimetroAtual)} placeholder="0,00" className="h-10" />
+              <NumericInput value={horimetroAtual} onChange={setHorimetroAtual} placeholder="0" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">KM Atual</Label>
