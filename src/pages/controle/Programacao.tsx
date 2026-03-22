@@ -34,7 +34,7 @@ const statusConfig = {
 /* ─── Novo Plano Dialog ─── */
 function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const createPlano = useCreatePlano();
-  const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data: frota } = useFrota();
   const [veiculo, setVeiculo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipoIntervalo, setTipoIntervalo] = useState<string>("horimetro");
