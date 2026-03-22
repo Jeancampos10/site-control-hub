@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2, Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2, Plus, Pencil, Trash2, Upload, Shovel, Cog, Droplets, LayoutGrid } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -100,7 +100,7 @@ export default function FrotaGeral() {
         <div className="page-header mb-0">
           <h1 className="page-title flex items-center gap-2">
             <Car className="h-6 w-6 text-primary" />
-            Frota
+            Frota Geral
           </h1>
           <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
         </div>
@@ -161,23 +161,59 @@ export default function FrotaGeral() {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Category visual tabs */}
+          {(() => {
+            const categoryGroups = [
+              { key: "all", label: "Todos", icon: LayoutGrid, color: "from-primary to-primary/80" },
+              { key: "Escavadeira", label: "Escavadeiras", icon: Shovel, color: "from-amber-500 to-amber-600" },
+              { key: "Caminhão Basculante", label: "Basculantes", icon: Truck, color: "from-blue-500 to-blue-600" },
+              { key: "Caminhão Pipa", label: "Pipas", icon: Droplets, color: "from-cyan-500 to-cyan-600" },
+              { key: "Pá Carregadeira", label: "Pá Carreg.", icon: HardHat, color: "from-orange-500 to-orange-600" },
+              { key: "Retroescavadeira", label: "Retro", icon: Shovel, color: "from-yellow-600 to-yellow-700" },
+              { key: "Motoniveladora", label: "Motoniv.", icon: Car, color: "from-indigo-500 to-indigo-600" },
+              { key: "Rolo Compactador", label: "Rolos", icon: Cog, color: "from-slate-500 to-slate-600" },
+              { key: "Outros", label: "Outros", icon: Cog, color: "from-gray-500 to-gray-600" },
+            ];
+            // Only show categories that have items (+ "all" always)
+            const activeCats = categoryGroups.filter(c => c.key === "all" || items.some(i => i.categoria === c.key));
+            return (
+              <div className="flex flex-wrap gap-2">
+                {activeCats.map(cat => {
+                  const count = cat.key === "all" ? items.length : items.filter(i => i.categoria === cat.key).length;
+                  const isActive = filterCategoria === cat.key;
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => setFilterCategoria(cat.key)}
+                      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? `bg-gradient-to-r ${cat.color} text-white shadow-md scale-[1.02]`
+                          : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{cat.label}</span>
+                      <span className={`ml-1 text-xs rounded-full px-1.5 py-0.5 ${isActive ? 'bg-white/25' : 'bg-background'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Search + Status filter */}
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar equipamento..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos Status</SelectItem>
                 {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
