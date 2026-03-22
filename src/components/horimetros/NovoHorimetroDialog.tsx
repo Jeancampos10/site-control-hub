@@ -266,7 +266,8 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
               <Input
                 value={horimetro}
                 onChange={(e) => setHorimetro(e.target.value)}
-                placeholder="0,0"
+                onBlur={() => handleBlurFormat(horimetro, setHorimetro)}
+                placeholder="0,00"
                 className="h-10 border-primary/30 focus:border-primary"
               />
             </div>
