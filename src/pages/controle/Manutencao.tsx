@@ -326,6 +326,27 @@ export default function Manutencao() {
       )}
 
       <NovaOrdemServicoDialog open={novaOSOpen} onOpenChange={setNovaOSOpen} />
+      <EditOrdemServicoDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} ordem={editingOS} />
+
+      <AlertDialog open={!!deletingOS} onOpenChange={() => setDeletingOS(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir OS-{deletingOS?.numero_os} do veículo <strong>{deletingOS?.veiculo}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deletingOS) deleteMutation.mutate({ id: deletingOS.id, veiculo: deletingOS.veiculo }); setDeletingOS(null); }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
