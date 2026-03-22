@@ -118,8 +118,8 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
 
   function downloadTemplate() {
     const templateData = [
-      { Codigo: "EX-001", Descricao: "Escavadeira CAT 320", Categoria: "Escavadeira", Potencia: "320HP", Motorista: "João Silva", Empresa: "Empresa X", Obra: "Obra 01", Status: "Mobilizado" },
-      { Codigo: "CB-002", Descricao: "Caminhão Basculante", Categoria: "Caminhão Basculante", Potencia: "400HP", Motorista: "Carlos Santos", Empresa: "Empresa Y", Obra: "Obra 02", Status: "Mobilizado" },
+      { Codigo: "EX-001", Descricao: "Escavadeira CAT 320", Categoria: "Escavadeira", Potencia: "320HP", Motorista: "João Silva", Empresa: "L. Pereira", Obra: "Obra 01", Status: "Mobilizado" },
+      { Codigo: "CB-002", Descricao: "Caminhão Basculante", Categoria: "Caminhão Basculante", Potencia: "400HP", Motorista: "Carlos Santos", Empresa: "L. Pereira", Obra: "Obra 02", Status: "Mobilizado" },
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();

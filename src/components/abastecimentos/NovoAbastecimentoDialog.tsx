@@ -176,7 +176,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           veiculo: isEntrada ? (destino || 'ESTOQUE') : veiculo,
           descricao: isEntrada ? 'Entrada de combustível' : (veiculoInfo?.descricao || ''),
           motorista: isEntrada ? '' : motorista,
-          empresa: veiculoInfo?.empresa || '',
+          empresa: veiculoInfo?.empresa || 'L. Pereira',
           obra: veiculoInfo?.obra || '',
           potencia: veiculoInfo?.potencia || '',
           horimetro_anterior: isEntrada ? null : hAnt,

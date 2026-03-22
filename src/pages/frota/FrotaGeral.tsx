@@ -36,7 +36,7 @@ export default function FrotaGeral() {
   const [deletingCodigo, setDeletingCodigo] = useState<string>("");
 
   // Form state
-  const [form, setForm] = useState({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
+  const [form, setForm] = useState({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "L. Pereira", obra: "", status: "Mobilizado" });
 
   const items = data || [];
 
@@ -56,7 +56,7 @@ export default function FrotaGeral() {
 
   function openNew() {
     setEditingItem(null);
-    setForm({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
+    setForm({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "L. Pereira", obra: "", status: "Mobilizado" });
     setDialogOpen(true);
   }
 
