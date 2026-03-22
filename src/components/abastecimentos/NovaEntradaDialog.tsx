@@ -4,10 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NumericInput } from "@/components/shared/NumericInput";
+import { NumericInput, parseNumericInput } from "@/components/shared/NumericInput";
 import { useState } from "react";
 import { useInsertEntrada } from "@/hooks/useEstoqueCombustivel";
-import { parseBR } from "@/lib/formatters";
 
 const LOCAIS = [
   { key: "tanque01", label: "Tanque 01" },
@@ -36,9 +35,9 @@ export function NovaEntradaDialog({ open, onOpenChange }: Props) {
   const [obs, setObs] = useState("");
 
   const handleSave = () => {
-    const quantidade = parseBR(qtd) ?? 0;
+    const quantidade = parseNumericInput(qtd) ?? 0;
     if (quantidade <= 0) return;
-    const vt = parseBR(valorTotal) ?? 0;
+    const vt = parseNumericInput(valorTotal) ?? 0;
     const vu = quantidade > 0 ? vt / quantidade : 0;
 
     insert.mutate({

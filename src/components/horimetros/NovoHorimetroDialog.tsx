@@ -21,8 +21,8 @@ import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { parseBR, formatBR, formatOnBlur } from "@/lib/formatters";
-import { NumericInput } from "@/components/shared/NumericInput";
+import { formatBR } from "@/lib/formatters";
+import { NumericInput, parseNumericInput } from "@/components/shared/NumericInput";
 
 interface NovoHorimetroDialogProps {
   open: boolean;
@@ -124,12 +124,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     }
   }, [open]);
 
-  const parseNumber = (val: string): number | null => parseBR(val);
-
-  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
-    const formatted = formatOnBlur(value);
-    if (formatted !== value) setter(formatted);
-  };
+  const parseNumber = (val: string): number | null => parseNumericInput(val);
 
   const handleSave = async () => {
     if (!veiculo) {

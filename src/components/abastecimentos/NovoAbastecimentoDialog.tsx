@@ -24,8 +24,8 @@ import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { parseBR, formatBR, formatOnBlur, calcConsumo } from "@/lib/formatters";
-import { NumericInput } from "@/components/shared/NumericInput";
+import { formatBR, calcConsumo } from "@/lib/formatters";
+import { NumericInput, parseNumericInput } from "@/components/shared/NumericInput";
 
 interface Props {
   open: boolean;
@@ -126,12 +126,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     }
   }, [open]);
 
-  const parseNum = (v: string): number | null => parseBR(v);
-
-  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
-    const formatted = formatOnBlur(value);
-    if (formatted !== value) setter(formatted);
-  };
+  const parseNum = (v: string): number | null => parseNumericInput(v);
 
   const parseDateToISO = (d: string): string => {
     const parts = d.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);

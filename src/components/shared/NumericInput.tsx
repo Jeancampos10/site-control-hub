@@ -1,6 +1,5 @@
-import { useState, useCallback } from "react";
+import { forwardRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { formatBR, parseBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface NumericInputProps {
@@ -12,54 +11,53 @@ interface NumericInputProps {
   disabled?: boolean;
 }
 
-/**
- * Numeric input that accepts only digits.
- * On blur, formats to Brazilian standard (1.234,56).
- * User never needs to type dots or commas.
- */
-export function NumericInput({ value, onChange, decimals = 2, placeholder = "0", className, disabled }: NumericInputProps) {
-  const [focused, setFocused] = useState(false);
+function formatRawDigits(raw: string, decimals: number): string {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const padded = digits.padStart(decimals + 1, "0");
+  const intPart = padded.slice(0, padded.length - decimals);
+  const decPart = padded.slice(padded.length - decimals);
+  const intClean = intPart.replace(/^0+/, "") || "0";
+  const intFormatted = intClean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${intFormatted},${decPart}`;
+}
 
-  // Strip formatting when focused so user sees raw digits
-  const displayValue = focused ? value.replace(/\./g, '').replace(',', '.') : value;
+function toRawDigits(formatted: string): string {
+  return formatted.replace(/\D/g, "");
+}
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow only digits
-    const raw = e.target.value.replace(/[^\d]/g, '');
-    onChange(raw);
-  }, [onChange]);
+export const NumericInput = forwardRef<HTMLInputElement, NumericInputProps>(
+  ({ value, onChange, decimals = 2, placeholder = "0,00", className, disabled }, ref) => {
+    const displayValue = value ? formatRawDigits(toRawDigits(value), decimals) : "";
 
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    if (!value) return;
-    // Convert raw digits to number with decimals
-    const raw = value.replace(/[^\d]/g, '');
-    if (!raw) return;
-    const num = parseInt(raw, 10) / Math.pow(10, decimals);
-    onChange(formatBR(num, decimals));
-  }, [value, onChange, decimals]);
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value.replace(/\D/g, "");
+      if (!raw) { onChange(""); return; }
+      onChange(formatRawDigits(raw, decimals));
+    }, [onChange, decimals]);
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    // Strip formatting, keep only digits
-    const num = parseBR(value);
-    if (num != null) {
-      // Show raw integer (digits only)
-      const raw = Math.round(num * Math.pow(10, decimals)).toString();
-      onChange(raw);
-    }
-  }, [value, onChange, decimals]);
+    return (
+      <Input
+        ref={ref}
+        value={displayValue}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className={cn("h-10", className)}
+        inputMode="numeric"
+        disabled={disabled}
+      />
+    );
+  }
+);
+NumericInput.displayName = "NumericInput";
 
-  return (
-    <Input
-      value={value}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onFocus={handleFocus}
-      placeholder={placeholder}
-      className={cn("h-10", className)}
-      inputMode="numeric"
-      disabled={disabled}
-    />
-  );
+/** Parse a NumericInput formatted value back to a JS number */
+export function parseNumericInput(value: string): number | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  // Last 2 digits are decimals
+  const num = parseInt(digits, 10) / 100;
+  return isNaN(num) ? null : num;
 }
