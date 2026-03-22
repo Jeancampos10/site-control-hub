@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseBR, formatBR, formatOnBlur, calcConsumo } from "@/lib/formatters";
+import { NumericInput } from "@/components/shared/NumericInput";
 
 interface Props {
   open: boolean;
