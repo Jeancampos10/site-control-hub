@@ -265,12 +265,11 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
                 <Clock className="h-3.5 w-3.5 text-primary" />
                 Horímetro (h)
               </Label>
-              <Input
+              <NumericInput
                 value={horimetro}
-                onChange={(e) => setHorimetro(e.target.value)}
-                onBlur={() => handleBlurFormat(horimetro, setHorimetro)}
-                placeholder="0,00"
-                className="h-10 border-primary/30 focus:border-primary"
+                onChange={setHorimetro}
+                placeholder="0"
+                className="border-primary/30 focus:border-primary"
               />
             </div>
             <div className="space-y-1.5">
