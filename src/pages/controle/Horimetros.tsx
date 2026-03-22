@@ -48,6 +48,7 @@ import { HorimetroEditDialog } from "@/components/horimetros/HorimetroEditDialog
 import { HorimetroDeleteDialog } from "@/components/horimetros/HorimetroDeleteDialog";
 import { NovoHorimetroDialog } from "@/components/horimetros/NovoHorimetroDialog";
 import { DateFilter } from "@/components/shared/DateFilter";
+import { ExportButtons } from "@/components/shared/ExportButtons";
 
 type DateQuickFilter = "ultimo" | "hoje" | "ontem" | "data" | "range";
 type TabType = "registros" | "pendencias" | "relatorios";
