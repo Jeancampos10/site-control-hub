@@ -452,6 +452,54 @@ export type Database = {
         }
         Relationships: []
       }
+      frota: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          codigo: string
+          created_at: string
+          created_by: string | null
+          descricao: string
+          empresa: string | null
+          id: string
+          motorista: string | null
+          obra: string | null
+          potencia: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          codigo: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          empresa?: string | null
+          id?: string
+          motorista?: string | null
+          obra?: string | null
+          potencia?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          empresa?: string | null
+          id?: string
+          motorista?: string | null
+          obra?: string | null
+          potencia?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       horimetros: {
         Row: {
           created_at: string
