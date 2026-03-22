@@ -74,14 +74,15 @@ export default function FrotaGeral() {
     }
   }
 
-  function confirmDelete(id: string) {
+  function confirmDelete(id: string, codigo: string) {
     setDeletingId(id);
+    setDeletingCodigo(codigo);
     setDeleteDialogOpen(true);
   }
 
   function handleDelete() {
-    if (deletingId) {
-      deleteMutation.mutate(deletingId, { onSuccess: () => setDeleteDialogOpen(false) });
+    if (deletingId && deletingCodigo) {
+      deleteMutation.mutate({ id: deletingId, codigo: deletingCodigo }, { onSuccess: () => setDeleteDialogOpen(false) });
     }
   }
 
