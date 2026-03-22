@@ -143,6 +143,21 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     if (!veiculo) { toast.error("Selecione um veículo"); return; }
     if (!quantidade) { toast.error("Informe a quantidade"); return; }
 
+    // Validações
+    const hAnt = parseNum(horimetroAnterior);
+    const hAtual = parseNum(horimetroAtual);
+    const kAnt = parseNum(kmAnterior);
+    const kAtual = parseNum(kmAtual);
+
+    if (hAtual != null && hAnt != null && hAtual < hAnt) {
+      toast.error(`Horímetro atual (${formatBR(hAtual)}) não pode ser menor que o anterior (${formatBR(hAnt)})`);
+      return;
+    }
+    if (kAtual != null && kAnt != null && kAtual < kAnt) {
+      toast.error(`KM atual (${formatBR(kAtual)}) não pode ser menor que o anterior (${formatBR(kAnt)})`);
+      return;
+    }
+
     const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
     const isoData = parseDateToISO(data);
 
