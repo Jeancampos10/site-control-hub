@@ -138,7 +138,15 @@ export function useDeleteHorimetro() {
 
 export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: string | null) {
   const filteredData = selectedDate
-    ? horimetros.filter(h => h.data === selectedDate)
+    ? horimetros.filter(h => {
+        // selectedDate can be dd/MM/yyyy or yyyy-MM-dd; h.data is yyyy-MM-dd from DB
+        const brMatch = selectedDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (brMatch) {
+          const iso = `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}`;
+          return h.data === iso;
+        }
+        return h.data === selectedDate;
+      })
     : horimetros;
 
   const totalHoras = filteredData.reduce((acc, h) => acc + h.horas_trabalhadas, 0);

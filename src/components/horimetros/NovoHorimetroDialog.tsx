@@ -30,7 +30,7 @@ interface NovoHorimetroDialogProps {
 
 export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogProps) {
   const updateMutation = useUpdateHorimetro();
-  const sheetSync = useSyncToSheet();
+  
   const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
