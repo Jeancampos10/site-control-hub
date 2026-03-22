@@ -39,6 +39,7 @@ import Manutencao from "./pages/controle/Manutencao";
 import Horimetros from "./pages/controle/Horimetros";
 import Programacao from "./pages/controle/Programacao";
 import Abastecimentos from "./pages/controle/Abastecimentos";
+import Checklist from "./pages/controle/Checklist";
 
 const queryClient = new QueryClient();
 
