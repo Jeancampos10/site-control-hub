@@ -22,6 +22,7 @@ import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { parseBR, formatBR, formatOnBlur } from "@/lib/formatters";
 
 interface NovoHorimetroDialogProps {
   open: boolean;
