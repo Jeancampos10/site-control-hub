@@ -520,9 +520,9 @@ export default function GestaoUsuarios() {
               <Select value={createForm.tipoUsuario} onValueChange={v => setCreateForm(p => ({...p, tipoUsuario: v}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Sala Técnica (Admin)</SelectItem>
-                  <SelectItem value="colaborador">Apontador</SelectItem>
-                  <SelectItem value="visualizacao">Visualização</SelectItem>
+                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="colaborador">Operador de Campo</SelectItem>
+                  <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
             </div>
