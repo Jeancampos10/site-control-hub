@@ -170,16 +170,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
         observacoes: observacoes || undefined,
       });
 
-      // 2. Sync to Google Sheets (non-blocking)
-      sheetSync.mutate({
-        sheetName: 'Manutenções',
-        rowData: [
-          dataEntrada, veiculo, veiculoInfo?.Descricao || '', tipo, prioridade, status,
-          problemaRelatado, tipoProblema || '', solucao || '', mecanico || '',
-          veiculoInfo?.Motorista || '', horimetroAtual || kmAtual || '',
-          horasEstimadas || '', custoEstimado || '', observacoes || '',
-        ],
-      });
+      // Google Sheets sync removed - Supabase is the primary backend
 
       onOpenChange(false);
     } catch {
