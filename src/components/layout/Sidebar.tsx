@@ -77,9 +77,9 @@ const mainNavigationItems: NavItem[] = [
 
 const roleLabels: Record<string, string> = {
   admin_principal: "Administrador Principal",
-  admin: "Sala Técnica",
-  colaborador: "Apontador",
-  visualizacao: "Visualização",
+  admin: "Gestor / Sala Técnica",
+  colaborador: "Operador de Campo",
+  visualizacao: "Somente Visualização",
 };
 
 // Componente para item de menu com subitens

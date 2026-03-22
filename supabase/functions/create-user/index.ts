@@ -130,8 +130,10 @@ Deno.serve(async (req) => {
 
     // Map tipoUsuario to role
     let role = "colaborador";
-    if (tipoUsuario === "Sala Técnica" || tipoUsuario === "Administrador") {
+    if (tipoUsuario === "admin" || tipoUsuario === "Sala Técnica" || tipoUsuario === "Administrador") {
       role = "admin";
+    } else if (tipoUsuario === "visualizacao") {
+      role = "visualizacao";
     }
 
     console.log("Creating user with email:", email, "role:", role);
