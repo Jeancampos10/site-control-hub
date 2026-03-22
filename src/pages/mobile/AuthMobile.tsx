@@ -107,7 +107,7 @@ export default function AuthMobile() {
         {/* Logo */}
         <div className="text-center mb-6">
           <img 
-            src={logoApropriapp} 
+            src={logoAbastech} 
             alt="ApropriAPP Logo" 
             className="h-24 mx-auto mb-2"
           />

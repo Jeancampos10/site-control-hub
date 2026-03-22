@@ -141,7 +141,7 @@ export default function Auth() {
         {/* Logo */}
         <div className="text-center mb-8">
           <img 
-            src={logoApropriapp} 
+            src={logoAbastech} 
             alt="ApropriAPP Logo" 
             className="h-32 mx-auto mb-2"
           />
