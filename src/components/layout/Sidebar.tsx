@@ -22,6 +22,7 @@ import {
   Shovel,
   Settings,
   UserCog,
+  ClipboardCheck,
 } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { cn } from "@/lib/utils";
