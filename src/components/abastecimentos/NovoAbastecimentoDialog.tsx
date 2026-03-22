@@ -346,8 +346,8 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             const hAt = parseNum(horimetroAtual);
             const kAnt = parseNum(kmAnterior);
             const kAt = parseNum(kmAtual);
-            const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
-            const isEquip = veiculoInfo?.Categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.Categoria?.toLowerCase()?.includes('equipamento');
+            const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
+            const isEquip = veiculoInfo?.categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.categoria?.toLowerCase()?.includes('equipamento');
             
             let consumo: number | null = null;
             let label = '';

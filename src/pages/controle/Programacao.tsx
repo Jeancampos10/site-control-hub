@@ -43,7 +43,7 @@ function NovoPlanoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
   const veiculos = useMemo(() => {
     if (!frota) return [];
-    return frota.filter(v => v.Codigo && v.Status?.toLowerCase() !== 'desmobilizado').sort((a, b) => a.Codigo.localeCompare(b.Codigo));
+    return frota.filter(v => v.codigo && v.status !== 'Desmobilizado').sort((a, b) => a.codigo.localeCompare(b.codigo));
   }, [frota]);
 
   const handleSave = async () => {
