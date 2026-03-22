@@ -39,16 +39,16 @@ interface UserData {
 
 const roleConfig = {
   admin_principal: { label: "Administrador Principal", className: "bg-accent/10 text-accent", icon: Shield },
-  admin: { label: "Sala Técnica", className: "bg-primary/10 text-primary", icon: Shield },
-  colaborador: { label: "Apontador", className: "bg-success/10 text-success", icon: Users },
-  visualizacao: { label: "Visualização", className: "bg-muted text-muted-foreground", icon: Users },
+  admin: { label: "Gestor / Sala Técnica", className: "bg-primary/10 text-primary", icon: Shield },
+  colaborador: { label: "Operador de Campo", className: "bg-success/10 text-success", icon: Users },
+  visualizacao: { label: "Somente Visualização", className: "bg-muted text-muted-foreground", icon: Users },
 };
 
 const modulosOptions: { id: ModuloPermitido; label: string }[] = [
-  { id: 'apropriacao', label: 'Apropriação (Carga/Lançamento)' },
-  { id: 'pedreira', label: 'Pedreira' },
-  { id: 'pipas', label: 'Pipas' },
-  { id: 'cal', label: 'Cal' },
+  { id: 'apropriacao', label: 'Frota / Equipamentos' },
+  { id: 'pedreira', label: 'Abastecimentos / Estoque' },
+  { id: 'pipas', label: 'Horímetros / Manutenção' },
+  { id: 'cal', label: 'Checklist / Relatórios' },
 ];
 
 export default function GestaoUsuarios() {
