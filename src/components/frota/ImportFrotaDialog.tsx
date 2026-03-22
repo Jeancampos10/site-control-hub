@@ -154,7 +154,7 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
               </div>
               <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
               
-              <div className="rounded-lg bg-muted/50 p-4 text-xs space-y-1">
+              <div className="rounded-lg bg-muted/50 p-4 text-xs space-y-2">
                 <p className="font-medium flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Dicas:</p>
                 <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
                   <li>A primeira linha deve conter os cabeçalhos</li>
@@ -162,6 +162,10 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
                   <li>Outras colunas são mapeadas automaticamente</li>
                   <li>Formatos aceitos: .csv, .xlsx, .xls</li>
                 </ul>
+                <Button variant="outline" size="sm" className="gap-2 mt-2" onClick={downloadTemplate}>
+                  <Download className="h-3.5 w-3.5" />
+                  Baixar Modelo de Importação
+                </Button>
               </div>
             </div>
           ) : (
