@@ -424,7 +424,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Valor Total (R$)</Label>
-              <Input value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} placeholder="0,00" className="h-10" />
+              <NumericInput value={valorTotal} onChange={setValorTotal} placeholder="0" />
             </div>
           </div>
 
