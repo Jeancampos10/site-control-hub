@@ -82,7 +82,7 @@ export function useUpdateHorimetro() {
 
   return useMutation({
     mutationFn: async (formData: HorimetroFormData) => {
-      const horas = (formData.horimetro_atual && formData.horimetro_anterior)
+      const horas = (formData.horimetro_atual != null && formData.horimetro_anterior != null)
         ? formData.horimetro_atual - formData.horimetro_anterior
         : null;
 
@@ -91,8 +91,9 @@ export function useUpdateHorimetro() {
         veiculo: formData.veiculo,
         descricao_veiculo: formData.descricao,
         operador: formData.operador,
-        horimetro_anterior: formData.horimetro_anterior || 0,
-        horimetro_atual: formData.horimetro_atual || 0,
+        horimetro_anterior: formData.horimetro_anterior ?? 0,
+        horimetro_atual: formData.horimetro_atual ?? 0,
+        horas_trabalhadas: horas,
         obra: formData.obra,
         observacao: formData.observacao,
       };
