@@ -125,10 +125,11 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     }
   }, [open]);
 
-  const parseNum = (v: string): number | null => {
-    if (!v) return null;
-    const n = parseFloat(v.replace(',', '.'));
-    return isNaN(n) ? null : n;
+  const parseNum = (v: string): number | null => parseBR(v);
+
+  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
+    const formatted = formatOnBlur(value);
+    if (formatted !== value) setter(formatted);
   };
 
   const parseDateToISO = (d: string): string => {
