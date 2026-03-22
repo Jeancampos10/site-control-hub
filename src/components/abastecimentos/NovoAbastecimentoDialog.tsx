@@ -248,9 +248,9 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
                     </div>
                   </div>
                   {filteredVeiculos.map((v) => (
-                    <SelectItem key={v.Codigo} value={v.Codigo}>
-                      <span className="font-medium">{v.Codigo}</span>
-                      {v.Descricao && <span className="text-muted-foreground ml-1">- {v.Descricao}</span>}
+                    <SelectItem key={v.codigo} value={v.codigo}>
+                      <span className="font-medium">{v.codigo}</span>
+                      {v.descricao && <span className="text-muted-foreground ml-1">- {v.descricao}</span>}
                     </SelectItem>
                   ))}
                 </SelectContent>
