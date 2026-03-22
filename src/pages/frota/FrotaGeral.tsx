@@ -33,6 +33,7 @@ export default function FrotaGeral() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FrotaItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingCodigo, setDeletingCodigo] = useState<string>("");
 
   // Form state
   const [form, setForm] = useState({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
