@@ -220,7 +220,7 @@ export default function FrotaGeral() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(row.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(row.id, row.codigo)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
