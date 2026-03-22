@@ -220,6 +220,23 @@ export default function Manutencao() {
                             <TableCell>{os.mecanico_responsavel || "—"}</TableCell>
                             <TableCell>{os.data_abertura}</TableCell>
                             <TableCell>{getStatusBadge(os.status)}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-popover">
+                                  <DropdownMenuItem onClick={() => { setEditingOS(os); setEditDialogOpen(true); }}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setDeletingOS(os)} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         )) : (
                           <TableRow>
