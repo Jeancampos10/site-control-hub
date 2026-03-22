@@ -155,3 +155,23 @@ export function useUpdateOrdemServico() {
     },
   });
 }
+
+export function useDeleteOrdemServico() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, veiculo }: { id: string; veiculo: string }) => {
+      const { error } = await supabase.from('ordens_servico').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+      syncToSheet('Manutencoes', 'delete', undefined, veiculo);
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordens_servico'] });
+      toast.success('Ordem de serviço excluída!');
+    },
+    onError: (error) => {
+      toast.error(`Erro: ${error.message}`);
+    },
+  });
+}
