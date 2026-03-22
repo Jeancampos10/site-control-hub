@@ -15,7 +15,7 @@ import {
   AlertTriangle, CheckCircle, Filter, Trash2, Settings2, Gauge,
 } from "lucide-react";
 import { usePlanosComStatus, useCreatePlano, useDeletePlano, PlanoComStatus } from "@/hooks/usePlanosManutencao";
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota } from "@/hooks/useFrota";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatBR } from "@/lib/formatters";
 
