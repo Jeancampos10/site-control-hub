@@ -100,10 +100,27 @@ export default function FrotaGeral() {
           </h1>
           <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
         </div>
-        <Button onClick={openNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Veículo/Equipamento
-        </Button>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={filtered}
+            columns={[
+              { key: "codigo", label: "Código" },
+              { key: "descricao", label: "Descrição" },
+              { key: "categoria", label: "Categoria" },
+              { key: "potencia", label: "Potência" },
+              { key: "motorista", label: "Motorista" },
+              { key: "empresa", label: "Empresa" },
+              { key: "obra", label: "Obra" },
+              { key: "status", label: "Status" },
+            ]}
+            title="Relatório de Frota"
+            fileName="frota"
+          />
+          <Button onClick={openNew} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Veículo/Equipamento
+          </Button>
+        </div>
       </div>
 
       {isLoading ? <TableLoader /> : (
