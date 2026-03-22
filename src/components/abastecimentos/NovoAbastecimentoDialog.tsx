@@ -292,15 +292,30 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
 
-          {/* Último registro info */}
-          {veiculo && (horimetroAnterior || kmAnterior) && (
-            <div className="rounded-lg bg-muted/60 p-3">
-              <p className="text-xs text-muted-foreground">Último registro:</p>
-              <p className="text-sm font-medium">
-                {horimetroAnterior && `Horímetro: ${horimetroAnterior}`}
-                {horimetroAnterior && kmAnterior && ' | '}
-                {kmAnterior && `KM: ${kmAnterior}`}
-              </p>
+          {/* Info do veículo + último registro */}
+          {veiculo && (
+            <div className="rounded-lg bg-muted/60 p-3 space-y-1">
+              {(() => {
+                const vi = frota?.find(v => v.codigo === veiculo);
+                return vi ? (
+                  <div className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+                    {vi.descricao && <span>Desc: <strong className="text-foreground">{vi.descricao}</strong></span>}
+                    {vi.motorista && <span>Motorista: <strong className="text-foreground">{vi.motorista}</strong></span>}
+                    {vi.empresa && <span>Empresa: <strong className="text-foreground">{vi.empresa}</strong></span>}
+                    {vi.obra && <span>Obra: <strong className="text-foreground">{vi.obra}</strong></span>}
+                  </div>
+                ) : null;
+              })()}
+              {(horimetroAnterior || kmAnterior) && (
+                <>
+                  <p className="text-xs text-muted-foreground">Último registro:</p>
+                  <p className="text-sm font-medium">
+                    {horimetroAnterior && `Horímetro: ${horimetroAnterior}`}
+                    {horimetroAnterior && kmAnterior && ' | '}
+                    {kmAnterior && `KM: ${kmAnterior}`}
+                  </p>
+                </>
+              )}
             </div>
           )}
 
