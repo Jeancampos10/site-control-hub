@@ -69,7 +69,7 @@ export default function Horimetros() {
 
   const { data: horimetros, isLoading, error, refetch, isFetching } = useHorimetros();
 
-  const selectedDateStr = selectedDate ? format(selectedDate, 'dd/MM/yyyy') : null;
+  const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
 
   const {
     filteredData: dateFilteredData,

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import { Clock, Save, X, Loader2, Search } from "lucide-react";
 import { useUpdateHorimetro } from "@/hooks/useHorimetros";
-import { useSyncToSheet } from "@/hooks/useSyncToSheet";
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -31,7 +30,7 @@ interface NovoHorimetroDialogProps {
 
 export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogProps) {
   const updateMutation = useUpdateHorimetro();
-  const sheetSync = useSyncToSheet();
+  
   const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
@@ -168,17 +167,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         observacao,
       });
 
-      // 2. Sync to Google Sheets (non-blocking)
-      const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
-      sheetSync.mutate({
-        sheetName: 'Horímetros',
-        rowData: [
-          data, veiculo, veiculoInfo?.Descricao || '', veiculoInfo?.Categoria || '',
-          veiculoInfo?.Empresa || '', operador,
-          lastHorimetro || '0', horimetro || '0', '',
-          lastKm || '', '', observacao || '',
-        ],
-      });
+      // Google Sheets sync removed - Supabase is the primary backend
 
       onOpenChange(false);
     } catch (err) {

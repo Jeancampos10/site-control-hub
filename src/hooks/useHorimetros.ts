@@ -82,7 +82,7 @@ export function useUpdateHorimetro() {
 
   return useMutation({
     mutationFn: async (formData: HorimetroFormData) => {
-      const horas = (formData.horimetro_atual && formData.horimetro_anterior)
+      const horas = (formData.horimetro_atual != null && formData.horimetro_anterior != null)
         ? formData.horimetro_atual - formData.horimetro_anterior
         : null;
 
@@ -91,8 +91,9 @@ export function useUpdateHorimetro() {
         veiculo: formData.veiculo,
         descricao_veiculo: formData.descricao,
         operador: formData.operador,
-        horimetro_anterior: formData.horimetro_anterior || 0,
-        horimetro_atual: formData.horimetro_atual || 0,
+        horimetro_anterior: formData.horimetro_anterior ?? 0,
+        horimetro_atual: formData.horimetro_atual ?? 0,
+        horas_trabalhadas: horas,
         obra: formData.obra,
         observacao: formData.observacao,
       };
@@ -137,7 +138,15 @@ export function useDeleteHorimetro() {
 
 export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: string | null) {
   const filteredData = selectedDate
-    ? horimetros.filter(h => h.data === selectedDate)
+    ? horimetros.filter(h => {
+        // selectedDate can be dd/MM/yyyy or yyyy-MM-dd; h.data is yyyy-MM-dd from DB
+        const brMatch = selectedDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (brMatch) {
+          const iso = `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}`;
+          return h.data === iso;
+        }
+        return h.data === selectedDate;
+      })
     : horimetros;
 
   const totalHoras = filteredData.reduce((acc, h) => acc + h.horas_trabalhadas, 0);

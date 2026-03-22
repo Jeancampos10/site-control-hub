@@ -19,7 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Fuel, Save, X, Loader2, Search, Clock, AlertTriangle } from "lucide-react";
 import { useSyncAbastecimento } from "@/hooks/useAbastecimentos";
-import { useSyncToSheet } from "@/hooks/useSyncToSheet";
+
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -41,7 +41,7 @@ const SOURCES = [
 
 export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
   const syncMutation = useSyncAbastecimento();
-  const sheetSync = useSyncToSheet();
+  
   const { data: frota } = useGoogleSheets<FrotaGeralRow>('Frota');
 
   const [veiculo, setVeiculo] = useState("");
@@ -197,21 +197,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
         },
       });
 
-      // 2. Sync to Google Sheets (non-blocking)
-      sheetSync.mutate({
-        sheetName: 'Abastecimentos',
-        rowData: [
-          data, hora, tipo, veiculo, veiculoInfo?.Descricao || '', veiculoInfo?.Potencia || '',
-          motorista, veiculoInfo?.Empresa || '', veiculoInfo?.Obra || '',
-          source, tipoCombustivel, quantidade,
-          horimetroAnterior, horimetroAtual, kmAnterior, kmAtual,
-          arla ? 'Sim' : 'Não', quantidadeArla,
-          fornecedor, notaFiscal, valorUnitario, valorTotal,
-          lubrificacao ? 'Sim' : 'Não', oleo, filtro, observacao,
-        ],
-      });
-
-      toast.success('Abastecimento registrado com sucesso!');
+      // Google Sheets sync removed - Supabase is the primary backend
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao salvar');
