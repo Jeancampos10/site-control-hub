@@ -317,6 +317,8 @@ export default function FrotaGeral() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportFrotaDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>
   );
 }
