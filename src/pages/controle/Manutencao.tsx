@@ -199,6 +199,7 @@ export default function Manutencao() {
                           <TableHead>Mecânico</TableHead>
                           <TableHead>Abertura</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-[60px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
