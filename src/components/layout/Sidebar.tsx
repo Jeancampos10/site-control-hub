@@ -43,6 +43,10 @@ const cadastrosMenu: NavItem = {
     { label: "Locais", icon: MapPin, href: "/cadastros/locais" },
     { label: "Materiais", icon: Package, href: "/cadastros/materiais" },
     { label: "Fornecedores CAL", icon: Building2, href: "/cadastros/fornecedores" },
+    { label: "Lubrificantes", icon: Fuel, href: "/cadastros/lubrificantes" },
+    { label: "Tipos de Óleo", icon: Fuel, href: "/cadastros/tipos-oleo" },
+    { label: "Mecânicos", icon: Wrench, href: "/cadastros/mecanicos" },
+    { label: "Peças", icon: Package, href: "/cadastros/pecas" },
     {
       label: "Equipamentos",
       icon: Shovel,

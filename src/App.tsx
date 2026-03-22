@@ -26,6 +26,10 @@ import CadastroEscavadeiras from "./pages/cadastros/CadastroEscavadeiras";
 import CadastroBasculantes from "./pages/cadastros/CadastroBasculantes";
 import CadastroReboques from "./pages/cadastros/CadastroReboques";
 import CadastroEquipamentosGerais from "./pages/cadastros/CadastroEquipamentosGerais";
+import CadastroLubrificantes from "./pages/cadastros/CadastroLubrificantes";
+import CadastroTiposOleo from "./pages/cadastros/CadastroTiposOleo";
+import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
+import CadastroPecas from "./pages/cadastros/CadastroPecas";
 
 // Controle
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
