@@ -13,6 +13,9 @@ import {
   Calendar,
   FileText,
   Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -24,9 +27,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useManutencoes, OrdemServico } from "@/hooks/useManutencoes";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useManutencoes, useDeleteOrdemServico, OrdemServico } from "@/hooks/useManutencoes";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { NovaOrdemServicoDialog } from "@/components/manutencao/NovaOrdemServicoDialog";
+import { EditOrdemServicoDialog } from "@/components/manutencao/EditOrdemServicoDialog";
 
 export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
