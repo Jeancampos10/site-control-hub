@@ -63,13 +63,20 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     );
   }, [veiculos, searchTerm]);
 
-  // Fetch last record when vehicle changes
+  // Auto-fill vehicle info + last record when vehicle changes
   useEffect(() => {
     if (!veiculo) {
       setLastData("");
       setLastHorimetro("");
       setLastKm("");
+      setOperador("");
       return;
+    }
+
+    // Auto-fill from frota data
+    const veiculoInfo = frota?.find(v => v.codigo === veiculo);
+    if (veiculoInfo) {
+      if (veiculoInfo.motorista) setOperador(veiculoInfo.motorista);
     }
 
     const fetchLast = async () => {
@@ -81,15 +88,13 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         .limit(1);
 
       if (rows && rows.length > 0) {
-        const row = rows[0];
-        setLastData(row.data || '');
-        setLastHorimetro(row.horimetro_atual?.toString() || '');
+        setLastData(rows[0].data || '');
+        setLastHorimetro(rows[0].horimetro_atual?.toString() || '');
       } else {
         setLastData("—");
         setLastHorimetro("0");
       }
 
-      // Also check abastecimentos for km
       const { data: abRows } = await supabase
         .from('abastecimentos')
         .select('km_atual')
@@ -98,7 +103,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         .order('data', { ascending: false })
         .limit(1);
 
-      if (abRows && abRows.length > 0 && abRows[0].km_atual) {
+      if (abRows?.[0]?.km_atual) {
         setLastKm(abRows[0].km_atual.toString());
       } else {
         setLastKm("0");
@@ -106,7 +111,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     };
 
     fetchLast();
-  }, [veiculo]);
+  }, [veiculo, frota]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -242,14 +247,29 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
           </div>
 
           {/* Info do último registro */}
-          {veiculo && lastHorimetro && (
+          {veiculo && (
             <div className="rounded-lg bg-muted/50 border p-3 text-xs space-y-1">
-              <p className="font-medium text-muted-foreground">Último registro:</p>
-              <div className="flex gap-4">
-                <span>Data: <strong>{lastData}</strong></span>
-                <span>Horímetro: <strong>{lastHorimetro}</strong></span>
-                {lastKm !== "0" && <span>KM: <strong>{lastKm}</strong></span>}
-              </div>
+              {(() => {
+                const vi = frota?.find(v => v.codigo === veiculo);
+                return vi ? (
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                    {vi.descricao && <span>Desc: <strong className="text-foreground">{vi.descricao}</strong></span>}
+                    {vi.motorista && <span>Operador: <strong className="text-foreground">{vi.motorista}</strong></span>}
+                    {vi.empresa && <span>Empresa: <strong className="text-foreground">{vi.empresa}</strong></span>}
+                    {vi.obra && <span>Obra: <strong className="text-foreground">{vi.obra}</strong></span>}
+                  </div>
+                ) : null;
+              })()}
+              {lastHorimetro && (
+                <>
+                  <p className="font-medium text-muted-foreground mt-1">Último registro:</p>
+                  <div className="flex gap-4">
+                    <span>Data: <strong>{lastData}</strong></span>
+                    <span>Horímetro: <strong>{lastHorimetro}</strong></span>
+                    {lastKm !== "0" && <span>KM: <strong>{lastKm}</strong></span>}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

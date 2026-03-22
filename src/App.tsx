@@ -30,6 +30,8 @@ import CadastroLubrificantes from "./pages/cadastros/CadastroLubrificantes";
 import CadastroTiposOleo from "./pages/cadastros/CadastroTiposOleo";
 import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
 import CadastroPecas from "./pages/cadastros/CadastroPecas";
+import CadastroTanques from "./pages/cadastros/CadastroTanques";
+import CadastroObras from "./pages/cadastros/CadastroObras";
 
 // Controle
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
@@ -91,6 +93,8 @@ const App = () => (
             <Route path="/cadastros/tipos-oleo" element={<ProtectedRoute><CadastroTiposOleo /></ProtectedRoute>} />
             <Route path="/cadastros/mecanicos" element={<ProtectedRoute><CadastroMecanicos /></ProtectedRoute>} />
             <Route path="/cadastros/pecas" element={<ProtectedRoute><CadastroPecas /></ProtectedRoute>} />
+            <Route path="/cadastros/tanques" element={<ProtectedRoute><CadastroTanques /></ProtectedRoute>} />
+            <Route path="/cadastros/obras" element={<ProtectedRoute><CadastroObras /></ProtectedRoute>} />
             
             {/* Controle */}
             <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
