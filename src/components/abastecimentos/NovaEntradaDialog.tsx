@@ -35,9 +35,9 @@ export function NovaEntradaDialog({ open, onOpenChange }: Props) {
   const [obs, setObs] = useState("");
 
   const handleSave = () => {
-    const quantidade = parseBR(qtd) ?? 0;
+    const quantidade = parseNumericInput(qtd) ?? 0;
     if (quantidade <= 0) return;
-    const vt = parseBR(valorTotal) ?? 0;
+    const vt = parseNumericInput(valorTotal) ?? 0;
     const vu = quantidade > 0 ? vt / quantidade : 0;
 
     insert.mutate({

@@ -124,12 +124,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     }
   }, [open]);
 
-  const parseNumber = (val: string): number | null => parseBR(val);
-
-  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
-    const formatted = formatOnBlur(value);
-    if (formatted !== value) setter(formatted);
-  };
+  const parseNumber = (val: string): number | null => parseNumericInput(val);
 
   const handleSave = async () => {
     if (!veiculo) {
