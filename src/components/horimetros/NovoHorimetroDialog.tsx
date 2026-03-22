@@ -124,10 +124,11 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     }
   }, [open]);
 
-  const parseNumber = (val: string): number | null => {
-    if (!val) return null;
-    const num = parseFloat(val.replace(',', '.'));
-    return isNaN(num) ? null : num;
+  const parseNumber = (val: string): number | null => parseBR(val);
+
+  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
+    const formatted = formatOnBlur(value);
+    if (formatted !== value) setter(formatted);
   };
 
   const handleSave = async () => {
