@@ -56,7 +56,7 @@ export default function FrotaGeral() {
 
   function openNew() {
     setEditingItem(null);
-    setForm({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
+    setForm({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "L. Pereira", obra: "", status: "Mobilizado" });
     setDialogOpen(true);
   }
 
