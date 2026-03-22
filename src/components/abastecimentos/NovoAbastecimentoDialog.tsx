@@ -223,8 +223,12 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
-              variant={tipo === "Saida" ? "default" : "outline"}
-              className="h-12 gap-2 text-sm"
+              variant="outline"
+              className={`h-12 gap-2 text-sm font-semibold transition-all ${
+                tipo === "Saida"
+                  ? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90 shadow-md"
+                  : "hover:border-destructive/50 hover:text-destructive"
+              }`}
               onClick={() => setTipo("Saida")}
             >
               <ArrowUpFromLine className="h-4 w-4" />
@@ -232,8 +236,12 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </Button>
             <Button
               type="button"
-              variant={tipo === "Entrada" ? "default" : "outline"}
-              className="h-12 gap-2 text-sm"
+              variant="outline"
+              className={`h-12 gap-2 text-sm font-semibold transition-all ${
+                tipo === "Entrada"
+                  ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-md"
+                  : "hover:border-emerald-500/50 hover:text-emerald-600"
+              }`}
               onClick={() => setTipo("Entrada")}
             >
               <ArrowDownToLine className="h-4 w-4" />
