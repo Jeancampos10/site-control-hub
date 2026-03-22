@@ -1,88 +1,108 @@
 import { useMemo, useState } from "react";
-import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2 } from "lucide-react";
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
-import { TableLoader } from "@/components/ui/loading-spinner";
-import { ErrorState } from "@/components/ui/error-state";
+import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2, Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TableLoader } from "@/components/ui/loading-spinner";
+import { useFrota, useCreateFrota, useUpdateFrota, useDeleteFrota, FrotaItem } from "@/hooks/useFrota";
+
+const categorias = ["Escavadeira", "Caminhão Basculante", "Caminhão Pipa", "Pá Carregadeira", "Rolo Compactador", "Retroescavadeira", "Motoniveladora", "Trator", "Gerador", "Outros"];
+const statusOptions = ["Mobilizado", "Desmobilizado", "Em Manutenção", "Parado"];
 
 export default function FrotaGeral() {
-  const { data, isLoading, error } = useGoogleSheets<FrotaGeralRow>('Frota');
+  const { data, isLoading } = useFrota();
+  const createMutation = useCreateFrota();
+  const updateMutation = useUpdateFrota();
+  const deleteMutation = useDeleteFrota();
+
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("all");
-  const [filterEmpresa, setFilterEmpresa] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<FrotaItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Form state
+  const [form, setForm] = useState({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
 
   const items = data || [];
 
-  const categorias = useMemo(() => [...new Set(items.map(i => i.Categoria).filter(Boolean))].sort(), [items]);
-  const empresas = useMemo(() => [...new Set(items.map(i => i.Empresa).filter(Boolean))].sort(), [items]);
-  const statuses = useMemo(() => [...new Set(items.map(i => i.Status).filter(Boolean))].sort(), [items]);
-
   const filtered = useMemo(() => {
     return items.filter(row => {
-      const matchSearch = !search || Object.values(row).some(v => v?.toLowerCase().includes(search.toLowerCase()));
-      const matchCat = filterCategoria === "all" || row.Categoria === filterCategoria;
-      const matchEmp = filterEmpresa === "all" || row.Empresa === filterEmpresa;
-      const matchSt = filterStatus === "all" || row.Status === filterStatus;
-      return matchSearch && matchCat && matchEmp && matchSt;
+      const matchSearch = !search || Object.values(row).some(v => String(v).toLowerCase().includes(search.toLowerCase()));
+      const matchCat = filterCategoria === "all" || row.categoria === filterCategoria;
+      const matchSt = filterStatus === "all" || row.status === filterStatus;
+      return matchSearch && matchCat && matchSt;
     });
-  }, [items, search, filterCategoria, filterEmpresa, filterStatus]);
+  }, [items, search, filterCategoria, filterStatus]);
 
-  // KPIs
   const total = items.length;
-  const mobilizados = items.filter(i => i.Status?.toLowerCase().includes("mobiliz") || i.Status?.toLowerCase().includes("ativo")).length;
-  const manutencao = items.filter(i => i.Status?.toLowerCase().includes("manuten")).length;
-  const parados = items.filter(i => i.Status?.toLowerCase().includes("parad") || i.Status?.toLowerCase().includes("inativ")).length;
+  const mobilizados = items.filter(i => i.status === "Mobilizado").length;
+  const manutencao = items.filter(i => i.status === "Em Manutenção").length;
+  const parados = items.filter(i => ["Desmobilizado", "Parado"].includes(i.status)).length;
 
-  // By category
-  const byCat = useMemo(() => {
-    const map = new Map<string, number>();
-    items.forEach(i => {
-      const cat = i.Categoria || "Outros";
-      map.set(cat, (map.get(cat) || 0) + 1);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [items]);
+  function openNew() {
+    setEditingItem(null);
+    setForm({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
+    setDialogOpen(true);
+  }
 
-  // By empresa
-  const byEmpresa = useMemo(() => {
-    const map = new Map<string, number>();
-    items.forEach(i => {
-      const emp = i.Empresa || "Não informado";
-      map.set(emp, (map.get(emp) || 0) + 1);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [items]);
+  function openEdit(item: FrotaItem) {
+    setEditingItem(item);
+    setForm({ codigo: item.codigo, descricao: item.descricao, categoria: item.categoria, potencia: item.potencia, motorista: item.motorista, empresa: item.empresa, obra: item.obra, status: item.status });
+    setDialogOpen(true);
+  }
+
+  function handleSave() {
+    if (!form.codigo.trim()) return;
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.id, ...form }, { onSuccess: () => setDialogOpen(false) });
+    } else {
+      createMutation.mutate(form, { onSuccess: () => setDialogOpen(false) });
+    }
+  }
+
+  function confirmDelete(id: string) {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  }
+
+  function handleDelete() {
+    if (deletingId) {
+      deleteMutation.mutate(deletingId, { onSuccess: () => setDeleteDialogOpen(false) });
+    }
+  }
 
   function statusBadge(status: string) {
-    const s = status?.toLowerCase() || "";
-    if (s.includes("mobiliz") || s.includes("ativo")) return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200">{status}</Badge>;
-    if (s.includes("manuten")) return <Badge className="bg-amber-500/15 text-amber-700 border-amber-200">{status}</Badge>;
-    if (s.includes("parad") || s.includes("inativ")) return <Badge className="bg-red-500/15 text-red-700 border-red-200">{status}</Badge>;
+    if (status === "Mobilizado") return <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-200">{status}</Badge>;
+    if (status === "Em Manutenção") return <Badge className="bg-amber-500/15 text-amber-700 border-amber-200">{status}</Badge>;
+    if (["Desmobilizado", "Parado"].includes(status)) return <Badge className="bg-red-500/15 text-red-700 border-red-200">{status}</Badge>;
     return <Badge variant="outline">{status || "—"}</Badge>;
   }
 
-  if (error) return <div className="p-6"><ErrorState message="Erro ao carregar dados da frota" /></div>;
-
   return (
     <div className="space-y-6">
-      <div className="page-header">
-        <h1 className="page-title flex items-center gap-2">
-          <Car className="h-6 w-6 text-primary" />
-          Frota
-        </h1>
-        <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="page-header mb-0">
+          <h1 className="page-title flex items-center gap-2">
+            <Car className="h-6 w-6 text-primary" />
+            Frota
+          </h1>
+          <p className="page-subtitle">Controle consolidado de equipamentos e veículos</p>
+        </div>
+        <Button onClick={openNew} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Veículo/Equipamento
+        </Button>
       </div>
 
       {isLoading ? <TableLoader /> : (
@@ -128,50 +148,13 @@ export default function FrotaGeral() {
                 {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
-              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Empresa" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {empresas.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {statuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Summary cards */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5" />Por Categoria</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {byCat.length > 0 ? byCat.map(([cat, qty]) => (
-                    <div key={cat} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                      <span className="text-sm font-medium">{cat}</span>
-                      <Badge variant="secondary">{qty}</Badge>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />Por Empresa</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {byEmpresa.length > 0 ? byEmpresa.map(([emp, qty]) => (
-                    <div key={emp} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                      <span className="text-sm font-medium">{emp}</span>
-                      <Badge variant="secondary">{qty}</Badge>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Table */}
@@ -192,26 +175,35 @@ export default function FrotaGeral() {
                       <TableHead>Empresa</TableHead>
                       <TableHead>Obra</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.length > 0 ? filtered.map((row, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-mono font-medium">{row.Codigo || "—"}</TableCell>
-                        <TableCell>{row.Descricao || "—"}</TableCell>
-                        <TableCell>{row.Categoria || "—"}</TableCell>
-                        <TableCell>{row.Potencia || "—"}</TableCell>
-                        <TableCell>{row.Motorista || "—"}</TableCell>
-                        <TableCell>{row.Empresa || "—"}</TableCell>
-                        <TableCell>{row.Obra || "—"}</TableCell>
-                        <TableCell>{statusBadge(row.Status)}</TableCell>
+                    {filtered.length > 0 ? filtered.map(row => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-mono font-medium">{row.codigo}</TableCell>
+                        <TableCell>{row.descricao || "—"}</TableCell>
+                        <TableCell>{row.categoria || "—"}</TableCell>
+                        <TableCell>{row.potencia || "—"}</TableCell>
+                        <TableCell>{row.motorista || "—"}</TableCell>
+                        <TableCell>{row.empresa || "—"}</TableCell>
+                        <TableCell>{row.obra || "—"}</TableCell>
+                        <TableCell>{statusBadge(row.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(row.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     )) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                          {items.length === 0
-                            ? "A aba 'Frota' na planilha está vazia. Adicione os equipamentos na planilha para visualizá-los aqui."
-                            : "Nenhum resultado para os filtros aplicados."}
+                        <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                          Nenhum veículo/equipamento cadastrado. Clique em "Novo" para adicionar.
                         </TableCell>
                       </TableRow>
                     )}
@@ -222,6 +214,85 @@ export default function FrotaGeral() {
           </Card>
         </>
       )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Editar Veículo/Equipamento" : "Novo Veículo/Equipamento"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Código *</Label>
+                <Input value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} placeholder="Ex: ESC-001" />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={form.categoria} onValueChange={v => setForm(f => ({ ...f, categoria: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Ex: Escavadeira Hidráulica CAT 320" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Potência</Label>
+                <Input value={form.potencia} onChange={e => setForm(f => ({ ...f, potencia: e.target.value }))} placeholder="Ex: 150 CV" />
+              </div>
+              <div className="space-y-2">
+                <Label>Motorista/Operador</Label>
+                <Input value={form.motorista} onChange={e => setForm(f => ({ ...f, motorista: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Empresa</Label>
+                <Input value={form.empresa} onChange={e => setForm(f => ({ ...f, empresa: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Obra</Label>
+                <Input value={form.obra} onChange={e => setForm(f => ({ ...f, obra: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+              {editingItem ? "Salvar" : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Deseja realmente excluir este veículo/equipamento?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
