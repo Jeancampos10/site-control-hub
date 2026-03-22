@@ -168,17 +168,7 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
         observacao,
       });
 
-      // 2. Sync to Google Sheets (non-blocking)
-      const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
-      sheetSync.mutate({
-        sheetName: 'Horímetros',
-        rowData: [
-          data, veiculo, veiculoInfo?.Descricao || '', veiculoInfo?.Categoria || '',
-          veiculoInfo?.Empresa || '', operador,
-          lastHorimetro || '0', horimetro || '0', '',
-          lastKm || '', '', observacao || '',
-        ],
-      });
+      // Google Sheets sync removed - Supabase is the primary backend
 
       onOpenChange(false);
     } catch (err) {
