@@ -30,6 +30,7 @@ export default function FrotaGeral() {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FrotaItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
