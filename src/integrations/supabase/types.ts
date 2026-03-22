@@ -452,6 +452,90 @@ export type Database = {
         }
         Relationships: []
       }
+      entradas_combustivel: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          fornecedor: string | null
+          id: string
+          local_estoque: string
+          nota_fiscal: string | null
+          observacao: string | null
+          quantidade: number
+          tipo_combustivel: string
+          updated_at: string
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          fornecedor?: string | null
+          id?: string
+          local_estoque: string
+          nota_fiscal?: string | null
+          observacao?: string | null
+          quantidade?: number
+          tipo_combustivel?: string
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          fornecedor?: string | null
+          id?: string
+          local_estoque?: string
+          nota_fiscal?: string | null
+          observacao?: string | null
+          quantidade?: number
+          tipo_combustivel?: string
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
+      estoque_combustivel: {
+        Row: {
+          capacidade: number
+          created_at: string
+          created_by: string | null
+          data_referencia: string
+          id: string
+          local_estoque: string
+          quantidade_inicial: number
+          tipo_combustivel: string
+          updated_at: string
+        }
+        Insert: {
+          capacidade?: number
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string
+          id?: string
+          local_estoque: string
+          quantidade_inicial?: number
+          tipo_combustivel?: string
+          updated_at?: string
+        }
+        Update: {
+          capacidade?: number
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string
+          id?: string
+          local_estoque?: string
+          quantidade_inicial?: number
+          tipo_combustivel?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       frota: {
         Row: {
           ativo: boolean
