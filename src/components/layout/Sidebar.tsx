@@ -229,13 +229,13 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
         <img 
-          src={logoApropriapp} 
-          alt="ApropriAPP Logo" 
+          src={logoAbastech} 
+          alt="Abastech Logo" 
           className="h-10 object-contain"
         />
         <div>
-          <h1 className="text-base font-bold text-sidebar-foreground">ControleAERO</h1>
-          <p className="text-[10px] text-sidebar-foreground/60">Controle de Equipamentos</p>
+          <h1 className="text-base font-bold text-sidebar-foreground">Abastech</h1>
+          <p className="text-[10px] text-sidebar-foreground/60">Gestão de Equipamentos</p>
         </div>
       </div>
 
