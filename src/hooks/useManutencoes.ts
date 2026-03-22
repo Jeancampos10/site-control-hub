@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncToSheet } from "@/lib/sheetSync";
 
 export interface OrdemServico {
   id: string;
@@ -77,7 +78,7 @@ export function useCreateOrdemServico() {
 
   return useMutation({
     mutationFn: async (data: Partial<OrdemServico>) => {
-      const { error } = await supabase.from('ordens_servico').insert({
+      const payload = {
         veiculo: data.veiculo || '',
         descricao_veiculo: data.descricao_veiculo,
         tipo: data.tipo || 'Corretiva',
@@ -95,8 +96,11 @@ export function useCreateOrdemServico() {
         tempo_estimado_horas: data.tempo_estimado_horas,
         custo_estimado: data.custo_estimado,
         observacoes: data.observacoes,
-      });
+      };
+      const { error } = await supabase.from('ordens_servico').insert(payload);
       if (error) throw new Error(error.message);
+      // Sync to sheet
+      syncToSheet('Manutencoes', 'append', { ...payload, data_abertura: data.data_abertura || new Date().toISOString().split('T')[0] });
       return { success: true };
     },
     onSuccess: () => {
@@ -114,7 +118,7 @@ export function useUpdateOrdemServico() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<OrdemServico> }) => {
-      const { error } = await supabase.from('ordens_servico').update({
+      const payload = {
         veiculo: data.veiculo,
         descricao_veiculo: data.descricao_veiculo,
         tipo: data.tipo,
@@ -135,8 +139,11 @@ export function useUpdateOrdemServico() {
         custo_estimado: data.custo_estimado,
         custo_real: data.custo_real,
         observacoes: data.observacoes,
-      }).eq('id', id);
+      };
+      const { error } = await supabase.from('ordens_servico').update(payload).eq('id', id);
       if (error) throw new Error(error.message);
+      // Sync update to sheet
+      syncToSheet('Manutencoes', 'update', { ...payload, data_abertura: data.data_abertura }, data.data_abertura + '|' + data.veiculo);
       return { success: true };
     },
     onSuccess: () => {

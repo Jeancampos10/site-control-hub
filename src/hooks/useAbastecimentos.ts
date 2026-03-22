@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncToSheet } from "@/lib/sheetSync";
 
 export interface Abastecimento {
   id: string;
@@ -81,7 +82,6 @@ export function useAbastecimentos(source?: string) {
       }
 
       const { data, error } = await query;
-
       if (error) throw new Error(error.message);
       return (data || []).map(transformDbRow) as Abastecimento[];
     },
@@ -108,13 +108,19 @@ export function useSyncAbastecimento() {
       rowId?: string;
     }) => {
       if (action === 'delete' && rowId) {
+        // Get data before delete for sheet sync
+        const { data: existing } = await supabase.from('abastecimentos').select('data, veiculo').eq('id', rowId).single();
         const { error } = await supabase.from('abastecimentos').delete().eq('id', rowId);
         if (error) throw new Error(error.message);
+        // Sync delete to sheet
+        if (existing) {
+          syncToSheet('Abastecimentos', 'delete', undefined, existing.data + '|' + existing.veiculo);
+        }
         return { success: true };
       }
 
       if (action === 'append' && data) {
-        const { error } = await supabase.from('abastecimentos').insert({
+        const dbPayload = {
           data: data.data || new Date().toISOString().split('T')[0],
           veiculo: data.veiculo || '',
           quantidade_combustivel: data.quantidade || 0,
@@ -142,13 +148,16 @@ export function useSyncAbastecimento() {
           lubrificacao: data.lubrificacao,
           oleo: data.oleo,
           filtro: data.filtro,
-        });
+        };
+        const { error } = await supabase.from('abastecimentos').insert(dbPayload);
         if (error) throw new Error(error.message);
+        // Sync append to sheet
+        syncToSheet('Abastecimentos', 'append', { ...dbPayload, quantidade_combustivel: data.quantidade });
         return { success: true };
       }
 
       if (action === 'update' && rowId && data) {
-        const { error } = await supabase.from('abastecimentos').update({
+        const dbPayload = {
           data: data.data,
           veiculo: data.veiculo,
           quantidade_combustivel: data.quantidade,
@@ -176,8 +185,11 @@ export function useSyncAbastecimento() {
           lubrificacao: data.lubrificacao,
           oleo: data.oleo,
           filtro: data.filtro,
-        }).eq('id', rowId);
+        };
+        const { error } = await supabase.from('abastecimentos').update(dbPayload).eq('id', rowId);
         if (error) throw new Error(error.message);
+        // Sync update to sheet
+        syncToSheet('Abastecimentos', 'update', { ...dbPayload, quantidade_combustivel: data.quantidade }, data.data + '|' + data.veiculo);
         return { success: true };
       }
 
@@ -206,7 +218,6 @@ export function useBulkUpdateAbastecimentos() {
       updates: Record<string, string>;
       dateFilter?: string;
     }) => {
-      // Build query with filters - use type assertion to avoid deep instantiation
       const updatePayload: Record<string, any> = updates;
       let query: any = supabase.from('abastecimentos').update(updatePayload);
       Object.entries(filters).forEach(([key, value]) => {

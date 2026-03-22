@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncToSheet } from "@/lib/sheetSync";
 
 export interface Horimetro {
   id: string;
@@ -101,9 +102,13 @@ export function useUpdateHorimetro() {
       if (formData.id) {
         const { error } = await supabase.from('horimetros').update(payload).eq('id', formData.id);
         if (error) throw new Error(error.message);
+        // Sync update to sheet
+        syncToSheet('Horimetros', 'update', payload, formData.data + '|' + formData.veiculo);
       } else {
         const { error } = await supabase.from('horimetros').insert(payload);
         if (error) throw new Error(error.message);
+        // Sync append to sheet
+        syncToSheet('Horimetros', 'append', payload);
       }
       return { success: true };
     },
@@ -121,9 +126,13 @@ export function useDeleteHorimetro() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (rowId: string) => {
-      const { error } = await supabase.from('horimetros').delete().eq('id', rowId);
+    mutationFn: async ({ id, data, veiculo }: { id: string; data?: string; veiculo?: string }) => {
+      const { error } = await supabase.from('horimetros').delete().eq('id', id);
       if (error) throw new Error(error.message);
+      // Sync delete to sheet
+      if (data && veiculo) {
+        syncToSheet('Horimetros', 'delete', undefined, data + '|' + veiculo);
+      }
       return { success: true };
     },
     onSuccess: () => {
@@ -139,7 +148,6 @@ export function useDeleteHorimetro() {
 export function useHorimetrosSummary(horimetros: Horimetro[], selectedDate: string | null) {
   const filteredData = selectedDate
     ? horimetros.filter(h => {
-        // selectedDate can be dd/MM/yyyy or yyyy-MM-dd; h.data is yyyy-MM-dd from DB
         const brMatch = selectedDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if (brMatch) {
           const iso = `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}`;

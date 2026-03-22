@@ -4,8 +4,7 @@ const GOOGLE_SHEETS_API_KEY = Deno.env.get('GOOGLE_SHEETS_API_KEY');
 
 // Production spreadsheet
 const SPREADSHEET_ID = '1B9-SbnayFySlsITdRqn_2WJNnA9ZHhD0PWYka83581c';
-// Abastech spreadsheet (combustível/frota)
-const ABASTECH_SPREADSHEET_ID = Deno.env.get('ABASTECH_SPREADSHEET_ID') || SPREADSHEET_ID;
+const ABASTECH_SPREADSHEET_ID = Deno.env.get('ABASTECH_SPREADSHEET_ID') || '1Xvw2iEC4Tpqd7pSb-zC3ptF5BxgMvSmNTmgpPDkBQ4g';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { syncToSheet } from "@/lib/sheetSync";
 
 export interface FrotaItem {
   id: string;
@@ -36,6 +37,8 @@ export function useCreateFrota() {
     mutationFn: async (item: Omit<FrotaItem, "id" | "ativo">) => {
       const { error } = await supabase.from("frota" as any).insert(item as any);
       if (error) throw error;
+      // Sync to Google Sheets
+      syncToSheet('Frota', 'append', item);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["frota"] });
@@ -51,6 +54,8 @@ export function useUpdateFrota() {
     mutationFn: async ({ id, ...updates }: Partial<FrotaItem> & { id: string }) => {
       const { error } = await supabase.from("frota" as any).update(updates as any).eq("id", id);
       if (error) throw error;
+      // Sync to Google Sheets
+      syncToSheet('Frota', 'update', updates, updates.codigo);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["frota"] });
@@ -63,10 +68,11 @@ export function useUpdateFrota() {
 export function useDeleteFrota() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      // Soft delete
+    mutationFn: async ({ id, codigo }: { id: string; codigo: string }) => {
       const { error } = await supabase.from("frota" as any).update({ ativo: false } as any).eq("id", id);
       if (error) throw error;
+      // Sync delete to Google Sheets
+      syncToSheet('Frota', 'delete', undefined, codigo);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["frota"] });

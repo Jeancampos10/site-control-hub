@@ -33,6 +33,7 @@ export default function FrotaGeral() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FrotaItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingCodigo, setDeletingCodigo] = useState<string>("");
 
   // Form state
   const [form, setForm] = useState({ codigo: "", descricao: "", categoria: "", potencia: "", motorista: "", empresa: "", obra: "", status: "Mobilizado" });
@@ -74,14 +75,15 @@ export default function FrotaGeral() {
     }
   }
 
-  function confirmDelete(id: string) {
+  function confirmDelete(id: string, codigo: string) {
     setDeletingId(id);
+    setDeletingCodigo(codigo);
     setDeleteDialogOpen(true);
   }
 
   function handleDelete() {
-    if (deletingId) {
-      deleteMutation.mutate(deletingId, { onSuccess: () => setDeleteDialogOpen(false) });
+    if (deletingId && deletingCodigo) {
+      deleteMutation.mutate({ id: deletingId, codigo: deletingCodigo }, { onSuccess: () => setDeleteDialogOpen(false) });
     }
   }
 
@@ -218,7 +220,7 @@ export default function FrotaGeral() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(row.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(row.id, row.codigo)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
