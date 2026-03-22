@@ -19,7 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Fuel, Save, X, Loader2, Search, Clock, AlertTriangle } from "lucide-react";
 import { useSyncAbastecimento } from "@/hooks/useAbastecimentos";
-import { useSyncToSheet } from "@/hooks/useSyncToSheet";
+
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
