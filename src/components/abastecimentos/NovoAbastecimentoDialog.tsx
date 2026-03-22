@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseBR, formatBR, formatOnBlur, calcConsumo } from "@/lib/formatters";
+import { NumericInput } from "@/components/shared/NumericInput";
 
 interface Props {
   open: boolean;
@@ -319,7 +320,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Quantidade (L) *</Label>
-              <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} onBlur={() => handleBlurFormat(quantidade, setQuantidade)} placeholder="0,00" className="h-10" />
+              <NumericInput value={quantidade} onChange={setQuantidade} placeholder="0" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Motorista</Label>
@@ -331,11 +332,11 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Horímetro Atual</Label>
-              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} onBlur={() => handleBlurFormat(horimetroAtual, setHorimetroAtual)} placeholder="0,00" className="h-10" />
+              <NumericInput value={horimetroAtual} onChange={setHorimetroAtual} placeholder="0" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">KM Atual</Label>
-              <Input value={kmAtual} onChange={(e) => setKmAtual(e.target.value)} onBlur={() => handleBlurFormat(kmAtual, setKmAtual)} placeholder="0,00" className="h-10" />
+              <NumericInput value={kmAtual} onChange={setKmAtual} placeholder="0" />
             </div>
           </div>
 
@@ -419,11 +420,11 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Valor Unitário (R$)</Label>
-              <Input value={valorUnitario} onChange={(e) => setValorUnitario(e.target.value)} placeholder="0,00" className="h-10" />
+              <NumericInput value={valorUnitario} onChange={setValorUnitario} placeholder="0" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Valor Total (R$)</Label>
-              <Input value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} placeholder="0,00" className="h-10" />
+              <NumericInput value={valorTotal} onChange={setValorTotal} placeholder="0" />
             </div>
           </div>
 

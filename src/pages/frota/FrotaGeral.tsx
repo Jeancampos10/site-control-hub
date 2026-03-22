@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Car, HardHat, Truck, Search, CheckCircle, AlertTriangle, XCircle, Building2, Plus, Pencil, Trash2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { useFrota, useCreateFrota, useUpdateFrota, useDeleteFrota, FrotaItem } from "@/hooks/useFrota";
 import { ExportButtons } from "@/components/shared/ExportButtons";
+import { ImportFrotaDialog } from "@/components/frota/ImportFrotaDialog";
 
 const categorias = ["Escavadeira", "Caminhão Basculante", "Caminhão Pipa", "Pá Carregadeira", "Rolo Compactador", "Retroescavadeira", "Motoniveladora", "Trator", "Gerador", "Outros"];
 const statusOptions = ["Mobilizado", "Desmobilizado", "Em Manutenção", "Parado"];
@@ -29,6 +30,7 @@ export default function FrotaGeral() {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FrotaItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -116,9 +118,13 @@ export default function FrotaGeral() {
             title="Relatório de Frota"
             fileName="frota"
           />
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Importar
+          </Button>
           <Button onClick={openNew} className="gap-2">
             <Plus className="h-4 w-4" />
-            Novo Veículo/Equipamento
+            Novo
           </Button>
         </div>
       </div>
@@ -311,6 +317,8 @@ export default function FrotaGeral() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportFrotaDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>
   );
 }

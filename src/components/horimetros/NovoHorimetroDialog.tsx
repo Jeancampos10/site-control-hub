@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseBR, formatBR, formatOnBlur } from "@/lib/formatters";
+import { NumericInput } from "@/components/shared/NumericInput";
 
 interface NovoHorimetroDialogProps {
   open: boolean;
@@ -264,12 +265,11 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
                 <Clock className="h-3.5 w-3.5 text-primary" />
                 Horímetro (h)
               </Label>
-              <Input
+              <NumericInput
                 value={horimetro}
-                onChange={(e) => setHorimetro(e.target.value)}
-                onBlur={() => handleBlurFormat(horimetro, setHorimetro)}
-                placeholder="0,00"
-                className="h-10 border-primary/30 focus:border-primary"
+                onChange={setHorimetro}
+                placeholder="0"
+                className="border-primary/30 focus:border-primary"
               />
             </div>
             <div className="space-y-1.5">
@@ -277,11 +277,10 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
                 <span className="text-muted-foreground">⤴</span>
                 KM
               </Label>
-              <Input
+              <NumericInput
                 value={km}
-                onChange={(e) => setKm(e.target.value)}
-                placeholder="0,0"
-                className="h-10"
+                onChange={setKm}
+                placeholder="0"
               />
             </div>
           </div>
