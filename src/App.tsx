@@ -103,6 +103,7 @@ const App = () => (
             <Route path="/controle/horimetros" element={<ProtectedRoute><Horimetros /></ProtectedRoute>} />
             <Route path="/controle/programacao" element={<ProtectedRoute><Programacao /></ProtectedRoute>} />
             <Route path="/controle/abastecimentos" element={<ProtectedRoute><Abastecimentos /></ProtectedRoute>} />
+            <Route path="/controle/checklist" element={<ProtectedRoute><Checklist /></ProtectedRoute>} />
             
             {/* Outras */}
             <Route path="/frota" element={<ProtectedRoute><FrotaGeral /></ProtectedRoute>} />
