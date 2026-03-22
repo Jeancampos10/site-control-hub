@@ -69,7 +69,7 @@ const controleMenu: NavItem = {
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   controleMenu,
-  { label: "Frota", icon: Truck, href: "/frota" },
+  { label: "Frota Geral", icon: Truck, href: "/frota" },
   cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
