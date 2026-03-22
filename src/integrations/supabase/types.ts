@@ -617,6 +617,48 @@ export type Database = {
         }
         Relationships: []
       }
+      planos_manutencao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao_servico: string
+          id: string
+          intervalo_valor: number
+          tipo_intervalo: string
+          ultima_execucao_data: string | null
+          ultimo_valor_executado: number | null
+          updated_at: string
+          veiculo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao_servico: string
+          id?: string
+          intervalo_valor: number
+          tipo_intervalo: string
+          ultima_execucao_data?: string | null
+          ultimo_valor_executado?: number | null
+          updated_at?: string
+          veiculo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao_servico?: string
+          id?: string
+          intervalo_valor?: number
+          tipo_intervalo?: string
+          ultima_execucao_data?: string | null
+          ultimo_valor_executado?: number | null
+          updated_at?: string
+          veiculo?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

@@ -153,6 +153,18 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
       isoDate = `${year}-${dateParts[2].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
     }
 
+    // Validação de duplicidade no mesmo dia
+    const { data: existing } = await supabase
+      .from('horimetros')
+      .select('id')
+      .eq('veiculo', veiculo)
+      .eq('data', isoDate)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      toast.error(`Já existe um registro para ${veiculo} na data ${data}`);
+      return;
+    }
 
     setIsSyncing(true);
 
