@@ -158,7 +158,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
       return;
     }
 
-    const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+    const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
     const isoData = parseDateToISO(data);
 
     // Verificar duplicidade no mesmo dia + mesmo local
