@@ -23,7 +23,7 @@ import {
   Settings,
   UserCog,
 } from "lucide-react";
-import logoApropriapp from "@/assets/logo-apropriapp.png";
+import logoAbastech from "@/assets/logo-abastech.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
