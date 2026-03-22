@@ -48,6 +48,7 @@ import { HorimetroEditDialog } from "@/components/horimetros/HorimetroEditDialog
 import { HorimetroDeleteDialog } from "@/components/horimetros/HorimetroDeleteDialog";
 import { NovoHorimetroDialog } from "@/components/horimetros/NovoHorimetroDialog";
 import { DateFilter } from "@/components/shared/DateFilter";
+import { ExportButtons } from "@/components/shared/ExportButtons";
 
 type DateQuickFilter = "ultimo" | "hoje" | "ontem" | "data" | "range";
 type TabType = "registros" | "pendencias" | "relatorios";
@@ -183,6 +184,22 @@ export default function Horimetros() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButtons
+            data={filteredData}
+            columns={[
+              { key: "data", label: "Data" },
+              { key: "veiculo", label: "Veículo" },
+              { key: "descricao_veiculo", label: "Descrição" },
+              { key: "horimetro_anterior", label: "Anterior", format: "number" },
+              { key: "horimetro_atual", label: "Atual", format: "number" },
+              { key: "horas_trabalhadas", label: "Horas", format: "number" },
+              { key: "operador", label: "Operador" },
+            ]}
+            title="Relatório de Horímetros"
+            fileName="horimetros"
+            totals={{ horas_trabalhadas: totalHoras }}
+            averages={{ horas_trabalhadas: mediaHoras }}
+          />
           <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setNovoDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Novo Registro

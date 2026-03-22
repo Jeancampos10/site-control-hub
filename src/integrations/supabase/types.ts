@@ -281,6 +281,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cad_lubrificantes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          marca: string | null
+          nome: string
+          tipo: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca?: string | null
+          nome: string
+          tipo?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          marca?: string | null
+          nome?: string
+          tipo?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cad_materiais: {
         Row: {
           ativo: boolean
@@ -308,6 +344,111 @@ export type Database = {
           nome?: string
           unidade?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cad_mecanicos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          especialidade: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          especialidade?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cad_pecas: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          codigo: string | null
+          created_at: string
+          created_by: string | null
+          estoque_minimo: number | null
+          id: string
+          nome: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          created_by?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          nome: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string
+          created_by?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          nome?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cad_tipos_oleo: {
+        Row: {
+          aplicacao: string | null
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          updated_at: string
+          viscosidade: string | null
+        }
+        Insert: {
+          aplicacao?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          viscosidade?: string | null
+        }
+        Update: {
+          aplicacao?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          viscosidade?: string | null
         }
         Relationships: []
       }

@@ -22,6 +22,7 @@ import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { parseBR, formatBR, formatOnBlur } from "@/lib/formatters";
 
 interface NovoHorimetroDialogProps {
   open: boolean;
@@ -123,15 +124,25 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
     }
   }, [open]);
 
-  const parseNumber = (val: string): number | null => {
-    if (!val) return null;
-    const num = parseFloat(val.replace(',', '.'));
-    return isNaN(num) ? null : num;
+  const parseNumber = (val: string): number | null => parseBR(val);
+
+  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
+    const formatted = formatOnBlur(value);
+    if (formatted !== value) setter(formatted);
   };
 
   const handleSave = async () => {
     if (!veiculo) {
       toast.error("Selecione um veículo");
+      return;
+    }
+
+    const horimetroAtual = parseNumber(horimetro);
+    const horimetroAnterior = parseNumber(lastHorimetro);
+
+    // Validação: não permitir valor menor que anterior
+    if (horimetroAtual != null && horimetroAnterior != null && horimetroAtual < horimetroAnterior) {
+      toast.error(`Horímetro atual (${formatBR(horimetroAtual)}) não pode ser menor que o anterior (${formatBR(horimetroAnterior)})`);
       return;
     }
 
@@ -143,8 +154,6 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
       isoDate = `${year}-${dateParts[2].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
     }
 
-    const horimetroAtual = parseNumber(horimetro);
-    const horimetroAnterior = parseNumber(lastHorimetro);
 
     setIsSyncing(true);
 
@@ -257,7 +266,8 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
               <Input
                 value={horimetro}
                 onChange={(e) => setHorimetro(e.target.value)}
-                placeholder="0,0"
+                onBlur={() => handleBlurFormat(horimetro, setHorimetro)}
+                placeholder="0,00"
                 className="h-10 border-primary/30 focus:border-primary"
               />
             </div>

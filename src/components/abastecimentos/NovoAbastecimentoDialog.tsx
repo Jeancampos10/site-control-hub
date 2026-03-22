@@ -17,13 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Fuel, Save, X, Loader2, Search, Clock } from "lucide-react";
+import { Fuel, Save, X, Loader2, Search, Clock, AlertTriangle } from "lucide-react";
 import { useSyncAbastecimento } from "@/hooks/useAbastecimentos";
 import { useSyncToSheet } from "@/hooks/useSyncToSheet";
 import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { parseBR, formatBR, formatOnBlur, calcConsumo } from "@/lib/formatters";
 
 interface Props {
   open: boolean;
@@ -124,10 +125,11 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     }
   }, [open]);
 
-  const parseNum = (v: string): number | null => {
-    if (!v) return null;
-    const n = parseFloat(v.replace(',', '.'));
-    return isNaN(n) ? null : n;
+  const parseNum = (v: string): number | null => parseBR(v);
+
+  const handleBlurFormat = (value: string, setter: (v: string) => void) => {
+    const formatted = formatOnBlur(value);
+    if (formatted !== value) setter(formatted);
   };
 
   const parseDateToISO = (d: string): string => {
@@ -140,6 +142,21 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
   const handleSave = async () => {
     if (!veiculo) { toast.error("Selecione um veículo"); return; }
     if (!quantidade) { toast.error("Informe a quantidade"); return; }
+
+    // Validações
+    const hAnt = parseNum(horimetroAnterior);
+    const hAtual = parseNum(horimetroAtual);
+    const kAnt = parseNum(kmAnterior);
+    const kAtual = parseNum(kmAtual);
+
+    if (hAtual != null && hAnt != null && hAtual < hAnt) {
+      toast.error(`Horímetro atual (${formatBR(hAtual)}) não pode ser menor que o anterior (${formatBR(hAnt)})`);
+      return;
+    }
+    if (kAtual != null && kAnt != null && kAtual < kAnt) {
+      toast.error(`KM atual (${formatBR(kAtual)}) não pode ser menor que o anterior (${formatBR(kAnt)})`);
+      return;
+    }
 
     const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
     const isoData = parseDateToISO(data);
@@ -301,7 +318,7 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Quantidade (L) *</Label>
-              <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} placeholder="0" className="h-10" />
+              <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} onBlur={() => handleBlurFormat(quantidade, setQuantidade)} placeholder="0,00" className="h-10" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Motorista</Label>
@@ -313,13 +330,47 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Horímetro Atual</Label>
-              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} placeholder="Ex: 4500" className="h-10" />
+              <Input value={horimetroAtual} onChange={(e) => setHorimetroAtual(e.target.value)} onBlur={() => handleBlurFormat(horimetroAtual, setHorimetroAtual)} placeholder="0,00" className="h-10" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">KM Atual</Label>
-              <Input value={kmAtual} onChange={(e) => setKmAtual(e.target.value)} placeholder="Ex: 120000" className="h-10" />
+              <Input value={kmAtual} onChange={(e) => setKmAtual(e.target.value)} onBlur={() => handleBlurFormat(kmAtual, setKmAtual)} placeholder="0,00" className="h-10" />
             </div>
           </div>
+
+          {/* Cálculo de consumo automático */}
+          {(() => {
+            const litros = parseNum(quantidade);
+            const hAnt = parseNum(horimetroAnterior);
+            const hAt = parseNum(horimetroAtual);
+            const kAnt = parseNum(kmAnterior);
+            const kAt = parseNum(kmAtual);
+            const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+            const isEquip = veiculoInfo?.Categoria?.toLowerCase()?.includes('escavadeira') || veiculoInfo?.Categoria?.toLowerCase()?.includes('equipamento');
+            
+            let consumo: number | null = null;
+            let label = '';
+            
+            if (kAt != null && kAnt != null && litros && litros > 0) {
+              consumo = calcConsumo('veiculo', kAt - kAnt, litros);
+              label = 'KM/L';
+            } else if (hAt != null && hAnt != null && litros && litros > 0) {
+              consumo = calcConsumo('equipamento', hAt - hAnt, litros);
+              label = 'L/h';
+            }
+            
+            if (consumo != null) {
+              const isAnomaly = (label === 'KM/L' && (consumo < 1 || consumo > 20)) || (label === 'L/h' && (consumo < 1 || consumo > 50));
+              return (
+                <div className={`rounded-lg p-3 text-sm flex items-center gap-2 ${isAnomaly ? 'bg-destructive/10 border border-destructive/30' : 'bg-primary/10 border border-primary/20'}`}>
+                  {isAnomaly && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
+                  <span>Consumo calculado: <strong>{formatBR(consumo)} {label}</strong></span>
+                  {isAnomaly && <span className="text-destructive text-xs">(valor fora do padrão)</span>}
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* ARLA + Lubrificação */}
           <div className="grid grid-cols-2 gap-3">
