@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Fuel, Save, X, Loader2, Search, Clock, AlertTriangle } from "lucide-react";
 import { useSyncAbastecimento } from "@/hooks/useAbastecimentos";
 
-import { useGoogleSheets, FrotaGeralRow } from "@/hooks/useGoogleSheets";
+import { useFrota, FrotaItem } from "@/hooks/useFrota";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
