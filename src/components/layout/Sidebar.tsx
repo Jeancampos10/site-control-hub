@@ -47,16 +47,6 @@ const cadastrosMenu: NavItem = {
     { label: "Tipos de Óleo", icon: Fuel, href: "/cadastros/tipos-oleo" },
     { label: "Mecânicos", icon: Wrench, href: "/cadastros/mecanicos" },
     { label: "Peças", icon: Package, href: "/cadastros/pecas" },
-    {
-      label: "Equipamentos",
-      icon: Shovel,
-      children: [
-        { label: "Escavadeiras", icon: Shovel, href: "/cadastros/escavadeiras" },
-        { label: "Caminhão Basculante", icon: Truck, href: "/cadastros/basculantes" },
-        { label: "Caminhão Reboque", icon: Truck, href: "/cadastros/reboques" },
-        { label: "Equipamentos Gerais", icon: Settings, href: "/cadastros/equipamentos-gerais" },
-      ],
-    },
     { label: "Gestão de Usuários", icon: Users, href: "/gestao-usuarios" },
   ],
 };
