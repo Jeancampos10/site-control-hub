@@ -380,6 +380,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cad_obras: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          localizacao: string | null
+          nome: string
+          responsavel: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          localizacao?: string | null
+          nome: string
+          responsavel?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          localizacao?: string | null
+          nome?: string
+          responsavel?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cad_pecas: {
         Row: {
           ativo: boolean
@@ -415,6 +451,42 @@ export type Database = {
           id?: string
           nome?: string
           unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cad_tanques: {
+        Row: {
+          ativo: boolean
+          capacidade: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          local: string | null
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          local?: string | null
+          nome: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          local?: string | null
+          nome?: string
+          tipo?: string
           updated_at?: string
         }
         Relationships: []
