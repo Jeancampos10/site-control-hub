@@ -1,32 +1,19 @@
 import { useState, useEffect } from "react";
 import { 
   Users, Shield, MessageCircle, Check, X, Clock, 
-  Copy, ExternalLink, Smartphone, ChevronDown, ChevronUp,
-  Mail, Phone, Settings2, Share2, QrCode
+  Copy, ExternalLink, Smartphone, 
+  Mail, Phone, Settings2, Share2, Plus, Trash2, KeyRound, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,8 +22,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth, ModuloPermitido } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface UserData {
   id: string;
@@ -71,13 +56,27 @@ export default function GestaoUsuarios() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPending, setShowPending] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserData | null>(null);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   
-  // Form states for editing
+  // Edit user dialog
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [editRole, setEditRole] = useState<string>('colaborador');
   const [editModulos, setEditModulos] = useState<ModuloPermitido[]>([]);
+  
+  // Create user dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador' });
+  const [creating, setCreating] = useState(false);
+  
+  // Change password dialog
+  const [passwordUser, setPasswordUser] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  
+  // Share dialog
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  
+  // Delete confirm
+  const [deletingUser, setDeletingUser] = useState<UserData | null>(null);
 
   const mobileAppUrl = `${window.location.origin}/m`;
 
@@ -135,116 +134,150 @@ export default function GestaoUsuarios() {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
+  // ---- APPROVE / REJECT ----
   const handleApprove = async (userId: string) => {
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ 
-          approved: true, 
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id 
-        })
+        .update({ approved: true, approved_at: new Date().toISOString(), approved_by: user?.id })
         .eq('user_id', userId);
-
       if (error) throw error;
-
-      toast.success('Usuário aprovado com sucesso!');
+      toast.success('Usuário aprovado!');
       fetchUsers();
-    } catch (error) {
-      console.error('Error approving user:', error);
-      toast.error('Erro ao aprovar usuário');
-    }
+    } catch { toast.error('Erro ao aprovar usuário'); }
   };
 
   const handleReject = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja rejeitar e remover este usuário?')) return;
-    
+    if (!confirm('Rejeitar e remover este usuário?')) return;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
       if (error) throw error;
-
-      toast.success('Usuário rejeitado e removido');
+      toast.success('Usuário rejeitado');
       fetchUsers();
-    } catch (error) {
-      console.error('Error rejecting user:', error);
-      toast.error('Erro ao rejeitar usuário');
-    }
+    } catch { toast.error('Erro ao rejeitar'); }
   };
 
-  const handleEditUser = (userData: UserData) => {
-    setEditingUser(userData);
-    setEditRole(userData.role);
-    setEditModulos(userData.modulos_permitidos);
+  // ---- EDIT ROLE / MODULES ----
+  const handleEditUser = (u: UserData) => {
+    setEditingUser(u);
+    setEditRole(u.role);
+    setEditModulos(u.modulos_permitidos);
   };
 
   const handleSaveUserConfig = async () => {
     if (!editingUser) return;
-    
     try {
       const { error } = await supabase
         .from('user_roles')
-        .update({ 
-          role: editRole as 'admin' | 'colaborador' | 'visualizacao',
-          modulos_permitidos: editModulos
-        })
+        .update({ role: editRole as any, modulos_permitidos: editModulos })
         .eq('user_id', editingUser.id);
-
       if (error) throw error;
-
-      toast.success('Configurações salvas com sucesso!');
+      toast.success('Permissões atualizadas!');
       setEditingUser(null);
       fetchUsers();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error('Erro ao salvar configurações');
-    }
+    } catch { toast.error('Erro ao salvar'); }
   };
 
-  const handleToggleModulo = (modulo: ModuloPermitido) => {
-    setEditModulos(prev => {
-      if (prev.includes(modulo)) {
-        return prev.filter(m => m !== modulo);
-      }
-      return [...prev, modulo];
-    });
-  };
-
-  const handleWhatsApp = (whatsapp: string, nome: string) => {
-    if (!whatsapp) {
-      toast.error('WhatsApp não cadastrado');
+  // ---- CREATE USER ----
+  const handleCreateUser = async () => {
+    if (!createForm.nome || !createForm.email || !createForm.password) {
+      toast.error('Preencha nome, email e senha');
       return;
     }
+    if (createForm.password.length < 6) {
+      toast.error('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          nome: createForm.nome,
+          sobrenome: createForm.sobrenome,
+          email: createForm.email,
+          password: createForm.password,
+          whatsapp: createForm.whatsapp,
+          tipoUsuario: createForm.tipoUsuario === 'admin' ? 'Sala Técnica' : 'Apontador',
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Usuário criado com sucesso!');
+      setCreateDialogOpen(false);
+      setCreateForm({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador' });
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar usuário');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // ---- CHANGE PASSWORD ----
+  const handleChangePassword = async () => {
+    if (!passwordUser || newPassword.length < 6) {
+      toast.error('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      // Use edge function to change password via admin API
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          action: 'change-password',
+          userId: passwordUser.id,
+          password: newPassword,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Senha alterada com sucesso!');
+      setPasswordUser(null);
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  // ---- DELETE USER ----
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    try {
+      // Delete profile (cascade will handle user_roles)
+      const { error } = await supabase.from('profiles').delete().eq('id', deletingUser.id);
+      if (error) throw error;
+      toast.success('Usuário excluído!');
+      setDeletingUser(null);
+      fetchUsers();
+    } catch { toast.error('Erro ao excluir usuário'); }
+  };
+
+  // ---- WHATSAPP ----
+  const handleWhatsApp = (whatsapp: string, nome: string) => {
+    if (!whatsapp) { toast.error('WhatsApp não cadastrado'); return; }
     const phone = whatsapp.replace(/\D/g, '');
-    const message = encodeURIComponent(`Olá ${nome}! Acesse o App Mobile: ${mobileAppUrl}`);
+    const message = encodeURIComponent(`Olá ${nome}! Acesse o Abastech: ${mobileAppUrl}`);
     window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
   };
 
   const copyAppLink = async () => {
-    try {
-      await navigator.clipboard.writeText(mobileAppUrl);
-      toast.success('Link copiado para a área de transferência!');
-    } catch {
-      toast.error('Erro ao copiar link');
-    }
+    try { await navigator.clipboard.writeText(mobileAppUrl); toast.success('Link copiado!'); } 
+    catch { toast.error('Erro ao copiar'); }
   };
 
   const shareViaWhatsApp = () => {
-    const message = encodeURIComponent(`Acesse o App Mobile de Apontamentos:\n${mobileAppUrl}\n\nFaça seu cadastro e aguarde aprovação.`);
+    const message = encodeURIComponent(`Acesse o Abastech:\n${mobileAppUrl}\n\nFaça seu login e use o app.`);
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
       </div>
     );
   }
@@ -265,36 +298,35 @@ export default function GestaoUsuarios() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="page-header mb-0">
           <h1 className="page-title flex items-center gap-2">
             <Users className="h-6 w-6 text-accent" />
             Gestão de Usuários
           </h1>
-          <p className="page-subtitle">
-            Aprovação, permissões e configuração de acesso
-          </p>
+          <p className="page-subtitle">Cadastro, permissões e controle de acesso</p>
         </div>
-        <Button 
-          onClick={() => setShareDialogOpen(true)}
-          className="gap-2"
-        >
-          <Share2 className="h-4 w-4" />
-          Compartilhar App
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShareDialogOpen(true)} className="gap-2">
+            <Share2 className="h-4 w-4" /> Compartilhar
+          </Button>
+          {isAdminPrincipal && (
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 bg-gradient-accent text-accent-foreground hover:opacity-90">
+              <Plus className="h-4 w-4" /> Novo Usuário
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* App Mobile Link Card */}
-      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+      {/* Mobile Link */}
+      <Card className="border-accent/20 bg-gradient-to-r from-accent/5 to-transparent">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Smartphone className="h-5 w-5 text-primary" />
+            <Smartphone className="h-5 w-5 text-accent" />
             Link do App Mobile
           </CardTitle>
-          <CardDescription>
-            Compartilhe este link com os apontadores para que acessem o app de campo
-          </CardDescription>
+          <CardDescription>Compartilhe este link para acesso ao app de campo</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -304,12 +336,10 @@ export default function GestaoUsuarios() {
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={copyAppLink} className="gap-2">
-                <Copy className="h-4 w-4" />
-                Copiar
+                <Copy className="h-4 w-4" /> Copiar
               </Button>
               <Button variant="outline" size="sm" onClick={shareViaWhatsApp} className="gap-2 text-success border-success/30 hover:bg-success/10">
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
+                <MessageCircle className="h-4 w-4" /> WhatsApp
               </Button>
             </div>
           </div>
@@ -341,26 +371,6 @@ export default function GestaoUsuarios() {
         )}
       </div>
 
-      {/* Pending Alert */}
-      {pendingUsers.length > 0 && !showPending && (
-        <Card className="border-warning/30 bg-warning/5">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 text-warning">
-                <Clock className="h-5 w-5" />
-                <div>
-                  <p className="font-semibold">{pendingUsers.length} usuário(s) aguardando aprovação</p>
-                  <p className="text-sm text-warning/80">Clique para revisar e aprovar</p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={() => setShowPending(true)}>
-                Revisar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Users Table */}
       <Card>
         <CardHeader>
@@ -377,7 +387,7 @@ export default function GestaoUsuarios() {
                   <TableHead>Contato</TableHead>
                   <TableHead>Perfil</TableHead>
                   <TableHead>Módulos</TableHead>
-                  <TableHead className="w-[150px]">Ações</TableHead>
+                  <TableHead className="w-[200px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -386,20 +396,14 @@ export default function GestaoUsuarios() {
                   const perfil = roleConfig[userData.role as keyof typeof roleConfig] || roleConfig.colaborador;
                   const isCurrentUser = userData.id === user?.id;
                   const isPending = !userData.approved;
-                  const isExpanded = expandedUserId === userData.id;
 
                   return (
-                    <TableRow 
-                      key={userData.id} 
-                      className={`${isCurrentUser ? 'bg-accent/5' : ''} ${isPending ? 'bg-warning/5' : ''}`}
-                    >
+                    <TableRow key={userData.id} className={`${isCurrentUser ? 'bg-accent/5' : ''} ${isPending ? 'bg-warning/5' : ''}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             {userData.foto_url && <AvatarImage src={userData.foto_url} alt={userData.nome} />}
-                            <AvatarFallback className="bg-primary text-primary-foreground">
-                              {initials}
-                            </AvatarFallback>
+                            <AvatarFallback className="bg-accent text-accent-foreground">{initials}</AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">
@@ -411,29 +415,22 @@ export default function GestaoUsuarios() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          {userData.whatsapp && (
-                            <div className="flex items-center gap-1 text-sm">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span>{userData.whatsapp}</span>
-                            </div>
-                          )}
-                          {!userData.whatsapp && (
-                            <span className="text-sm text-muted-foreground">Não informado</span>
-                          )}
-                        </div>
+                        {userData.whatsapp ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{userData.whatsapp}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Não informado</span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <span className={`status-badge ${perfil.className}`}>
-                          {perfil.label}
-                        </span>
+                        <span className={`status-badge ${perfil.className}`}>{perfil.label}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {userData.modulos_permitidos.map(m => (
-                            <span key={m} className="text-xs bg-muted px-2 py-0.5 rounded capitalize">
-                              {m}
-                            </span>
+                            <span key={m} className="text-xs bg-muted px-2 py-0.5 rounded capitalize">{m}</span>
                           ))}
                         </div>
                       </TableCell>
@@ -441,48 +438,32 @@ export default function GestaoUsuarios() {
                         <div className="flex gap-1">
                           {isPending && isAdminPrincipal ? (
                             <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
-                                onClick={() => handleApprove(userData.id)}
-                                title="Aprovar"
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => handleApprove(userData.id)} title="Aprovar">
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => handleReject(userData.id)}
-                                title="Rejeitar"
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleReject(userData.id)} title="Rejeitar">
                                 <X className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <>
                               {userData.whatsapp && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8"
-                                  onClick={() => handleWhatsApp(userData.whatsapp, userData.nome)}
-                                  title="Enviar link por WhatsApp"
-                                >
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleWhatsApp(userData.whatsapp, userData.nome)} title="WhatsApp">
                                   <MessageCircle className="h-4 w-4 text-success" />
                                 </Button>
                               )}
                               {isAdminPrincipal && userData.role !== 'admin_principal' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8"
-                                  onClick={() => handleEditUser(userData)}
-                                  title="Configurar permissões"
-                                >
-                                  <Settings2 className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditUser(userData)} title="Permissões">
+                                    <Settings2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPasswordUser(userData); setNewPassword(''); }} title="Alterar senha">
+                                    <KeyRound className="h-4 w-4 text-warning" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setDeletingUser(userData)} title="Excluir">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                             </>
                           )}
@@ -494,7 +475,7 @@ export default function GestaoUsuarios() {
                 {displayedUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      {showPending ? 'Nenhum usuário pendente de aprovação' : 'Nenhum usuário aprovado'}
+                      {showPending ? 'Nenhum usuário pendente' : 'Nenhum usuário aprovado'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -504,22 +485,69 @@ export default function GestaoUsuarios() {
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
+      {/* ===== CREATE USER DIALOG ===== */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-accent" /> Novo Usuário</DialogTitle>
+            <DialogDescription>Crie um login para o novo usuário</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Nome *</Label>
+                <Input value={createForm.nome} onChange={e => setCreateForm(p => ({...p, nome: e.target.value}))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Sobrenome</Label>
+                <Input value={createForm.sobrenome} onChange={e => setCreateForm(p => ({...p, sobrenome: e.target.value}))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Email *</Label>
+              <Input type="email" value={createForm.email} onChange={e => setCreateForm(p => ({...p, email: e.target.value}))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Senha *</Label>
+              <Input type="password" value={createForm.password} onChange={e => setCreateForm(p => ({...p, password: e.target.value}))} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div className="space-y-1">
+              <Label>WhatsApp</Label>
+              <Input value={createForm.whatsapp} onChange={e => setCreateForm(p => ({...p, whatsapp: e.target.value}))} placeholder="(00) 00000-0000" />
+            </div>
+            <div className="space-y-1">
+              <Label>Perfil de Acesso</Label>
+              <Select value={createForm.tipoUsuario} onValueChange={v => setCreateForm(p => ({...p, tipoUsuario: v}))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Sala Técnica (Admin)</SelectItem>
+                  <SelectItem value="colaborador">Apontador</SelectItem>
+                  <SelectItem value="visualizacao">Visualização</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateUser} disabled={creating} className="bg-gradient-accent text-accent-foreground">
+              {creating ? 'Criando...' : 'Criar Usuário'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== EDIT PERMISSIONS DIALOG ===== */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Configurar Usuário</DialogTitle>
-            <DialogDescription>
-              Configure o perfil e os módulos permitidos para {editingUser?.nome}
-            </DialogDescription>
+            <DialogDescription>Perfil e módulos de {editingUser?.nome}</DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-6 py-4">
-            {/* User Info */}
             <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
               <Avatar className="h-12 w-12">
                 {editingUser?.foto_url && <AvatarImage src={editingUser.foto_url} />}
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-accent text-accent-foreground">
                   {editingUser?.nome?.[0]}{editingUser?.sobrenome?.[0]}
                 </AvatarFallback>
               </Avatar>
@@ -528,14 +556,10 @@ export default function GestaoUsuarios() {
                 <p className="text-sm text-muted-foreground">{editingUser?.email}</p>
               </div>
             </div>
-
-            {/* Role Select */}
             <div className="space-y-2">
               <Label>Perfil de Acesso</Label>
               <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Sala Técnica (Admin)</SelectItem>
                   <SelectItem value="colaborador">Apontador</SelectItem>
@@ -543,80 +567,97 @@ export default function GestaoUsuarios() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Modules Checkboxes */}
             <div className="space-y-3">
-              <Label>Módulos Permitidos (App Mobile)</Label>
+              <Label>Módulos Permitidos</Label>
               <div className="space-y-2">
                 {modulosOptions.map(modulo => (
                   <div key={modulo.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
                     <Checkbox
                       id={modulo.id}
                       checked={editModulos.includes(modulo.id)}
-                      onCheckedChange={() => handleToggleModulo(modulo.id)}
+                      onCheckedChange={() => {
+                        setEditModulos(prev => prev.includes(modulo.id) ? prev.filter(m => m !== modulo.id) : [...prev, modulo.id]);
+                      }}
                     />
-                    <Label htmlFor={modulo.id} className="font-normal cursor-pointer flex-1">
-                      {modulo.label}
-                    </Label>
+                    <Label htmlFor={modulo.id} className="font-normal cursor-pointer flex-1">{modulo.label}</Label>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                O usuário só verá no App Mobile os módulos marcados acima.
-              </p>
             </div>
           </div>
-
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveUserConfig}>
-              Salvar Configurações
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+            <Button onClick={handleSaveUserConfig}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== CHANGE PASSWORD DIALOG ===== */}
+      <Dialog open={!!passwordUser} onOpenChange={() => setPasswordUser(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-warning" /> Alterar Senha</DialogTitle>
+            <DialogDescription>Nova senha para {passwordUser?.nome} {passwordUser?.sobrenome}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>Nova Senha</Label>
+              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setPasswordUser(null)}>Cancelar</Button>
+            <Button onClick={handleChangePassword} disabled={changingPassword} className="bg-warning text-warning-foreground hover:bg-warning/90">
+              {changingPassword ? 'Alterando...' : 'Alterar Senha'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Share Dialog */}
+      {/* ===== DELETE CONFIRM DIALOG ===== */}
+      <Dialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Excluir Usuário</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir <strong>{deletingUser?.nome} {deletingUser?.sobrenome}</strong>? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button variant="outline" onClick={() => setDeletingUser(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>Excluir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== SHARE DIALOG ===== */}
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-primary" />
-              Compartilhar App Mobile
+              <Smartphone className="h-5 w-5 text-accent" /> Compartilhar App
             </DialogTitle>
-            <DialogDescription>
-              Envie o link do app para os apontadores de campo
-            </DialogDescription>
+            <DialogDescription>Envie o link do app para os usuários</DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4 py-4">
             <div className="p-4 bg-muted rounded-lg text-center">
               <p className="text-sm text-muted-foreground mb-2">Link de acesso:</p>
               <code className="text-lg font-mono">{mobileAppUrl}</code>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" onClick={copyAppLink} className="gap-2">
-                <Copy className="h-4 w-4" />
-                Copiar Link
+                <Copy className="h-4 w-4" /> Copiar Link
               </Button>
               <Button onClick={shareViaWhatsApp} className="gap-2 bg-success text-success-foreground hover:bg-success/90">
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
+                <MessageCircle className="h-4 w-4" /> WhatsApp
               </Button>
             </div>
-
             <div className="border-t pt-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                <strong>Instruções para o usuário:</strong>
-              </p>
+              <p className="text-sm text-muted-foreground mb-3"><strong>Instruções:</strong></p>
               <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
                 <li>Acesse o link acima no celular</li>
-                <li>Clique em "Cadastrar" e preencha os dados</li>
-                <li>Aguarde a aprovação do administrador</li>
-                <li>Após aprovado, faça login e use o app</li>
+                <li>Faça login com as credenciais fornecidas</li>
+                <li>Use o app normalmente</li>
               </ol>
             </div>
           </div>

@@ -72,6 +72,36 @@ Deno.serve(async (req) => {
 
     // Parse the request body
     const body = await req.json();
+
+    // Handle password change action
+    if (body.action === 'change-password') {
+      const { userId, password } = body;
+      if (!userId || !password || password.length < 6) {
+        return new Response(
+          JSON.stringify({ error: "ID do usuário e senha (mín. 6 caracteres) são obrigatórios" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, { password });
+      if (updateError) {
+        console.error("Error changing password:", updateError);
+        return new Response(
+          JSON.stringify({ error: updateError.message || "Erro ao alterar senha" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Senha alterada com sucesso!" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { nome, sobrenome, email, password, whatsapp, tipoUsuario } = body;
 
     // Validate required fields
@@ -91,7 +121,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate password length
     if (password.length < 6) {
       return new Response(
         JSON.stringify({ error: "A senha deve ter pelo menos 6 caracteres" }),
@@ -101,9 +130,7 @@ Deno.serve(async (req) => {
 
     // Map tipoUsuario to role
     let role = "colaborador";
-    if (tipoUsuario === "Sala Técnica") {
-      role = "admin";
-    } else if (tipoUsuario === "Administrador") {
+    if (tipoUsuario === "Sala Técnica" || tipoUsuario === "Administrador") {
       role = "admin";
     }
 

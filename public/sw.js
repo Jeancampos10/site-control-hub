@@ -1,4 +1,4 @@
-const CACHE_NAME = 'apropriapp-v2';
+const CACHE_NAME = 'abastech-v1';
 const OFFLINE_URL = '/m';
 
 const urlsToCache = [

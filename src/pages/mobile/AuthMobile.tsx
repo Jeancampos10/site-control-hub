@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Mail, Lock, Eye, EyeOff, Smartphone } from "lucide-react";
-import logoApropriapp from "@/assets/logo-apropriapp.png";
+import logoAbastech from "@/assets/logo-abastech.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,7 +107,7 @@ export default function AuthMobile() {
         {/* Logo */}
         <div className="text-center mb-6">
           <img 
-            src={logoApropriapp} 
+            src={logoAbastech} 
             alt="ApropriAPP Logo" 
             className="h-24 mx-auto mb-2"
           />
