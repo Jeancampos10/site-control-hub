@@ -30,6 +30,8 @@ import CadastroLubrificantes from "./pages/cadastros/CadastroLubrificantes";
 import CadastroTiposOleo from "./pages/cadastros/CadastroTiposOleo";
 import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
 import CadastroPecas from "./pages/cadastros/CadastroPecas";
+import CadastroTanques from "./pages/cadastros/CadastroTanques";
+import CadastroObras from "./pages/cadastros/CadastroObras";
 
 // Controle
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
