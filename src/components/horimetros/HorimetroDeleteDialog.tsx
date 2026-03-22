@@ -23,7 +23,7 @@ export function HorimetroDeleteDialog({ horimetro, open, onOpenChange }: Horimet
   const handleDelete = async () => {
     if (!horimetro) return;
     
-    await deleteMutation.mutateAsync(horimetro.id);
+    await deleteMutation.mutateAsync({ id: horimetro.id, data: horimetro.data, veiculo: horimetro.veiculo });
     onOpenChange(false);
   };
 
