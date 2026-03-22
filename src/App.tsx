@@ -87,6 +87,10 @@ const App = () => (
             <Route path="/cadastros/basculantes" element={<ProtectedRoute><CadastroBasculantes /></ProtectedRoute>} />
             <Route path="/cadastros/reboques" element={<ProtectedRoute><CadastroReboques /></ProtectedRoute>} />
             <Route path="/cadastros/equipamentos-gerais" element={<ProtectedRoute><CadastroEquipamentosGerais /></ProtectedRoute>} />
+            <Route path="/cadastros/lubrificantes" element={<ProtectedRoute><CadastroLubrificantes /></ProtectedRoute>} />
+            <Route path="/cadastros/tipos-oleo" element={<ProtectedRoute><CadastroTiposOleo /></ProtectedRoute>} />
+            <Route path="/cadastros/mecanicos" element={<ProtectedRoute><CadastroMecanicos /></ProtectedRoute>} />
+            <Route path="/cadastros/pecas" element={<ProtectedRoute><CadastroPecas /></ProtectedRoute>} />
             
             {/* Controle */}
             <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
