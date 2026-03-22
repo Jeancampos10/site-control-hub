@@ -41,6 +41,7 @@ const cadastrosMenu: NavItem = {
   label: "Cadastros",
   icon: Settings,
   children: [
+    { label: "Fornecedores", icon: Building2, href: "/cadastros/fornecedores-geral" },
     { label: "Tanques / Locais", icon: Fuel, href: "/cadastros/tanques" },
     { label: "Obras", icon: Building2, href: "/cadastros/obras" },
     { label: "Tipos de Óleo", icon: Fuel, href: "/cadastros/tipos-oleo" },

@@ -32,6 +32,7 @@ import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
 import CadastroPecas from "./pages/cadastros/CadastroPecas";
 import CadastroTanques from "./pages/cadastros/CadastroTanques";
 import CadastroObras from "./pages/cadastros/CadastroObras";
+import CadastroFornecedoresGeral from "./pages/cadastros/CadastroFornecedoresGeral";
 
 // Controle
 import ControleVisaoGeral from "./pages/controle/ControleVisaoGeral";
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/cadastros/pecas" element={<ProtectedRoute><CadastroPecas /></ProtectedRoute>} />
             <Route path="/cadastros/tanques" element={<ProtectedRoute><CadastroTanques /></ProtectedRoute>} />
             <Route path="/cadastros/obras" element={<ProtectedRoute><CadastroObras /></ProtectedRoute>} />
+            <Route path="/cadastros/fornecedores-geral" element={<ProtectedRoute><CadastroFornecedoresGeral /></ProtectedRoute>} />
             
             {/* Controle */}
             <Route path="/controle" element={<ProtectedRoute><ControleVisaoGeral /></ProtectedRoute>} />
