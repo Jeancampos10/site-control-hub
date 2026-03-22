@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableLoader } from "@/components/ui/loading-spinner";
 import { useFrota, useCreateFrota, useUpdateFrota, useDeleteFrota, FrotaItem } from "@/hooks/useFrota";
 import { ExportButtons } from "@/components/shared/ExportButtons";
+import { ImportFrotaDialog } from "@/components/frota/ImportFrotaDialog";
 
 const categorias = ["Escavadeira", "Caminhão Basculante", "Caminhão Pipa", "Pá Carregadeira", "Rolo Compactador", "Retroescavadeira", "Motoniveladora", "Trator", "Gerador", "Outros"];
 const statusOptions = ["Mobilizado", "Desmobilizado", "Em Manutenção", "Parado"];
