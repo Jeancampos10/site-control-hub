@@ -13,6 +13,9 @@ import {
   Calendar,
   FileText,
   Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -24,15 +27,22 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useManutencoes, OrdemServico } from "@/hooks/useManutencoes";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useManutencoes, useDeleteOrdemServico, OrdemServico } from "@/hooks/useManutencoes";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { NovaOrdemServicoDialog } from "@/components/manutencao/NovaOrdemServicoDialog";
+import { EditOrdemServicoDialog } from "@/components/manutencao/EditOrdemServicoDialog";
 
 export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTab, setSelectedTab] = useState("todas");
   const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const [editingOS, setEditingOS] = useState<OrdemServico | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingOS, setDeletingOS] = useState<OrdemServico | null>(null);
   const { data: ordens, isLoading } = useManutencoes();
+  const deleteMutation = useDeleteOrdemServico();
 
   const ordensServico = ordens || [];
 
@@ -189,6 +199,7 @@ export default function Manutencao() {
                           <TableHead>Mecânico</TableHead>
                           <TableHead>Abertura</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-[60px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -209,10 +220,27 @@ export default function Manutencao() {
                             <TableCell>{os.mecanico_responsavel || "—"}</TableCell>
                             <TableCell>{os.data_abertura}</TableCell>
                             <TableCell>{getStatusBadge(os.status)}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-popover">
+                                  <DropdownMenuItem onClick={() => { setEditingOS(os); setEditDialogOpen(true); }}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setDeletingOS(os)} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                               Nenhuma ordem de serviço encontrada. Clique em "Nova OS" para criar.
                             </TableCell>
                           </TableRow>
@@ -298,6 +326,27 @@ export default function Manutencao() {
       )}
 
       <NovaOrdemServicoDialog open={novaOSOpen} onOpenChange={setNovaOSOpen} />
+      <EditOrdemServicoDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} ordem={editingOS} />
+
+      <AlertDialog open={!!deletingOS} onOpenChange={() => setDeletingOS(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir OS-{deletingOS?.numero_os} do veículo <strong>{deletingOS?.veiculo}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deletingOS) deleteMutation.mutate({ id: deletingOS.id, veiculo: deletingOS.veiculo }); setDeletingOS(null); }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
