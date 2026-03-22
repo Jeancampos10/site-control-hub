@@ -277,11 +277,10 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
                 <span className="text-muted-foreground">⤴</span>
                 KM
               </Label>
-              <Input
+              <NumericInput
                 value={km}
-                onChange={(e) => setKm(e.target.value)}
-                placeholder="0,0"
-                className="h-10"
+                onChange={setKm}
+                placeholder="0"
               />
             </div>
           </div>
