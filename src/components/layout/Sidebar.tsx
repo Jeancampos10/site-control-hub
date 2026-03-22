@@ -22,6 +22,7 @@ import {
   Shovel,
   Settings,
   UserCog,
+  ClipboardCheck,
 } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ const controleMenu: NavItem = {
     { label: "Programação", icon: CalendarClock, href: "/controle/programacao" },
     { label: "Horímetros", icon: Clock, href: "/controle/horimetros" },
     { label: "Abastecimentos", icon: Fuel, href: "/controle/abastecimentos" },
+    { label: "Checklist", icon: ClipboardCheck, href: "/controle/checklist" },
   ],
 };
 
