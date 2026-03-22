@@ -38,7 +38,11 @@ export default function Manutencao() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTab, setSelectedTab] = useState("todas");
   const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const [editingOS, setEditingOS] = useState<OrdemServico | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingOS, setDeletingOS] = useState<OrdemServico | null>(null);
   const { data: ordens, isLoading } = useManutencoes();
+  const deleteMutation = useDeleteOrdemServico();
 
   const ordensServico = ordens || [];
 
