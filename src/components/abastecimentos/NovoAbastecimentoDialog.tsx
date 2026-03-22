@@ -161,6 +161,21 @@ export function NovoAbastecimentoDialog({ open, onOpenChange }: Props) {
     const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
     const isoData = parseDateToISO(data);
 
+    // Verificar duplicidade no mesmo dia + mesmo local
+    const { data: existing } = await supabase
+      .from('abastecimentos')
+      .select('id')
+      .eq('veiculo', veiculo)
+      .eq('data', isoData)
+      .eq('local_abastecimento', source)
+      .eq('hora', hora)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      toast.error(`Já existe um abastecimento para ${veiculo} nesta data/hora/fonte`);
+      return;
+    }
+
     setIsSyncing(true);
     try {
       // 1. Save to Supabase
