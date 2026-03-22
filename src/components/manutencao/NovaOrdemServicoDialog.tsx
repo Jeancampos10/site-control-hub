@@ -161,7 +161,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
         diagnostico: tipoProblema,
         solucao_aplicada: solucao || undefined,
         mecanico_responsavel: mecanico || undefined,
-        motorista_operador: veiculoInfo?.Motorista || undefined,
+        motorista_operador: veiculoInfo?.motorista || undefined,
         horimetro_km: parseNumber(horimetroAtual) || parseNumber(kmAtual),
         tempo_estimado_horas: parseNumber(horasEstimadas),
         tempo_real_horas: parseNumber(horasRealizadas),
