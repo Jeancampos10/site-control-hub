@@ -137,6 +137,15 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
       return;
     }
 
+    const horimetroAtual = parseNumber(horimetro);
+    const horimetroAnterior = parseNumber(lastHorimetro);
+
+    // Validação: não permitir valor menor que anterior
+    if (horimetroAtual != null && horimetroAnterior != null && horimetroAtual < horimetroAnterior) {
+      toast.error(`Horímetro atual (${formatBR(horimetroAtual)}) não pode ser menor que o anterior (${formatBR(horimetroAnterior)})`);
+      return;
+    }
+
     // Parse date from dd/MM/yy to yyyy-MM-dd
     const dateParts = data.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
     let isoDate = format(new Date(), 'yyyy-MM-dd');
