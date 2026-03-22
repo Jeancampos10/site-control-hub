@@ -47,16 +47,6 @@ const cadastrosMenu: NavItem = {
     { label: "Tipos de Óleo", icon: Fuel, href: "/cadastros/tipos-oleo" },
     { label: "Mecânicos", icon: Wrench, href: "/cadastros/mecanicos" },
     { label: "Peças", icon: Package, href: "/cadastros/pecas" },
-    {
-      label: "Equipamentos",
-      icon: Shovel,
-      children: [
-        { label: "Escavadeiras", icon: Shovel, href: "/cadastros/escavadeiras" },
-        { label: "Caminhão Basculante", icon: Truck, href: "/cadastros/basculantes" },
-        { label: "Caminhão Reboque", icon: Truck, href: "/cadastros/reboques" },
-        { label: "Equipamentos Gerais", icon: Settings, href: "/cadastros/equipamentos-gerais" },
-      ],
-    },
     { label: "Gestão de Usuários", icon: Users, href: "/gestao-usuarios" },
   ],
 };
@@ -79,7 +69,7 @@ const controleMenu: NavItem = {
 const mainNavigationItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   controleMenu,
-  { label: "Frota", icon: Truck, href: "/frota" },
+  { label: "Frota Geral", icon: Truck, href: "/frota" },
   cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },

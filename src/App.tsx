@@ -22,10 +22,6 @@ import Alertas from "./pages/Alertas";
 import CadastroLocais from "./pages/cadastros/CadastroLocais";
 import CadastroMateriais from "./pages/cadastros/CadastroMateriais";
 import CadastroFornecedores from "./pages/cadastros/CadastroFornecedores";
-import CadastroEscavadeiras from "./pages/cadastros/CadastroEscavadeiras";
-import CadastroBasculantes from "./pages/cadastros/CadastroBasculantes";
-import CadastroReboques from "./pages/cadastros/CadastroReboques";
-import CadastroEquipamentosGerais from "./pages/cadastros/CadastroEquipamentosGerais";
 import CadastroLubrificantes from "./pages/cadastros/CadastroLubrificantes";
 import CadastroTiposOleo from "./pages/cadastros/CadastroTiposOleo";
 import CadastroMecanicos from "./pages/cadastros/CadastroMecanicos";
@@ -87,10 +83,6 @@ const App = () => (
             <Route path="/cadastros/locais" element={<ProtectedRoute><CadastroLocais /></ProtectedRoute>} />
             <Route path="/cadastros/materiais" element={<ProtectedRoute><CadastroMateriais /></ProtectedRoute>} />
             <Route path="/cadastros/fornecedores" element={<ProtectedRoute><CadastroFornecedores /></ProtectedRoute>} />
-            <Route path="/cadastros/escavadeiras" element={<ProtectedRoute><CadastroEscavadeiras /></ProtectedRoute>} />
-            <Route path="/cadastros/basculantes" element={<ProtectedRoute><CadastroBasculantes /></ProtectedRoute>} />
-            <Route path="/cadastros/reboques" element={<ProtectedRoute><CadastroReboques /></ProtectedRoute>} />
-            <Route path="/cadastros/equipamentos-gerais" element={<ProtectedRoute><CadastroEquipamentosGerais /></ProtectedRoute>} />
             <Route path="/cadastros/lubrificantes" element={<ProtectedRoute><CadastroLubrificantes /></ProtectedRoute>} />
             <Route path="/cadastros/tipos-oleo" element={<ProtectedRoute><CadastroTiposOleo /></ProtectedRoute>} />
             <Route path="/cadastros/mecanicos" element={<ProtectedRoute><CadastroMecanicos /></ProtectedRoute>} />

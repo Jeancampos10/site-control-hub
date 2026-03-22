@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, FileSpreadsheet, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +116,18 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
     onOpenChange(false);
   }
 
+  function downloadTemplate() {
+    const templateData = [
+      { Codigo: "EX-001", Descricao: "Escavadeira CAT 320", Categoria: "Escavadeira", Potencia: "320HP", Motorista: "João Silva", Empresa: "Empresa X", Obra: "Obra 01", Status: "Mobilizado" },
+      { Codigo: "CB-002", Descricao: "Caminhão Basculante", Categoria: "Caminhão Basculante", Potencia: "400HP", Motorista: "Carlos Santos", Empresa: "Empresa Y", Obra: "Obra 02", Status: "Mobilizado" },
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Frota");
+    XLSX.writeFile(wb, "modelo_importacao_frota.xlsx");
+    toast.success("Modelo baixado com sucesso!");
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -142,7 +154,7 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
               </div>
               <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
               
-              <div className="rounded-lg bg-muted/50 p-4 text-xs space-y-1">
+              <div className="rounded-lg bg-muted/50 p-4 text-xs space-y-2">
                 <p className="font-medium flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Dicas:</p>
                 <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
                   <li>A primeira linha deve conter os cabeçalhos</li>
@@ -150,6 +162,10 @@ export function ImportFrotaDialog({ open, onOpenChange }: Props) {
                   <li>Outras colunas são mapeadas automaticamente</li>
                   <li>Formatos aceitos: .csv, .xlsx, .xls</li>
                 </ul>
+                <Button variant="outline" size="sm" className="gap-2 mt-2" onClick={downloadTemplate}>
+                  <Download className="h-3.5 w-3.5" />
+                  Baixar Modelo de Importação
+                </Button>
               </div>
             </div>
           ) : (
