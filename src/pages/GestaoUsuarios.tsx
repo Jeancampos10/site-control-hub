@@ -199,7 +199,7 @@ export default function GestaoUsuarios() {
           email: createForm.email,
           password: createForm.password,
           whatsapp: createForm.whatsapp,
-          tipoUsuario: createForm.tipoUsuario === 'admin' ? 'Sala Técnica' : 'Apontador',
+          tipoUsuario: createForm.tipoUsuario,
         },
       });
       if (error) throw error;
