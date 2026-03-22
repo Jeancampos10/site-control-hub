@@ -39,16 +39,16 @@ interface UserData {
 
 const roleConfig = {
   admin_principal: { label: "Administrador Principal", className: "bg-accent/10 text-accent", icon: Shield },
-  admin: { label: "Sala Técnica", className: "bg-primary/10 text-primary", icon: Shield },
-  colaborador: { label: "Apontador", className: "bg-success/10 text-success", icon: Users },
-  visualizacao: { label: "Visualização", className: "bg-muted text-muted-foreground", icon: Users },
+  admin: { label: "Gestor / Sala Técnica", className: "bg-primary/10 text-primary", icon: Shield },
+  colaborador: { label: "Operador de Campo", className: "bg-success/10 text-success", icon: Users },
+  visualizacao: { label: "Somente Visualização", className: "bg-muted text-muted-foreground", icon: Users },
 };
 
 const modulosOptions: { id: ModuloPermitido; label: string }[] = [
-  { id: 'apropriacao', label: 'Apropriação (Carga/Lançamento)' },
-  { id: 'pedreira', label: 'Pedreira' },
-  { id: 'pipas', label: 'Pipas' },
-  { id: 'cal', label: 'Cal' },
+  { id: 'apropriacao', label: 'Frota / Equipamentos' },
+  { id: 'pedreira', label: 'Abastecimentos / Estoque' },
+  { id: 'pipas', label: 'Horímetros / Manutenção' },
+  { id: 'cal', label: 'Checklist / Relatórios' },
 ];
 
 export default function GestaoUsuarios() {
@@ -199,7 +199,7 @@ export default function GestaoUsuarios() {
           email: createForm.email,
           password: createForm.password,
           whatsapp: createForm.whatsapp,
-          tipoUsuario: createForm.tipoUsuario === 'admin' ? 'Sala Técnica' : 'Apontador',
+          tipoUsuario: createForm.tipoUsuario,
         },
       });
       if (error) throw error;
@@ -520,9 +520,9 @@ export default function GestaoUsuarios() {
               <Select value={createForm.tipoUsuario} onValueChange={v => setCreateForm(p => ({...p, tipoUsuario: v}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Sala Técnica (Admin)</SelectItem>
-                  <SelectItem value="colaborador">Apontador</SelectItem>
-                  <SelectItem value="visualizacao">Visualização</SelectItem>
+                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="colaborador">Operador de Campo</SelectItem>
+                  <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -561,9 +561,9 @@ export default function GestaoUsuarios() {
               <Select value={editRole} onValueChange={setEditRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Sala Técnica (Admin)</SelectItem>
-                  <SelectItem value="colaborador">Apontador</SelectItem>
-                  <SelectItem value="visualizacao">Visualização</SelectItem>
+                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="colaborador">Operador de Campo</SelectItem>
+                  <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
             </div>
