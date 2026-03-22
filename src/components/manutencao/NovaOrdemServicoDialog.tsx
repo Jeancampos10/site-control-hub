@@ -142,7 +142,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
     if (!veiculo) { toast.error("Selecione um veículo"); return; }
     if (!problemaRelatado) { toast.error("Descreva o problema"); return; }
 
-    const veiculoInfo = veiculos.find(v => v.Codigo === veiculo);
+    const veiculoInfo = veiculos.find(v => v.codigo === veiculo);
     const isoDataAbertura = parseDateToISO(dataEntrada);
     const isoDataFechamento = dataSaida ? parseDateToISO(dataSaida) : null;
 
