@@ -118,9 +118,13 @@ export default function FrotaGeral() {
             title="Relatório de Frota"
             fileName="frota"
           />
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Importar
+          </Button>
           <Button onClick={openNew} className="gap-2">
             <Plus className="h-4 w-4" />
-            Novo Veículo/Equipamento
+            Novo
           </Button>
         </div>
       </div>
