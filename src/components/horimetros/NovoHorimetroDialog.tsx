@@ -154,8 +154,6 @@ export function NovoHorimetroDialog({ open, onOpenChange }: NovoHorimetroDialogP
       isoDate = `${year}-${dateParts[2].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
     }
 
-    const horimetroAtual = parseNumber(horimetro);
-    const horimetroAnterior = parseNumber(lastHorimetro);
 
     setIsSyncing(true);
 
