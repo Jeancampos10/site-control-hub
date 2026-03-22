@@ -151,7 +151,7 @@ export function NovaOrdemServicoDialog({ open, onOpenChange }: NovaOrdemServicoD
       // 1. Save to Supabase
       await createMutation.mutateAsync({
         veiculo,
-        descricao_veiculo: veiculoInfo?.Descricao || '',
+        descricao_veiculo: veiculoInfo?.descricao || '',
         tipo,
         prioridade,
         status,
