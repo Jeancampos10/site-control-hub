@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Mail, Lock, User, Eye, EyeOff, Phone } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Phone, Truck } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,27 +136,74 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
+      {/* Background with gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
+      
+      {/* Watermark Pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        {/* Large faded logo watermarks */}
+        <img 
+          src={logoAbastech} 
+          alt="" 
+          className="absolute -top-10 -right-20 h-72 opacity-[0.04] rotate-12"
+        />
+        <img 
+          src={logoAbastech} 
+          alt="" 
+          className="absolute -bottom-10 -left-20 h-72 opacity-[0.04] -rotate-12"
+        />
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 60px, hsl(var(--foreground)) 60px, hsl(var(--foreground)) 61px),
+                              repeating-linear-gradient(90deg, transparent, transparent 60px, hsl(var(--foreground)) 60px, hsl(var(--foreground)) 61px)`,
+          }}
+        />
+        {/* Floating text watermarks */}
+        <div className="absolute top-[15%] left-[5%] text-foreground/[0.03] text-6xl font-black tracking-widest rotate-[-15deg]">
+          ABASTECH
+        </div>
+        <div className="absolute bottom-[20%] right-[5%] text-foreground/[0.03] text-5xl font-black tracking-widest rotate-[10deg]">
+          GESTÃO
+        </div>
+        <div className="absolute top-[60%] left-[50%] -translate-x-1/2 text-foreground/[0.02] text-4xl font-black tracking-[0.5em] rotate-[-5deg]">
+          EQUIPAMENTOS
+        </div>
+      </div>
+
+      {/* Decorative circles */}
+      <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-accent/5 blur-3xl" />
+      <div className="absolute bottom-20 right-20 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
+
+      <div className="relative z-10 w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <img 
-            src={logoAbastech} 
-            alt="ApropriAPP Logo" 
-            className="h-32 mx-auto mb-2"
-          />
+        <div className="text-center mb-6">
+          <div className="inline-block relative">
+            <div className="absolute inset-0 bg-accent/20 rounded-full blur-2xl scale-150" />
+            <img 
+              src={logoAbastech} 
+              alt="Abastech Logo" 
+              className="relative h-28 mx-auto drop-shadow-lg"
+            />
+          </div>
+          <h2 className="text-sm font-medium text-muted-foreground mt-3 tracking-wider uppercase">
+            Sistema de Gestão de Equipamentos
+          </h2>
         </div>
 
         {/* Card */}
-        <div className="bg-card rounded-2xl shadow-card p-8 border border-border">
-          <div className="flex mb-6">
+        <div className="bg-card/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-border/50">
+          {/* Toggle */}
+          <div className="flex mb-6 rounded-xl overflow-hidden border border-border">
             <button
               type="button"
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 text-sm font-medium rounded-l-lg transition-colors ${
+              className={`flex-1 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 isLogin
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-accent text-accent-foreground shadow-inner"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               Entrar
@@ -164,15 +211,23 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 text-sm font-medium rounded-r-lg transition-colors ${
+              className={`flex-1 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 !isLogin
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
+                  ? "bg-accent text-accent-foreground shadow-inner"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               Cadastrar
             </button>
           </div>
+
+          {/* Welcome text */}
+          {isLogin && (
+            <div className="text-center mb-5">
+              <p className="text-lg font-semibold text-foreground">Bem-vindo de volta!</p>
+              <p className="text-sm text-muted-foreground">Faça login para acessar o sistema</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -190,9 +245,7 @@ export default function Auth() {
                       className={`pl-10 ${errors.nome ? "border-destructive" : ""}`}
                     />
                   </div>
-                  {errors.nome && (
-                    <p className="text-xs text-destructive">{errors.nome}</p>
-                  )}
+                  {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sobrenome">Sobrenome</Label>
@@ -204,9 +257,7 @@ export default function Auth() {
                     onChange={(e) => handleInputChange("sobrenome", e.target.value)}
                     className={errors.sobrenome ? "border-destructive" : ""}
                   />
-                  {errors.sobrenome && (
-                    <p className="text-xs text-destructive">{errors.sobrenome}</p>
-                  )}
+                  {errors.sobrenome && <p className="text-xs text-destructive">{errors.sobrenome}</p>}
                 </div>
               </div>
             )}
@@ -225,9 +276,7 @@ export default function Auth() {
                     className={`pl-10 ${errors.whatsapp ? "border-destructive" : ""}`}
                   />
                 </div>
-                {errors.whatsapp && (
-                  <p className="text-xs text-destructive">{errors.whatsapp}</p>
-                )}
+                {errors.whatsapp && <p className="text-xs text-destructive">{errors.whatsapp}</p>}
               </div>
             )}
 
@@ -244,9 +293,7 @@ export default function Auth() {
                   className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -269,9 +316,7 @@ export default function Auth() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
-              )}
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 
             {!isLogin && (
@@ -288,15 +333,13 @@ export default function Auth() {
                     className={`pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
                   />
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-xs text-destructive">{errors.confirmPassword}</p>
-                )}
+                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-gradient-accent text-accent-foreground hover:opacity-90"
+              className="w-full bg-gradient-accent text-accent-foreground hover:opacity-90 shadow-lg h-11 text-base font-semibold"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -313,12 +356,13 @@ export default function Auth() {
           </form>
         </div>
 
+        {/* Footer */}
         <div className="text-center mt-6 space-y-1">
           <p className="text-sm text-muted-foreground">
             Desenvolvido por <span className="font-semibold text-foreground">Jean Campos</span>
           </p>
-          <p className="text-xs text-muted-foreground">
-            © 2025 ApropriAPP. Todos os direitos reservados.
+          <p className="text-xs text-muted-foreground/70">
+            © {new Date().getFullYear()} Abastech — Gestão de Equipamentos
           </p>
         </div>
       </div>
