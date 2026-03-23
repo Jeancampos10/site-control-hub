@@ -307,7 +307,7 @@ export default function PainelServidor() {
       if (data?.error) throw new Error(data.error);
       toast.success('Usuário criado!');
       setCreateOpen(false);
-      setCreateForm({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador' });
+      setCreateForm({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador', isCompanyAdmin: false });
       fetchAll();
     } catch (err: any) { toast.error(err.message || 'Erro ao criar'); }
     finally { setCreating(false); }
