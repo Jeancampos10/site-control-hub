@@ -23,6 +23,7 @@ import {
   Settings,
   UserCog,
   ClipboardCheck,
+  Server,
 } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { cn } from "@/lib/utils";
