@@ -73,6 +73,7 @@ const mainNavigationItems: NavItem[] = [
   cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
+  { label: "Painel Servidor", icon: Server, href: "/servidor" },
 ];
 
 const roleLabels: Record<string, string> = {
