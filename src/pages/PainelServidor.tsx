@@ -302,7 +302,10 @@ export default function PainelServidor() {
     if (createForm.password.length < 6) { toast.error('Senha mínima: 6 caracteres'); return; }
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', { body: { ...createForm } });
+      const finalRole = createForm.isCompanyAdmin ? 'admin' : createForm.tipoUsuario;
+      const { data, error } = await supabase.functions.invoke('create-user', { 
+        body: { ...createForm, tipoUsuario: finalRole } 
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success('Usuário criado!');
