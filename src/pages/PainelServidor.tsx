@@ -123,7 +123,8 @@ export default function PainelServidor() {
   // Create user dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador'
+    nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador',
+    isCompanyAdmin: false
   });
   const [creating, setCreating] = useState(false);
 
@@ -301,12 +302,15 @@ export default function PainelServidor() {
     if (createForm.password.length < 6) { toast.error('Senha mínima: 6 caracteres'); return; }
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', { body: { ...createForm } });
+      const finalRole = createForm.isCompanyAdmin ? 'admin' : createForm.tipoUsuario;
+      const { data, error } = await supabase.functions.invoke('create-user', { 
+        body: { ...createForm, tipoUsuario: finalRole } 
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success('Usuário criado!');
       setCreateOpen(false);
-      setCreateForm({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador' });
+      setCreateForm({ nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador', isCompanyAdmin: false });
       fetchAll();
     } catch (err: any) { toast.error(err.message || 'Erro ao criar'); }
     finally { setCreating(false); }
@@ -358,13 +362,15 @@ export default function PainelServidor() {
     );
   }
 
-  const filteredUsers = users.filter(u =>
-    `${u.nome} ${u.sobrenome} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u => u.role !== 'admin_principal')
+    .filter(u =>
+      `${u.nome} ${u.sobrenome} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const roleLabels: Record<string, { label: string; color: string }> = {
-    admin_principal: { label: 'Admin Principal', color: 'bg-accent text-accent-foreground' },
-    admin: { label: 'Gestor', color: 'bg-primary text-primary-foreground' },
+    admin_principal: { label: 'Servidor', color: 'bg-accent text-accent-foreground' },
+    admin: { label: 'Gestor da Empresa', color: 'bg-primary text-primary-foreground' },
     colaborador: { label: 'Operador', color: 'bg-secondary text-secondary-foreground' },
     visualizacao: { label: 'Visualização', color: 'bg-muted text-muted-foreground' },
   };
@@ -863,11 +869,14 @@ export default function PainelServidor() {
               <Select value={createForm.tipoUsuario} onValueChange={v => setCreateForm(p => ({ ...p, tipoUsuario: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="admin">Gestor da Empresa (Admin)</SelectItem>
                   <SelectItem value="colaborador">Operador de Campo</SelectItem>
                   <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                O <strong>Gestor da Empresa</strong> terá acesso administrativo para gerenciar os demais usuários e todos os módulos.
+              </p>
             </div>
             <Button onClick={handleCreateUser} disabled={creating} className="w-full bg-gradient-accent text-accent-foreground">
               {creating ? 'Criando...' : 'Criar Usuário'}
@@ -889,12 +898,14 @@ export default function PainelServidor() {
               <Select value={editRole} onValueChange={setEditRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin_principal">Administrador Principal</SelectItem>
-                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="admin">Gestor da Empresa (Admin)</SelectItem>
                   <SelectItem value="colaborador">Operador de Campo</SelectItem>
                   <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                O Gestor da Empresa pode gerenciar usuários e ter acesso total ao sistema.
+              </p>
             </div>
             <div>
               <Label>Módulos Permitidos</Label>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Mail, Lock, User, Eye, EyeOff, Phone, Truck } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,32 +14,15 @@ const loginSchema = z.object({
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
 });
 
-const signupSchema = z.object({
-  nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
-  sobrenome: z.string().min(2, "Sobrenome deve ter no mínimo 2 caracteres"),
-  whatsapp: z.string().min(10, "WhatsApp inválido").optional().or(z.literal('')),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading, signIn, signUp } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const { user, loading, signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
-    nome: "",
-    sobrenome: "",
-    whatsapp: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,64 +44,32 @@ export default function Auth() {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
-        const validation = loginSchema.safeParse(formData);
-        if (!validation.success) {
-          const fieldErrors: Record<string, string> = {};
-          validation.error.errors.forEach(err => {
-            if (err.path[0]) {
-              fieldErrors[err.path[0] as string] = err.message;
-            }
-          });
-          setErrors(fieldErrors);
-          setIsSubmitting(false);
-          return;
-        }
-
-        const { error } = await signIn(formData.email, formData.password);
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast.error("Email ou senha incorretos");
-          } else {
-            toast.error(error.message);
+      const validation = loginSchema.safeParse(formData);
+      if (!validation.success) {
+        const fieldErrors: Record<string, string> = {};
+        validation.error.errors.forEach(err => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
           }
+        });
+        setErrors(fieldErrors);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error } = await signIn(formData.email, formData.password);
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Email ou senha incorretos");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Email não confirmado. Contate o administrador.");
         } else {
-          sessionStorage.setItem('justLoggedIn', 'true');
-          toast.success("Login realizado com sucesso!");
-          navigate("/");
+          toast.error(error.message);
         }
       } else {
-        const validation = signupSchema.safeParse(formData);
-        if (!validation.success) {
-          const fieldErrors: Record<string, string> = {};
-          validation.error.errors.forEach(err => {
-            if (err.path[0]) {
-              fieldErrors[err.path[0] as string] = err.message;
-            }
-          });
-          setErrors(fieldErrors);
-          setIsSubmitting(false);
-          return;
-        }
-
-        const { error } = await signUp(
-          formData.email,
-          formData.password,
-          formData.nome,
-          formData.sobrenome,
-          formData.whatsapp
-        );
-        
-        if (error) {
-          if (error.message.includes("User already registered")) {
-            toast.error("Este email já está cadastrado");
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success("Conta criada com sucesso!");
-          navigate("/");
-        }
+        sessionStorage.setItem('justLoggedIn', 'true');
+        toast.success("Login realizado com sucesso!");
+        navigate("/");
       }
     } catch (error) {
       toast.error("Ocorreu um erro. Tente novamente.");
@@ -142,7 +93,6 @@ export default function Auth() {
       
       {/* Watermark Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        {/* Large faded logo watermarks */}
         <img 
           src={logoAbastech} 
           alt="" 
@@ -153,7 +103,6 @@ export default function Auth() {
           alt="" 
           className="absolute -bottom-10 -left-20 h-72 opacity-[0.04] -rotate-12"
         />
-        {/* Subtle grid pattern */}
         <div 
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -161,7 +110,6 @@ export default function Auth() {
                               repeating-linear-gradient(90deg, transparent, transparent 60px, hsl(var(--foreground)) 60px, hsl(var(--foreground)) 61px)`,
           }}
         />
-        {/* Floating text watermarks */}
         <div className="absolute top-[15%] left-[5%] text-foreground/[0.03] text-6xl font-black tracking-widest rotate-[-15deg]">
           ABASTECH
         </div>
@@ -195,91 +143,13 @@ export default function Auth() {
 
         {/* Card */}
         <div className="bg-card/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-border/50">
-          {/* Toggle */}
-          <div className="flex mb-6 rounded-xl overflow-hidden border border-border">
-            <button
-              type="button"
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2.5 text-sm font-semibold transition-all duration-300 ${
-                isLogin
-                  ? "bg-accent text-accent-foreground shadow-inner"
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2.5 text-sm font-semibold transition-all duration-300 ${
-                !isLogin
-                  ? "bg-accent text-accent-foreground shadow-inner"
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              Cadastrar
-            </button>
+          {/* Welcome text */}
+          <div className="text-center mb-6">
+            <p className="text-lg font-semibold text-foreground">Bem-vindo de volta!</p>
+            <p className="text-sm text-muted-foreground">Faça login para acessar o sistema</p>
           </div>
 
-          {/* Welcome text */}
-          {isLogin && (
-            <div className="text-center mb-5">
-              <p className="text-lg font-semibold text-foreground">Bem-vindo de volta!</p>
-              <p className="text-sm text-muted-foreground">Faça login para acessar o sistema</p>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="nome"
-                      type="text"
-                      placeholder="João"
-                      value={formData.nome}
-                      onChange={(e) => handleInputChange("nome", e.target.value)}
-                      className={`pl-10 ${errors.nome ? "border-destructive" : ""}`}
-                    />
-                  </div>
-                  {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sobrenome">Sobrenome</Label>
-                  <Input
-                    id="sobrenome"
-                    type="text"
-                    placeholder="Silva"
-                    value={formData.sobrenome}
-                    onChange={(e) => handleInputChange("sobrenome", e.target.value)}
-                    className={errors.sobrenome ? "border-destructive" : ""}
-                  />
-                  {errors.sobrenome && <p className="text-xs text-destructive">{errors.sobrenome}</p>}
-                </div>
-              </div>
-            )}
-
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="whatsapp"
-                    type="tel"
-                    placeholder="(00) 00000-0000"
-                    value={formData.whatsapp}
-                    onChange={(e) => handleInputChange("whatsapp", e.target.value)}
-                    className={`pl-10 ${errors.whatsapp ? "border-destructive" : ""}`}
-                  />
-                </div>
-                {errors.whatsapp && <p className="text-xs text-destructive">{errors.whatsapp}</p>}
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -319,24 +189,6 @@ export default function Auth() {
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className={`pl-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
-                  />
-                </div>
-                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
-              </div>
-            )}
-
             <Button
               type="submit"
               className="w-full bg-gradient-accent text-accent-foreground hover:opacity-90 shadow-lg h-11 text-base font-semibold"
@@ -347,13 +199,17 @@ export default function Auth() {
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                   Aguarde...
                 </div>
-              ) : isLogin ? (
-                "Entrar"
               ) : (
-                "Criar Conta"
+                "Entrar"
               )}
             </Button>
           </form>
+
+          <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border/50">
+            <p className="text-xs text-muted-foreground text-center">
+              🔒 Acesso restrito. Apenas usuários cadastrados pelo administrador podem acessar o sistema.
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
