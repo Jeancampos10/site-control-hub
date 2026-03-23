@@ -362,9 +362,11 @@ export default function PainelServidor() {
     );
   }
 
-  const filteredUsers = users.filter(u =>
-    `${u.nome} ${u.sobrenome} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u => u.role !== 'admin_principal')
+    .filter(u =>
+      `${u.nome} ${u.sobrenome} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const roleLabels: Record<string, { label: string; color: string }> = {
     admin_principal: { label: 'Servidor', color: 'bg-accent text-accent-foreground' },
