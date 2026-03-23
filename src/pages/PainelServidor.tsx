@@ -867,11 +867,14 @@ export default function PainelServidor() {
               <Select value={createForm.tipoUsuario} onValueChange={v => setCreateForm(p => ({ ...p, tipoUsuario: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="admin">Gestor da Empresa (Admin)</SelectItem>
                   <SelectItem value="colaborador">Operador de Campo</SelectItem>
                   <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                O <strong>Gestor da Empresa</strong> terá acesso administrativo para gerenciar os demais usuários e todos os módulos.
+              </p>
             </div>
             <Button onClick={handleCreateUser} disabled={creating} className="w-full bg-gradient-accent text-accent-foreground">
               {creating ? 'Criando...' : 'Criar Usuário'}
