@@ -292,8 +292,10 @@ export default function GestaoUsuarios() {
     );
   }
 
-  const approvedUsers = users.filter(u => u.approved);
-  const pendingUsers = users.filter(u => !u.approved);
+  // Filter out admin_principal users so their data is not visible here
+  const visibleUsers = users.filter(u => u.role !== 'admin_principal');
+  const approvedUsers = visibleUsers.filter(u => u.approved);
+  const pendingUsers = visibleUsers.filter(u => !u.approved);
   const displayedUsers = showPending ? pendingUsers : approvedUsers;
 
   return (
