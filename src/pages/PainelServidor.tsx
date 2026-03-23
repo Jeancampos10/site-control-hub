@@ -367,8 +367,8 @@ export default function PainelServidor() {
   );
 
   const roleLabels: Record<string, { label: string; color: string }> = {
-    admin_principal: { label: 'Admin Principal', color: 'bg-accent text-accent-foreground' },
-    admin: { label: 'Gestor', color: 'bg-primary text-primary-foreground' },
+    admin_principal: { label: 'Servidor', color: 'bg-accent text-accent-foreground' },
+    admin: { label: 'Gestor da Empresa', color: 'bg-primary text-primary-foreground' },
     colaborador: { label: 'Operador', color: 'bg-secondary text-secondary-foreground' },
     visualizacao: { label: 'Visualização', color: 'bg-muted text-muted-foreground' },
   };
