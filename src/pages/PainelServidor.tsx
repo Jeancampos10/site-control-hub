@@ -896,12 +896,14 @@ export default function PainelServidor() {
               <Select value={editRole} onValueChange={setEditRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin_principal">Administrador Principal</SelectItem>
-                  <SelectItem value="admin">Gestor / Sala Técnica</SelectItem>
+                  <SelectItem value="admin">Gestor da Empresa (Admin)</SelectItem>
                   <SelectItem value="colaborador">Operador de Campo</SelectItem>
                   <SelectItem value="visualizacao">Somente Visualização</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                O Gestor da Empresa pode gerenciar usuários e ter acesso total ao sistema.
+              </p>
             </div>
             <div>
               <Label>Módulos Permitidos</Label>
