@@ -4,7 +4,7 @@ import {
   Wrench, ClipboardCheck, BarChart3, RefreshCw, Settings2, Mail,
   AlertTriangle, CheckCircle2, HardDrive, Wifi, Globe, UserPlus,
   FileText, TrendingUp, Calendar, Eye, Pencil, Trash2, KeyRound,
-  Plus, Search, ChevronDown
+  Plus, Search, ChevronDown, Building2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
