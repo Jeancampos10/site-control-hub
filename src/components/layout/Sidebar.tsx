@@ -23,6 +23,7 @@ import {
   Settings,
   UserCog,
   ClipboardCheck,
+  Server,
 } from "lucide-react";
 import logoAbastech from "@/assets/logo-abastech.png";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,7 @@ const mainNavigationItems: NavItem[] = [
   cadastrosMenu,
   { label: "Relatórios", icon: FileText, href: "/relatorios" },
   { label: "Alertas", icon: Bell, href: "/alertas" },
+  { label: "Painel Servidor", icon: Server, href: "/servidor" },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -232,7 +234,9 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-2">
         <ul className="space-y-1">
-          {mainNavigationItems.map((item) => (
+          {mainNavigationItems
+            .filter(item => item.label !== "Painel Servidor" || role === "admin_principal")
+            .map((item) => (
             <NavMenuItem
               key={item.label}
               item={item}
