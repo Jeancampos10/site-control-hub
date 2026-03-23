@@ -123,7 +123,8 @@ export default function PainelServidor() {
   // Create user dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador'
+    nome: '', sobrenome: '', email: '', password: '', whatsapp: '', tipoUsuario: 'colaborador',
+    isCompanyAdmin: false
   });
   const [creating, setCreating] = useState(false);
 
